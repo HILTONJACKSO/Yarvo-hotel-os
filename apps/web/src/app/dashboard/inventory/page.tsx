@@ -290,12 +290,14 @@ export default function InventoryPage() {
           background: hsl(222, 35%, 10%);
           border: 1px solid hsl(217, 20%, 16%);
           border-radius: 12px;
-          overflow: hidden;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
         }
         .inv-table {
           width: 100%;
           border-collapse: collapse;
           color: hsl(210, 40%, 96%);
+          min-width: 900px;
         }
         .inv-table th {
           text-align: left;
@@ -404,6 +406,11 @@ export default function InventoryPage() {
           justify-content: flex-end;
           gap: 12px;
           margin-top: 32px;
+        }
+
+        @media (max-width: 768px) {
+          .inv-header { flex-direction: column; align-items: stretch; gap: 16px; }
+          .btn-primary { width: 100%; }
         }
       `}</style>
     </div>

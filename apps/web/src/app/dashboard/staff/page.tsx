@@ -169,8 +169,8 @@ export default function StaffPage() {
         .btn-primary { background: hsl(43, 96%, 56%); color: hsl(224, 39%, 4%); border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
         .btn-primary:hover { opacity: 0.9; }
 
-        .table-container { background: hsl(222, 35%, 7%); border: 1px solid hsl(217, 20%, 14%); border-radius: 8px; overflow: hidden; }
-        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .table-container { background: hsl(222, 35%, 7%); border: 1px solid hsl(217, 20%, 14%); border-radius: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
         .data-table th { background: hsl(220, 30%, 5%); padding: 12px 16px; font-size: 0.75rem; text-transform: uppercase; color: hsl(215, 20%, 50%); font-weight: 600; border-bottom: 1px solid hsl(217, 20%, 14%); }
         .data-table td { padding: 16px; border-bottom: 1px solid hsl(217, 20%, 12%); color: hsl(210, 40%, 92%); font-size: 0.875rem; }
         .data-table tbody tr:hover { background: hsl(220, 30%, 8%); }
@@ -191,6 +191,12 @@ export default function StaffPage() {
         
         .empty-state { text-align: center; padding: 40px !important; color: hsl(215, 20%, 50%) !important; }
         .loading-state { text-align: center; padding: 40px; color: hsl(215, 20%, 50%); }
+
+        @media (max-width: 768px) {
+          .page-header { flex-direction: column; align-items: stretch; gap: 16px; }
+          .btn-primary { width: 100%; }
+          .tabs { overflow-x: auto; white-space: nowrap; padding-bottom: 4px; }
+        }
       `}</style>
     </div>
   );

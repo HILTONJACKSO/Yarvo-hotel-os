@@ -81,6 +81,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     setCurrentPath(window.location.pathname);
     
+    // Default sidebar to closed on tablet and mobile
+    if (window.innerWidth <= 1024) {
+      setSidebarOpen(false);
+    }
+    
     // Check if user is trying to access a restricted path
     if (user && user.roles && window.location.pathname !== '/dashboard') {
       const currentItem = NAV_ITEMS.find(item => item.type !== 'divider' && window.location.pathname.startsWith(item.href));
@@ -164,6 +169,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={item.href}
                 className={`nav-item ${currentPath === item.href ? 'nav-item-active' : ''}`}
                 title={!sidebarOpen ? item.label : undefined}
+                onClick={() => window.innerWidth <= 1024 && setSidebarOpen(false)}
               >
                 <span className="nav-icon">
                   <IconComponent size={20} />
@@ -662,7 +668,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
 
         /* --- RESPONSIVE 2026 OVERHAUL --- */
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
           .mobile-menu-btn {
             display: flex;
             align-items: center;

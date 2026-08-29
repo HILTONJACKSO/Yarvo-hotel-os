@@ -149,8 +149,8 @@ export default function GuestsPage() {
         .input-field { flex: 1; background: hsl(220, 30%, 5%); border: 1px solid hsl(217, 20%, 18%); color: hsl(210, 40%, 96%); padding: 8px 12px; border-radius: 6px; outline: none; }
         .input-field:focus { border-color: hsl(43, 96%, 56%); }
         
-        .table-container { background: hsl(222, 35%, 7%); border: 1px solid hsl(217, 20%, 14%); border-radius: 8px; overflow: hidden; }
-        .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .table-container { background: hsl(222, 35%, 7%); border: 1px solid hsl(217, 20%, 14%); border-radius: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; min-width: 700px; }
         .data-table th { background: hsl(220, 30%, 5%); padding: 12px 16px; font-size: 0.75rem; text-transform: uppercase; color: hsl(215, 20%, 50%); font-weight: 600; border-bottom: 1px solid hsl(217, 20%, 14%); }
         .data-table td { padding: 16px; border-bottom: 1px solid hsl(217, 20%, 12%); color: hsl(210, 40%, 92%); font-size: 0.875rem; }
         .data-table tbody tr:hover { background: hsl(220, 30%, 8%); }
@@ -170,6 +170,13 @@ export default function GuestsPage() {
         
         .pagination { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid hsl(217, 20%, 14%); }
         .page-info { font-size: 0.8125rem; color: hsl(215, 20%, 50%); }
+
+        @media (max-width: 768px) {
+          .page-header { flex-direction: column; align-items: stretch; gap: 16px; }
+          .btn-primary { width: 100%; }
+          .search-form { flex-direction: column; max-width: 100%; }
+          .btn-secondary { width: 100%; }
+        }
       `}</style>
     </div>
   );

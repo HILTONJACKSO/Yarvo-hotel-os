@@ -233,12 +233,14 @@ export default function RoomsPage() {
           background: hsl(222, 35%, 7%);
           border: 1px solid hsl(217, 20%, 14%);
           border-radius: 8px;
-          overflow: hidden;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
         }
         .data-table {
           width: 100%;
           border-collapse: collapse;
           text-align: left;
+          min-width: 700px;
         }
         .data-table th {
           background: hsl(220, 30%, 5%);
@@ -340,6 +342,13 @@ export default function RoomsPage() {
           display: flex; align-items: center; gap: 8px; padding: 12px;
           background: hsl(0, 84%, 60%, 0.1); border: 1px solid hsl(0, 84%, 60%, 0.3);
           border-radius: 8px; color: hsl(0, 84%, 65%); font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+          .page-header { flex-direction: column; align-items: stretch; gap: 16px; }
+          .btn-primary { width: 100%; }
+          .filters-bar { flex-direction: column; gap: 12px; }
+          .input-field, .select-field { width: 100%; }
         }
       `}</style>
     </div>
