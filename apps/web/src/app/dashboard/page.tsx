@@ -69,7 +69,7 @@ export default function DashboardPage() {
           <p className="welcome-sub">Here&apos;s what&apos;s happening at Yarvo today.</p>
         </div>
         <div className="welcome-badge">
-          <span className="role-chip">{user?.role?.replace('_', ' ')}</span>
+          <span className="role-chip">{user?.roles?.[0]?.replace('_', ' ')}</span>
         </div>
       </div>
 
