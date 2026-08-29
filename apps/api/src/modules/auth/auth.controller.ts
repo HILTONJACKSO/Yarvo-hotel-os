@@ -53,7 +53,8 @@ export class AuthController {
     const cookieBase = {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict',
+      sameSite: 'lax' as const,
+      domain: process.env.COOKIE_DOMAIN || undefined,
     };
 
     res.setCookie('accessToken', accessToken, {
@@ -131,7 +132,12 @@ export class AuthController {
     } = await this.authService.refreshTokens(sessionId, refreshToken, ipAddress, userAgent);
 
     const isProduction = process.env.NODE_ENV === 'production';
-    const cookieBase = { httpOnly: true, secure: isProduction, sameSite: 'strict' };
+    const cookieBase = { 
+      httpOnly: true, 
+      secure: isProduction, 
+      sameSite: 'lax' as const,
+      domain: process.env.COOKIE_DOMAIN || undefined 
+    };
 
     res.setCookie('accessToken', accessToken, { ...cookieBase, path: '/', maxAge: 15 * 60 });
     res.setCookie('refreshToken', newRefreshToken, {
