@@ -32,37 +32,41 @@ import {
   Clock
 } from 'lucide-react';
 
-const NAV_ITEMS = [
-  { icon: Home, label: 'Dashboard', href: '/dashboard', id: 'nav-dashboard' },
-  { icon: CalendarCheck, label: 'Reservations', href: '/dashboard/reservations', id: 'nav-reservations' },
-  { icon: Users, label: 'Guests', href: '/dashboard/guests', id: 'nav-guests' },
-  { icon: Building2, label: 'Companies', href: '/dashboard/companies', id: 'nav-companies' },
-  { icon: Users, label: 'Staff', href: '/dashboard/staff', id: 'nav-staff' },
+type NavItem = 
+  | { icon: any; label: string; href: string; id: string; type?: never; allowedRoles: string[] }
+  | { type: 'divider' };
+
+const NAV_ITEMS: NavItem[] = [
+  { icon: Home, label: 'Dashboard', href: '/dashboard', id: 'nav-dashboard', allowedRoles: ['super_admin', 'admin', 'manager', 'front_desk', 'housekeeping', 'maintenance', 'accountant', 'restaurant', 'pos'] },
+  { icon: CalendarCheck, label: 'Reservations', href: '/dashboard/reservations', id: 'nav-reservations', allowedRoles: ['super_admin', 'admin', 'manager', 'front_desk'] },
+  { icon: Users, label: 'Guests', href: '/dashboard/guests', id: 'nav-guests', allowedRoles: ['super_admin', 'admin', 'manager', 'front_desk'] },
+  { icon: Building2, label: 'Companies', href: '/dashboard/companies', id: 'nav-companies', allowedRoles: ['super_admin', 'admin', 'manager', 'front_desk'] },
+  { icon: Users, label: 'Staff', href: '/dashboard/staff', id: 'nav-staff', allowedRoles: ['super_admin', 'admin', 'manager'] },
   { type: 'divider' },
-  { icon: BedDouble, label: 'Rooms', href: '/dashboard/rooms', id: 'nav-rooms' },
-  { icon: Tags, label: 'Room Types', href: '/dashboard/room-types', id: 'nav-room-types' },
-  { icon: ConciergeBell, label: 'Front Desk', href: '/dashboard/front-desk', id: 'nav-frontdesk' },
-  { icon: Sparkles, label: 'Housekeeping', href: '/dashboard/housekeeping', id: 'nav-housekeeping' },
-  { icon: Wrench, label: 'Maintenance', href: '/dashboard/maintenance', id: 'nav-maintenance' },
+  { icon: BedDouble, label: 'Rooms', href: '/dashboard/rooms', id: 'nav-rooms', allowedRoles: ['super_admin', 'admin', 'manager', 'front_desk', 'housekeeping', 'maintenance'] },
+  { icon: Tags, label: 'Room Types', href: '/dashboard/room-types', id: 'nav-room-types', allowedRoles: ['super_admin', 'admin', 'manager'] },
+  { icon: ConciergeBell, label: 'Front Desk', href: '/dashboard/front-desk', id: 'nav-frontdesk', allowedRoles: ['super_admin', 'admin', 'manager', 'front_desk'] },
+  { icon: Sparkles, label: 'Housekeeping', href: '/dashboard/housekeeping', id: 'nav-housekeeping', allowedRoles: ['super_admin', 'admin', 'manager', 'housekeeping'] },
+  { icon: Wrench, label: 'Maintenance', href: '/dashboard/maintenance', id: 'nav-maintenance', allowedRoles: ['super_admin', 'admin', 'manager', 'maintenance'] },
   { type: 'divider' },
-  { icon: Ticket, label: 'Tickets', href: '/dashboard/tickets', id: 'nav-tickets' },
-  { icon: CalendarDays, label: 'Events', href: '/dashboard/events', id: 'nav-events' },
+  { icon: Ticket, label: 'Tickets', href: '/dashboard/tickets', id: 'nav-tickets', allowedRoles: ['super_admin', 'admin', 'manager', 'front_desk'] },
+  { icon: CalendarDays, label: 'Events', href: '/dashboard/events', id: 'nav-events', allowedRoles: ['super_admin', 'admin', 'manager', 'front_desk'] },
   { type: 'divider' },
-  { icon: CreditCard, label: 'Billing', href: '/dashboard/billing', id: 'nav-billing' },
-  { icon: Receipt, label: 'Expenses', href: '/dashboard/expenses', id: 'nav-expenses' },
-  { icon: Clock, label: 'Night Audit', href: '/dashboard/night-audit', id: 'nav-night-audit' },
-  { icon: Landmark, label: 'Financials', href: '/dashboard/financials', id: 'nav-financials' },
-  { icon: BarChart3, label: 'Reports', href: '/dashboard/reports', id: 'nav-reports' },
+  { icon: CreditCard, label: 'Billing', href: '/dashboard/billing', id: 'nav-billing', allowedRoles: ['super_admin', 'admin', 'manager', 'accountant'] },
+  { icon: Receipt, label: 'Expenses', href: '/dashboard/expenses', id: 'nav-expenses', allowedRoles: ['super_admin', 'admin', 'manager', 'accountant'] },
+  { icon: Clock, label: 'Night Audit', href: '/dashboard/night-audit', id: 'nav-night-audit', allowedRoles: ['super_admin', 'admin', 'manager', 'accountant'] },
+  { icon: Landmark, label: 'Financials', href: '/dashboard/financials', id: 'nav-financials', allowedRoles: ['super_admin', 'admin', 'manager', 'accountant'] },
+  { icon: BarChart3, label: 'Reports', href: '/dashboard/reports', id: 'nav-reports', allowedRoles: ['super_admin', 'admin', 'manager', 'accountant'] },
   { type: 'divider' },
-  { icon: Utensils, label: 'Point of Sale', href: '/dashboard/pos', id: 'nav-pos' },
-  { icon: ChefHat, label: 'Kitchen KDS', href: '/dashboard/kitchen', id: 'nav-kitchen' },
-  { icon: Martini, label: 'Bar Drinks', href: '/dashboard/bar', id: 'nav-bar' },
-  { icon: Coffee, label: 'Waitstaff', href: '/dashboard/waitstaff', id: 'nav-waitstaff' },
-  { icon: Package, label: 'Inventory', href: '/dashboard/inventory', id: 'nav-inventory' },
+  { icon: Utensils, label: 'Point of Sale', href: '/dashboard/pos', id: 'nav-pos', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant', 'pos'] },
+  { icon: ChefHat, label: 'Kitchen KDS', href: '/dashboard/kitchen', id: 'nav-kitchen', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant'] },
+  { icon: Martini, label: 'Bar Drinks', href: '/dashboard/bar', id: 'nav-bar', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant'] },
+  { icon: Coffee, label: 'Waitstaff', href: '/dashboard/waitstaff', id: 'nav-waitstaff', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant'] },
+  { icon: Package, label: 'Inventory', href: '/dashboard/inventory', id: 'nav-inventory', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant'] },
   { type: 'divider' },
-  { icon: Wallet, label: 'POS Cashier', href: '/dashboard/cashier', id: 'nav-cashier' },
+  { icon: Wallet, label: 'POS Cashier', href: '/dashboard/cashier', id: 'nav-cashier', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant', 'pos'] },
   { type: 'divider' },
-  { icon: Settings, label: 'Settings', href: '/dashboard/settings', id: 'nav-settings' },
+  { icon: Settings, label: 'Settings', href: '/dashboard/settings', id: 'nav-settings', allowedRoles: ['super_admin', 'admin', 'manager'] },
 ];
 
 
@@ -77,6 +81,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     setCurrentPath(window.location.pathname);
     
+    // Check if user is trying to access a restricted path
+    if (user && user.roles && window.location.pathname !== '/dashboard') {
+      const currentItem = NAV_ITEMS.find(item => item.type !== 'divider' && window.location.pathname.startsWith(item.href));
+      if (currentItem && currentItem.type !== 'divider') {
+        const hasAccess = user.roles.some((role: string) => 
+          currentItem.allowedRoles.includes(role.toLowerCase())
+        );
+        if (!hasAccess) {
+          router.replace('/dashboard');
+        }
+      }
+    }
+    
     const updateTime = () => {
       setCurrentTime(new Date().toLocaleString('en-US', {
         weekday: 'short',
@@ -90,9 +107,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     updateTime();
     const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user, router]);
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return <DashboardLoading />;
   }
 
@@ -131,6 +148,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (item.type === 'divider') {
               return <div key={`divider-${index}`} className="nav-divider" />;
             }
+            
+            // Filter based on roles
+            const hasAccess = user.roles?.some((role: string) => 
+              item.allowedRoles.includes(role.toLowerCase())
+            );
+            
+            if (!hasAccess) return null;
+
             const IconComponent = item.icon!;
             return (
               <a
@@ -159,7 +184,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {sidebarOpen && (
                 <div className="user-info">
                   <div className="user-name">{user.firstName} {user.lastName}</div>
-                  <div className="user-role">{user.role?.replace(/_/g, ' ') || 'No Role'}</div>
+                  <div className="user-role">{user.roles?.[0]?.replace(/_/g, ' ') || 'No Role'}</div>
                 </div>
               )}
               <button
