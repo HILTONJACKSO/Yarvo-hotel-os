@@ -66,8 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     } finally {
       setUser(null);
-      router.push('/login');
-      router.refresh();
+      window.location.href = '/login';
     }
   }, [router]);
 
