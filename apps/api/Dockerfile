@@ -30,6 +30,8 @@ COPY --from=builder --chown=bellacasa:bellacasa /app/apps/api/dist ./dist
 COPY --from=builder --chown=bellacasa:bellacasa /app/node_modules ./node_modules
 COPY --from=builder --chown=bellacasa:bellacasa /app/apps/api/package.json ./package.json
 
+RUN mkdir logs && chown bellacasa:bellacasa logs
+
 USER bellacasa
 
 EXPOSE 3001
