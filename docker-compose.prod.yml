@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-BellaCasa@DB2026}
       POSTGRES_DB: ${POSTGRES_DB:-bellacasa}
     volumes:
-      - bellacasa_postgres_data:/var/lib/postgresql/data
+      - bellacasa_postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bellacasa -d bellacasa"]
       interval: 10s
