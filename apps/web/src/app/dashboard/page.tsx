@@ -17,13 +17,27 @@ type ChartData = { date: string; revenue: number; };
 type ActivityItem = { id: string; type: string; title: string; description: string; timestamp: string; };
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [greeting, setGreeting] = useState('');
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [revenueData, setRevenueData] = useState<ChartData[]>([]);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) {
+      logout();
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCountdown(c => c !== null ? c - 1 : null);
+      setError(`Session expired. Logging out in ${countdown - 1} seconds...`);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, logout]);
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -49,7 +63,12 @@ export default function DashboardPage() {
         setRevenueData(revData.data || []);
         setRecentActivity(actData.data || []);
       } catch (err: any) {
-        setError(err.message);
+        if (err.message && (err.message.includes('authentication token') || err.message.includes('Unauthorized'))) {
+          setError('Session expired. Logging out in 5 seconds...');
+          setCountdown(c => c === null ? 5 : c);
+        } else {
+          setError(err.message);
+        }
       } finally {
         setLoading(false);
       }
