@@ -18,7 +18,7 @@ export class ExpensesController {
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'MANAGER', 'RECEPTIONIST')
+  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
   async findAll() {
     const data = await this.expensesService.findAll();
     return { data };

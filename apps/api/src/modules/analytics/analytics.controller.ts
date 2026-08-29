@@ -12,7 +12,7 @@ export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Get('dashboard')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'RECEPTIONIST')
+  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Get main dashboard aggregates' })
   async getDashboard() {
     const data = await this.analyticsService.getDashboardMetrics();
@@ -56,14 +56,14 @@ export class AnalyticsController {
   }
 
   @Get('occupancy-heatmap')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'RECEPTIONIST')
+  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
   async getOccupancyHeatmap() {
     const data = await this.analyticsService.getOccupancyHeatmap();
     return { data };
   }
 
   @Get('recent-activity')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'RECEPTIONIST')
+  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
   async getRecentActivity() {
     const data = await this.analyticsService.getRecentActivity();
     return { data };

@@ -11,21 +11,21 @@ export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MANAGER', 'RECEPTIONIST')
+  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
   async create(@Body() createTicketDto: CreateTicketDto, @CurrentUser() user: any) {
     const data = await this.ticketsService.create(createTicketDto, user.id);
     return { message: 'Ticket issued successfully', data };
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'MANAGER', 'RECEPTIONIST')
+  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
   async findAll() {
     const data = await this.ticketsService.findAll();
     return { data };
   }
 
   @Patch(':id/use')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'RECEPTIONIST')
+  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
   async markAsUsed(@Param('id') id: string) {
     const data = await this.ticketsService.markAsUsed(id);
     return { message: 'Ticket marked as used', data };
@@ -34,7 +34,7 @@ export class TicketsController {
   // --- Ticket Tiers ---
 
   @Get('tiers')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'RECEPTIONIST')
+  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
   async getTiers() {
     const data = await this.ticketsService.getTiers();
     return { data };
