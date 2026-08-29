@@ -25,6 +25,7 @@ COPY . .
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_API_URL=https://api.kwaleebeachresort.com
 
 # Build database, shared packages, and web
 RUN npm run build --workspace=packages/database
