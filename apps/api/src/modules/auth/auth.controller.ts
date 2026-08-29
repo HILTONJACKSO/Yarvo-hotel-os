@@ -100,9 +100,17 @@ export class AuthController {
       await this.authService.logout(sessionId);
     }
 
-    res.clearCookie('accessToken', { path: '/' });
-    res.clearCookie('refreshToken', { path: '/api/v1/auth/refresh' });
-    res.clearCookie('sessionId', { path: '/' });
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieBase = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax' as const,
+      domain: process.env.COOKIE_DOMAIN || undefined,
+    };
+
+    res.clearCookie('accessToken', { ...cookieBase, path: '/' });
+    res.clearCookie('refreshToken', { ...cookieBase, path: '/api/v1/auth/refresh' });
+    res.clearCookie('sessionId', { ...cookieBase, path: '/' });
 
     return { message: 'Logged out successfully' };
   }
