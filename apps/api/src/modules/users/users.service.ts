@@ -174,7 +174,7 @@ export class UsersService {
   }
 
   async revokeSession(id: string) {
-    return this.prisma.session.delete({
+    return this.prisma.session.deleteMany({
       where: { id },
     });
   }

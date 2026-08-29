@@ -97,7 +97,11 @@ export class AuthController {
   ) {
     const sessionId = req.cookies['sessionId'];
     if (sessionId) {
-      await this.authService.logout(sessionId);
+      try {
+        await this.authService.logout(sessionId);
+      } catch (err) {
+        // Ignore errors to ensure cookies are always cleared
+      }
     }
 
     const isProduction = process.env.NODE_ENV === 'production';
