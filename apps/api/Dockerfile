@@ -37,4 +37,4 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD wget -q -O /dev/null http://localhost:3001/api/v1/health/live || exit 1
 
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
