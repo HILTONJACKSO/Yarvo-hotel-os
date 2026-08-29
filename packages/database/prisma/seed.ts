@@ -34,8 +34,8 @@ async function main() {
     throw new Error('SUPER_ADMIN role not found');
   }
 
-  const adminEmail = 'admin@bellacasa.com';
-  const rawPassword = 'BellaCasa@2026';
+  const adminEmail = 'yarvo@gmail.com';
+  const rawPassword = 'YOSar@2026';
   
   // Hash the default password
   const passwordHash = await argon2.hash(rawPassword);
