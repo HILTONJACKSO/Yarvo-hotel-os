@@ -1,0 +1,16 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testRegex": ".*\\.e2e-spec\\.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": ["ts-jest", {
+      "tsconfig": "./tsconfig.json"
+    }]
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(@nestjs/passport|@nestjs/jwt|passport)/)"
+  ],
+  "testEnvironment": "node",
+  "setupFilesAfterEnv": [],
+  "modulePaths": ["<rootDir>/../.."]
+}

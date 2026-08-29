@@ -1,0 +1,74 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: bellacasa-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bellacasa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-BellaCasa@DB2026}
+      POSTGRES_DB: ${POSTGRES_DB:-bellacasa}
+    volumes:
+      - bellacasa_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bellacasa -d bellacasa"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: bellacasa-redis-prod
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD:-BellaCasa@Redis2026} --loglevel warning
+    volumes:
+      - bellacasa_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-BellaCasa@Redis2026}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: bellacasa-api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - API_PORT=3001
+      - API_HOST=0.0.0.0
+      - FRONTEND_URL=https://kwaleebeachresort.com
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-bellacasa}:${POSTGRES_PASSWORD:-BellaCasa@DB2026}@db:5432/${POSTGRES_DB:-bellacasa}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - COOKIE_SECRET=${COOKIE_SECRET}
+      - CORS_ORIGINS=https://kwaleebeachresort.com,https://www.kwaleebeachresort.com
+    ports:
+      - "3001:3001"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: bellacasa-web
+    restart: always
+    depends_on:
+      - api
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.kwaleebeachresort.com
+      - NEXT_PUBLIC_APP_NAME="Kwalee Beach Resort"
+    ports:
+      - "3000:3000"
+
+volumes:
+  bellacasa_postgres_data:
+  bellacasa_redis_data:

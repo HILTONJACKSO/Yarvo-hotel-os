@@ -1,0 +1,35 @@
+{
+  "name": "bellacasa-hms",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bella Casa Hotel Management System",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=packages/shared && npm run build --workspace=packages/database && npm run build --workspace=apps/api && npm run build --workspace=apps/web",
+    "migrate": "npm run migrate --workspace=packages/database",
+    "migrate:test": "npm run migrate:test --workspace=packages/database",
+    "db:generate": "npm run generate --workspace=packages/database",
+    "test": "npm run test --workspaces --if-present",
+    "test:api": "npm run test --workspace=apps/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.3",
+    "deepmerge-ts": "^8.0.2"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=11.0.0"
+  }
+}
