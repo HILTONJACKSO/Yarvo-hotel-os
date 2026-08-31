@@ -127,11 +127,26 @@ function GeneralSettings({ showToast }: { showToast: any }) {
     e.preventDefault();
     if (!property) return;
     setSaving(true);
+    
+    // Create a payload with only the editable fields
+    // This prevents validation errors for system fields like id, createdAt, etc.
+    const payload = {
+      name: property.name,
+      legalName: property.legalName,
+      address: property.address,
+      city: property.city,
+      country: property.country,
+      phone: property.phone,
+      email: property.email,
+      website: property.website,
+      taxId: property.taxId,
+    };
+
     try {
       const res = await fetch(`${API_URL}/api/v1/properties/${property.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(property),
+        body: JSON.stringify(payload),
         credentials: 'include',
       });
       if (res.ok) {
