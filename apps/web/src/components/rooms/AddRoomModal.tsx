@@ -20,9 +20,10 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialData?: any;
 }
 
-export function AddRoomModal({ isOpen, onClose, onSuccess }: Props) {
+export function AddRoomModal({ isOpen, onClose, onSuccess, initialData }: Props) {
   const [roomTypes, setRoomTypes] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -58,21 +59,35 @@ export function AddRoomModal({ isOpen, onClose, onSuccess }: Props) {
     };
 
     fetchRoomTypes();
-    reset();
+    
+    if (initialData) {
+      reset({
+        number: initialData.number,
+        floor: initialData.floor,
+        roomTypeId: initialData.roomType?.id || initialData.roomTypeId,
+        notes: initialData.notes || '',
+      });
+    } else {
+      reset({ floor: 1, number: '', roomTypeId: '', notes: '' });
+    }
+    
     setSubmitError(null);
-  }, [isOpen, reset]);
+  }, [isOpen, initialData, reset]);
 
   const onSubmit = async (data: FormValues) => {
     setSubmitError(null);
     try {
-      const res = await fetch('/api/v1/rooms', {
-        method: 'POST',
+      const url = initialData ? `/api/v1/rooms/${initialData.id}` : '/api/v1/rooms';
+      const method = initialData ? 'PATCH' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
       
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Failed to add room');
+      if (!res.ok) throw new Error(json.message || `Failed to ${initialData ? 'edit' : 'add'} room`);
       
       onSuccess();
       onClose();
@@ -82,7 +97,7 @@ export function AddRoomModal({ isOpen, onClose, onSuccess }: Props) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add New Room">
+    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Edit Room" : "Add New Room"}>
       {loadingData ? (
         <div className="loading-state">
           <Loader2 className="spinner" size={24} />
@@ -130,7 +145,7 @@ export function AddRoomModal({ isOpen, onClose, onSuccess }: Props) {
           <div className="form-actions">
             <button type="button" className="btn-cancel" onClick={onClose} disabled={isSubmitting}>Cancel</button>
             <button type="submit" className="btn-submit" disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="spinner" size={16} /> : 'Add Room'}
+              {isSubmitting ? <Loader2 className="spinner" size={16} /> : (initialData ? 'Save Changes' : 'Add Room')}
             </button>
           </div>
         </form>

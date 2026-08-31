@@ -33,6 +33,7 @@ export default function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [roomToEdit, setRoomToEdit] = useState<Room | null>(null);
 
   // Custom Delete Modal State
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
@@ -89,9 +90,10 @@ export default function RoomsPage() {
       </div>
 
       <AddRoomModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        isOpen={isModalOpen || !!roomToEdit} 
+        onClose={() => { setIsModalOpen(false); setRoomToEdit(null); }} 
         onSuccess={fetchRooms} 
+        initialData={roomToEdit}
       />
 
       <div className="filters-bar">
@@ -155,7 +157,7 @@ export default function RoomsPage() {
                     <td className="actions-cell">
                       <div className="flex-actions">
                         <button className="btn-danger-outline-small" onClick={() => setRoomToDelete(room)}>Delete</button>
-                        <button className="action-btn">Edit</button>
+                        <button className="action-btn" onClick={() => setRoomToEdit(room)}>Edit</button>
                       </div>
                     </td>
                   </tr>
