@@ -6,40 +6,52 @@ import { CreateTaxDto, UpdateTaxDto } from './dto/tax.dto';
 export class TaxesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(propertyId: string) {
+  private async getPropertyId(providedId?: string) {
+    if (providedId) return providedId;
+    const prop = await this.prisma.property.findFirst();
+    if (!prop) throw new NotFoundException('Property not found');
+    return prop.id;
+  }
+
+  async findAll(propertyId?: string) {
+    const pId = await this.getPropertyId(propertyId);
     return this.prisma.tax.findMany({
-      where: { propertyId },
+      where: { propertyId: pId },
       orderBy: { name: 'asc' },
     });
   }
 
-  async findOne(id: string, propertyId: string) {
+  async findOne(id: string, propertyId?: string) {
+    const pId = await this.getPropertyId(propertyId);
     const tax = await this.prisma.tax.findFirst({
-      where: { id, propertyId },
+      where: { id, propertyId: pId },
     });
     if (!tax) throw new NotFoundException('Tax not found');
     return tax;
   }
 
-  async create(propertyId: string, data: CreateTaxDto) {
+  async create(data: CreateTaxDto, propertyId?: string) {
+    const pId = await this.getPropertyId(propertyId);
     return this.prisma.tax.create({
       data: {
         ...data,
-        propertyId,
+        propertyId: pId,
       },
     });
   }
 
-  async update(id: string, propertyId: string, data: UpdateTaxDto) {
-    await this.findOne(id, propertyId);
+  async update(id: string, data: UpdateTaxDto, propertyId?: string) {
+    const pId = await this.getPropertyId(propertyId);
+    await this.findOne(id, pId);
     return this.prisma.tax.update({
       where: { id },
       data,
     });
   }
 
-  async remove(id: string, propertyId: string) {
-    await this.findOne(id, propertyId);
+  async remove(id: string, propertyId?: string) {
+    const pId = await this.getPropertyId(propertyId);
+    await this.findOne(id, pId);
     return this.prisma.tax.delete({
       where: { id },
     });

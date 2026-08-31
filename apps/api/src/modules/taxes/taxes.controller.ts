@@ -10,27 +10,27 @@ export class TaxesController {
 
   @Get()
   findAll(@Req() req: any) {
-    return this.taxesService.findAll(req.user.propertyId);
+    return this.taxesService.findAll(req.user?.propertyId);
   }
 
   @Post()
   create(@Req() req: any, @Body() createTaxDto: CreateTaxDto) {
-    return this.taxesService.create(req.user.propertyId, createTaxDto);
+    return this.taxesService.create(createTaxDto, req.user?.propertyId);
   }
 
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {
-    return this.taxesService.findOne(id, req.user.propertyId);
+    return this.taxesService.findOne(id, req.user?.propertyId);
   }
 
   @Put(':id')
   update(@Req() req: any, @Param('id') id: string, @Body() updateTaxDto: UpdateTaxDto) {
-    return this.taxesService.update(id, req.user.propertyId, updateTaxDto);
+    return this.taxesService.update(id, updateTaxDto, req.user?.propertyId);
   }
 
   @Delete(':id')
   remove(@Req() req: any, @Param('id') id: string) {
-    return this.taxesService.remove(id, req.user.propertyId);
+    return this.taxesService.remove(id, req.user?.propertyId);
   }
 }
 
