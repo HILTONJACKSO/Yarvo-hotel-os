@@ -37,12 +37,14 @@ export default function ReceiptsSettings({ showToast }: { showToast: (msg: strin
   const fetchProperty = async () => {
     try {
       const res = await fetch(`${API_URL}/api/v1/properties`, { credentials: 'include' });
-      const data = await res.json();
-      if (data && data.length > 0) {
-        setPropertyId(data[0].id);
-        const receiptData = typeof data[0].receiptSettings === 'string' 
-            ? JSON.parse(data[0].receiptSettings) 
-            : data[0].receiptSettings || {};
+      const resData = await res.json();
+      const data = resData.data || resData; // Handle if wrapped in { data: ... }
+      
+      if (data && data.id) {
+        setPropertyId(data.id);
+        const receiptData = typeof data.receiptSettings === 'string' 
+            ? JSON.parse(data.receiptSettings) 
+            : data.receiptSettings || {};
         setSettings(receiptData);
       }
       setLoading(false);
