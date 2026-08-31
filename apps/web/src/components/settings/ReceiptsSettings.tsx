@@ -36,7 +36,7 @@ export default function ReceiptsSettings({ showToast }: { showToast: (msg: strin
 
   const fetchProperty = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/v1/properties`);
+      const res = await fetch(`${API_URL}/api/v1/properties`, { credentials: 'include' });
       const data = await res.json();
       if (data && data.length > 0) {
         setPropertyId(data[0].id);
@@ -96,9 +96,10 @@ export default function ReceiptsSettings({ showToast }: { showToast: (msg: strin
 
     try {
       const res = await fetch(`${API_URL}/api/v1/properties/${propertyId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiptSettings: settings }),
+        body: JSON.stringify({ receiptSettings: JSON.stringify(settings) }),
+        credentials: 'include',
       });
 
       if (res.ok) {
