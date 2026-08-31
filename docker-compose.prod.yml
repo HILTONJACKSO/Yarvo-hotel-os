@@ -69,7 +69,10 @@ services:
       - NEXT_PUBLIC_APP_NAME="Kwalee Beach Resort"
     ports:
       - "3000:3000"
+    volumes:
+      - bellacasa_uploads:/app/apps/web/public/uploads
 
 volumes:
   bellacasa_postgres_data:
   bellacasa_redis_data:
+  bellacasa_uploads:
