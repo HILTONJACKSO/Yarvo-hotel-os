@@ -3,7 +3,7 @@ import { EventsService } from './events.service';
 import { CreateEventSpaceDto, UpdateEventSpaceDto, CreateEventBookingDto, UpdateEventBookingDto } from './dto/event.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
-@Controller('api/v1/events')
+@Controller('events')
 @UseGuards(JwtAuthGuard)
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}

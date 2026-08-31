@@ -3,7 +3,7 @@ import { TaxesService } from './taxes.service';
 import { CreateTaxDto, UpdateTaxDto } from './dto/tax.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
-@Controller('api/v1/taxes')
+@Controller('taxes')
 @UseGuards(JwtAuthGuard)
 export class TaxesController {
   constructor(private readonly taxesService: TaxesService) {}
