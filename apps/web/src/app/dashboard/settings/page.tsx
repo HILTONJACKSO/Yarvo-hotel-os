@@ -267,7 +267,7 @@ function RoomTypesSettings({ showToast }: { showToast: any }) {
 
     try {
       const url = editingType ? `${API_URL}/api/v1/room-types/${editingType.id}` : `${API_URL}/api/v1/room-types`;
-      const method = editingType ? 'PUT' : 'POST';
+      const method = editingType ? 'PATCH' : 'POST';
       
       const res = await fetch(url, {
         method,
