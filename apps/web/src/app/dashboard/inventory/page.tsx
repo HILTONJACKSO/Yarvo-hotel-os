@@ -27,6 +27,7 @@ export default function InventoryPage() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferItem, setTransferItem] = useState<InventoryItem | null>(null);
   const [transferData, setTransferData] = useState({ from: 'MAIN', to: 'BAR', amount: 0 });
+  const [editItemId, setEditItemId] = useState<string | null>(null);
   const [newItem, setNewItem] = useState({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
 
   const fetchItems = () => {
@@ -54,18 +55,21 @@ export default function InventoryPage() {
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetch(`${API_URL}/api/v1/inventory`, {
-        method: 'POST',
+      const method = editItemId ? 'PATCH' : 'POST';
+      const url = editItemId ? `${API_URL}/api/v1/inventory/${editItemId}` : `${API_URL}/api/v1/inventory`;
+      await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(newItem)
       });
-      showToast('Inventory item created', 'success', 'Success');
+      showToast(`Inventory item ${editItemId ? 'updated' : 'created'}`, 'success', 'Success');
       setShowAddModal(false);
       setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
+      setEditItemId(null);
       fetchItems();
     } catch (err) {
-      showToast('Failed to create item', 'error', 'Error');
+      showToast(`Failed to ${editItemId ? 'update' : 'create'} item`, 'error', 'Error');
     }
   };
 
@@ -113,7 +117,11 @@ export default function InventoryPage() {
     <div className="inventory-layout">
       <div className="inv-header">
         <h2>Inventory Management</h2>
-        <button className="btn-primary" onClick={() => setShowAddModal(true)}>+ Add Item</button>
+        <button className="btn-primary" onClick={() => {
+          setEditItemId(null);
+          setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
+          setShowAddModal(true);
+        }}>+ Add Item</button>
       </div>
 
       <div className="inv-table-container">
@@ -160,6 +168,18 @@ export default function InventoryPage() {
                   <td>${Number(item.costPerUnit).toFixed(2)}</td>
                   <td>
                     <div className="action-buttons">
+                      <button title="Edit Item" onClick={() => {
+                        setEditItemId(item.id);
+                        setNewItem({
+                          name: item.name,
+                          category: item.category,
+                          unit: item.unit,
+                          stockLevel: Number(item.stockLevel),
+                          minThreshold: Number(item.minThreshold),
+                          costPerUnit: Number(item.costPerUnit)
+                        });
+                        setShowAddModal(true);
+                      }}>✎</button>
                       <button title="Transfer Stock" onClick={() => { setTransferItem(item); setShowTransferModal(true); }}>⇄</button>
                     </div>
                   </td>
@@ -173,7 +193,7 @@ export default function InventoryPage() {
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>Add Inventory Item</h3>
+            <h3>{editItemId ? 'Edit' : 'Add'} Inventory Item</h3>
             <form onSubmit={handleAddItem}>
               <div className="form-group">
                 <label>Name</label>
@@ -400,6 +420,17 @@ export default function InventoryPage() {
           border-radius: 6px;
           outline: none;
         }
+        
+        /* Hide number spinners */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+          -webkit-appearance: none; 
+          margin: 0; 
+        }
+        input[type=number] {
+          -moz-appearance: textfield;
+        }
+        
         .form-group input:focus, .form-group select:focus { border-color: hsl(43,96%,56%); }
         .modal-actions {
           display: flex;
