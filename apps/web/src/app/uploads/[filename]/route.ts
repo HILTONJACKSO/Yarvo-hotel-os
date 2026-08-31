@@ -1,12 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import { lookup } from 'mime-types'; // Note: you might need to use an alternative if mime-types isn't installed. Since this is just images, we can do a simple check.
 
-export async function GET(request: Request, { params }: { params: { filename: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ filename: string }> }) {
   try {
-    const filename = params.filename;
+    const { filename } = await context.params;
     
     // Support local dev environment and production standalone Docker
     const isProduction = process.env.NODE_ENV === 'production';
