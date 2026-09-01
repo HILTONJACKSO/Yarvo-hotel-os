@@ -315,20 +315,24 @@ export default function PosPage() {
   };
 
   const filteredItems = activeCategory === 'ALL' ? menuItems : menuItems.filter(item => item.categoryId === activeCategory);
-  const cartSubtotal = cart.reduce((sum, c) => sum + (Number(c.item.price) * c.quantity), 0);
+  const cartTotal = cart.reduce((sum, c) => sum + (Number(c.item.price) * c.quantity), 0);
   let cartTaxes = 0;
   cart.forEach(c => {
     const itemTotal = Number(c.item.price) * c.quantity;
+    let totalPercentage = 0;
+    let totalFlat = 0;
     if ((c.item as any).taxes) {
       (c.item as any).taxes.forEach((tax: any) => {
         if (tax.isActive) {
-          if (tax.type === 'PERCENTAGE') cartTaxes += itemTotal * (Number(tax.rate) / 100);
-          else if (tax.type === 'FLAT_AMOUNT') cartTaxes += Number(tax.rate) * c.quantity;
+          if (tax.type === 'PERCENTAGE') totalPercentage += Number(tax.rate);
+          else if (tax.type === 'FLAT_AMOUNT') totalFlat += Number(tax.rate) * c.quantity;
         }
       });
     }
+    const itemBeforeTax = (itemTotal - totalFlat) / (1 + totalPercentage / 100);
+    cartTaxes += (itemTotal - itemBeforeTax);
   });
-  const cartTotal = cartSubtotal + cartTaxes;
+  const cartSubtotal = cartTotal - cartTaxes;
 
   const linkedInventoryIds = new Set(menuItems.flatMap(m => m.recipes?.map(r => r.inventoryItemId) || []));
   const availableInventoryItems = inventoryItems.filter(inv => inv.category !== 'HOUSEKEEPING' && inv.category !== 'MAINTENANCE' && !linkedInventoryIds.has(inv.id));
@@ -458,7 +462,7 @@ export default function PosPage() {
         
         <div className="cart-footer">
           <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '4px' }}>
-            <span>Subtotal:</span>
+            <span>Amount before GST:</span>
             <span>${cartSubtotal.toFixed(2)}</span>
           </div>
           <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '8px', borderBottom: '1px solid hsl(217, 20%, 18%)', paddingBottom: '8px' }}>
@@ -466,7 +470,7 @@ export default function PosPage() {
             <span>${cartTaxes.toFixed(2)}</span>
           </div>
           <div className="cart-summary" style={{ fontWeight: 600, fontSize: '1.125rem' }}>
-            <span>Total:</span>
+            <span>Total Payable:</span>
             <span>${cartTotal.toFixed(2)}</span>
           </div>
           <button className="btn-primary w-full mt-4" disabled={cart.length === 0 || (orderDestinationType === 'TABLE' && !selectedTable) || (orderDestinationType === 'ROOM' && !selectedFolioId)} onClick={submitOrder}>

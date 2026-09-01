@@ -236,23 +236,23 @@ export class PosService {
       if (allServed) {
         let subtotal = 0;
         let calculatedTax = 0;
-        
         item.order.items.forEach(i => {
           const itemTotal = Number(i.menuItem.price) * i.quantity;
           subtotal += itemTotal;
+          let totalPercentage = 0;
+          let totalFlat = 0;
           
           (i.menuItem as any).taxes?.forEach((tax: any) => {
             if (tax.isActive) {
-              if (tax.type === 'PERCENTAGE') {
-                calculatedTax += itemTotal * (Number(tax.rate) / 100);
-              } else if (tax.type === 'FLAT_AMOUNT') {
-                calculatedTax += Number(tax.rate) * i.quantity;
-              }
+              if (tax.type === 'PERCENTAGE') totalPercentage += Number(tax.rate);
+              else if (tax.type === 'FLAT_AMOUNT') totalFlat += Number(tax.rate) * i.quantity;
             }
           });
+          const itemBeforeTax = (itemTotal - totalFlat) / (1 + totalPercentage / 100);
+          calculatedTax += (itemTotal - itemBeforeTax);
         });
         
-        const total = subtotal + calculatedTax;
+        const total = subtotal; // Prices are tax-inclusive
         
         await this.prisma.posOrder.update({
           where: { id: item.orderId },
@@ -278,19 +278,20 @@ export class PosService {
     order.items.forEach(i => {
       const itemTotal = Number(i.menuItem.price) * i.quantity;
       subtotal += itemTotal;
+      let totalPercentage = 0;
+      let totalFlat = 0;
       
       i.menuItem.taxes?.forEach(tax => {
         if (tax.isActive) {
-          if (tax.type === 'PERCENTAGE') {
-            calculatedTax += itemTotal * (Number(tax.rate) / 100);
-          } else if (tax.type === 'FLAT_AMOUNT') {
-            calculatedTax += Number(tax.rate) * i.quantity;
-          }
+          if (tax.type === 'PERCENTAGE') totalPercentage += Number(tax.rate);
+          else if (tax.type === 'FLAT_AMOUNT') totalFlat += Number(tax.rate) * i.quantity;
         }
       });
+      const itemBeforeTax = (itemTotal - totalFlat) / (1 + totalPercentage / 100);
+      calculatedTax += (itemTotal - itemBeforeTax);
     });
 
-    const totalAmount = order.totalAmount || (subtotal + calculatedTax);
+    const totalAmount = order.totalAmount || subtotal; // Prices are tax-inclusive
 
     // If billing to a room
     if (data.folioId || order.folioId) {
