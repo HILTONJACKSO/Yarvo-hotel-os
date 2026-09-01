@@ -175,6 +175,19 @@ export class PosService {
   }
 
   async createOrder(data: { tableId?: string; folioId?: string; userId?: string }) {
+    // Check if an OPEN order already exists for this destination
+    if (data.tableId) {
+      const existing = await this.prisma.posOrder.findFirst({
+        where: { tableId: data.tableId, status: 'OPEN' }
+      });
+      if (existing) return existing;
+    } else if (data.folioId) {
+      const existing = await this.prisma.posOrder.findFirst({
+        where: { folioId: data.folioId, status: 'OPEN' }
+      });
+      if (existing) return existing;
+    }
+
     return this.prisma.posOrder.create({
       data: {
         tableId: data.tableId,
