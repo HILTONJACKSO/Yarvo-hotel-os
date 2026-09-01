@@ -17,6 +17,7 @@ type Order = {
   table: { number: string } | null;
   items: OrderItem[];
   user?: { firstName: string; lastName: string };
+  createdAt: string;
 };
 
 export default function KitchenPage() {
