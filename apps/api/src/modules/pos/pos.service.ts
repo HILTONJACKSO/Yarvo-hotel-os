@@ -138,7 +138,12 @@ export class PosService {
   // ─── ORDERS ─────────────────────────────────────────────────────────────
   async getActiveOrders() {
     return this.prisma.posOrder.findMany({
-      where: { status: { notIn: ['PAID', 'BILLED_TO_ROOM', 'SERVED'] } },
+      where: { 
+        OR: [
+          { status: { notIn: ['PAID', 'BILLED_TO_ROOM', 'SERVED'] } },
+          { items: { some: { status: 'RETURN_REQUESTED' } } }
+        ]
+      },
       include: {
         table: true,
         user: { select: { firstName: true, lastName: true } },
