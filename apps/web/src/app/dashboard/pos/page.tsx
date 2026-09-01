@@ -444,7 +444,7 @@ export default function PosPage() {
           {cart.map(c => (
             <div key={c.item.id} className="cart-item">
               <div className="ci-info">
-                <span className="ci-name">{c.item.name}</span>
+                <span className="ci-name">{c.item.name} <span style={{fontSize: '0.75rem', color: 'hsl(215, 20%, 65%)'}}>(GST Inclusive)</span></span>
                 <span className="ci-price">${Number(c.item.price).toFixed(2)}</span>
               </div>
               <div className="ci-actions">
