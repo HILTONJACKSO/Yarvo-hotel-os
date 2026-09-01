@@ -89,7 +89,7 @@ export class PosController {
 
   @Post('orders')
   createOrder(@Body() data: { tableId?: string; folioId?: string }, @Req() req: any) {
-    return this.posService.createOrder({ ...data, userId: req.user.userId });
+    return this.posService.createOrder({ ...data, userId: req.user.id });
   }
 
   @Post('orders/:id/items')
