@@ -444,7 +444,7 @@ export default function PosPage() {
           {cart.map(c => (
             <div key={c.item.id} className="cart-item">
               <div className="ci-info">
-                <span className="ci-name">{c.item.name} <span style={{fontSize: '0.75rem', color: 'hsl(215, 20%, 65%)'}}>(GST Inclusive)</span></span>
+                <span className="ci-name">{c.item.name}</span>
                 <span className="ci-price">${Number(c.item.price).toFixed(2)}</span>
               </div>
               <div className="ci-actions">
@@ -462,15 +462,15 @@ export default function PosPage() {
         
         <div className="cart-footer">
           <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '4px' }}>
-            <span>Amount before GST:</span>
-            <span>${cartSubtotal.toFixed(2)}</span>
+            <span>Subtotal:</span>
+            <span>${cartTotal.toFixed(2)}</span>
           </div>
           <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '8px', borderBottom: '1px solid hsl(217, 20%, 18%)', paddingBottom: '8px' }}>
-            <span>GST:</span>
+            <span>GST (inclusive):</span>
             <span>${cartTaxes.toFixed(2)}</span>
           </div>
           <div className="cart-summary" style={{ fontWeight: 600, fontSize: '1.125rem' }}>
-            <span>Total Payable:</span>
+            <span>Total:</span>
             <span>${cartTotal.toFixed(2)}</span>
           </div>
           <button className="btn-primary w-full mt-4" disabled={cart.length === 0 || (orderDestinationType === 'TABLE' && !selectedTable) || (orderDestinationType === 'ROOM' && !selectedFolioId)} onClick={submitOrder}>
