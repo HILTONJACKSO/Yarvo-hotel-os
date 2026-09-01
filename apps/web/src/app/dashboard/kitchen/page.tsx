@@ -9,6 +9,7 @@ type OrderItem = {
   quantity: number;
   notes: string | null;
   status: string;
+  returnRequest?: { id: string; status: string };
   menuItem: { name: string; type: string };
 };
 
@@ -23,6 +24,8 @@ type Order = {
 export default function KitchenPage() {
   const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [confirmingReturnId, setConfirmingReturnId] = useState<string | null>(null);
+  const [kitchenNote, setKitchenNote] = useState('');
 
   const fetchOrders = () => {
     fetch(`${API_URL}/api/v1/pos/orders`, { credentials: 'include' })
@@ -52,11 +55,29 @@ export default function KitchenPage() {
     }
   };
 
+  const confirmReturn = async (returnId: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/pos/returns/${returnId}/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ kitchenNote })
+      });
+      if (!res.ok) throw new Error("Failed to confirm");
+      showToast('Return confirmed and sent to manager', 'success', 'Success');
+      setConfirmingReturnId(null);
+      setKitchenNote('');
+      fetchOrders();
+    } catch (err) {
+      showToast('Failed to confirm return', 'error');
+    }
+  };
+
   // Filter out orders that don't have FOOD items
   const kitchenOrders = orders
     .map(o => ({
       ...o,
-      items: o.items.filter(i => i.menuItem.type === 'FOOD' && i.status !== 'SERVED')
+      items: o.items.filter(i => i.menuItem.type === 'FOOD' && i.status !== 'SERVED' && i.status !== 'RETURNED')
     }))
     .filter(o => o.items.length > 0);
 
@@ -94,6 +115,28 @@ export default function KitchenPage() {
                     )}
                     {item.status === 'COOKING' && (
                       <button onClick={() => updateStatus(item.id, 'READY')} className="ready-btn">Mark Ready</button>
+                    )}
+                    {item.status === 'RETURN_REQUESTED' && item.returnRequest && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: '8px' }}>
+                        {confirmingReturnId === item.returnRequest.id ? (
+                          <>
+                            <input 
+                              type="text" 
+                              placeholder="Add a note (optional)" 
+                              className="form-input" 
+                              value={kitchenNote}
+                              onChange={(e) => setKitchenNote(e.target.value)}
+                              style={{ padding: '6px', fontSize: '0.9rem' }}
+                            />
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button onClick={() => confirmReturn(item.returnRequest!.id)} className="btn-success btn-sm flex-1">Confirm</button>
+                              <button onClick={() => setConfirmingReturnId(null)} className="btn-secondary btn-sm">Cancel</button>
+                            </div>
+                          </>
+                        ) : (
+                          <button onClick={() => setConfirmingReturnId(item.returnRequest!.id)} style={{ background: 'hsl(30, 90%, 50%)', color: 'white' }}>Review Return</button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>

@@ -106,5 +106,29 @@ export class PosController {
   checkoutOrder(@Param('id') id: string, @Body() data: { payments?: { method: string; amount: number }[], folioId?: string }) {
     return this.posService.checkoutOrder(id, data);
   }
+
+  // --- Return Workflow ---
+  @Post('order-items/:itemId/return-request')
+  requestReturn(@Param('itemId') itemId: string, @Req() req: any) {
+    return this.posService.requestReturn(itemId, req.user.id);
+  }
+
+  @Get('returns')
+  @Roles('SUPER_ADMIN', 'MANAGER', 'KITCHEN', 'BAR', 'WAITSTAFF')
+  getReturnRequests() {
+    return this.posService.getReturnRequests();
+  }
+
+  @Post('returns/:returnId/confirm')
+  @Roles('SUPER_ADMIN', 'MANAGER', 'KITCHEN', 'BAR')
+  confirmReturn(@Param('returnId') returnId: string, @Body('kitchenNote') kitchenNote: string, @Req() req: any) {
+    return this.posService.confirmReturn(returnId, req.user.id, kitchenNote);
+  }
+
+  @Post('returns/:returnId/approve')
+  @Roles('SUPER_ADMIN', 'MANAGER')
+  approveReturn(@Param('returnId') returnId: string, @Body('approved') approved: boolean, @Req() req: any) {
+    return this.posService.approveReturn(returnId, req.user.id, approved);
+  }
 }
 

@@ -115,6 +115,10 @@ model User {
   attendances         Attendance[]
   payslips            Payslip[]
   
+  requestedReturns    PosReturnRequest[] @relation("ReturnRequestedBy")
+  confirmedReturns    PosReturnRequest[] @relation("ReturnConfirmedBy")
+  approvedReturns     PosReturnRequest[] @relation("ReturnApprovedBy")
+  
   createdAt    DateTime @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @db.Timestamptz(6)
   deletedAt    DateTime? @db.Timestamptz(6) // Soft delete
@@ -407,7 +411,7 @@ model Folio {
   
   createdAt     DateTime    @default(now()) @db.Timestamptz(6)
   updatedAt     DateTime    @updatedAt @db.Timestamptz(6)
-
+  
   lineItems     FolioLineItem[]
   posOrders     PosOrder[]
 
@@ -575,13 +579,36 @@ model PosOrder {
   status      String        @default("OPEN") // OPEN, PREPARING, READY, SERVED, PAID, BILLED_TO_ROOM
   totalAmount Decimal       @default(0) @db.Decimal(10, 2)
   
-  createdAt   DateTime      @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime      @updatedAt @db.Timestamptz(6)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(6)
 
-  items       PosOrderItem[]
-  payments    PosPayment[]
+  items           PosOrderItem[]
+  payments        PosPayment[]
   
   @@map("pos_orders")
+}
+
+model PosReturnRequest {
+  id              String        @id @default(uuid()) @db.Uuid
+  orderItemId     String        @db.Uuid @unique
+  orderItem       PosOrderItem  @relation(fields: [orderItemId], references: [id])
+  
+  requestedById   String        @db.Uuid
+  requestedBy     User          @relation("ReturnRequestedBy", fields: [requestedById], references: [id])
+  
+  confirmedById   String?       @db.Uuid
+  confirmedBy     User?         @relation("ReturnConfirmedBy", fields: [confirmedById], references: [id])
+  kitchenNote     String?       @db.Text
+  
+  approvedById    String?       @db.Uuid
+  approvedBy      User?         @relation("ReturnApprovedBy", fields: [approvedById], references: [id])
+  
+  status          String        @default("PENDING_CONFIRMATION") // PENDING_CONFIRMATION, PENDING_APPROVAL, APPROVED, REJECTED
+  
+  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(6)
+
+  @@map("pos_return_requests")
 }
 
 model PosOrderItem {
@@ -594,10 +621,12 @@ model PosOrderItem {
   
   quantity    Int           @default(1)
   notes       String?       @db.Text
-  status      String        @default("PENDING") // PENDING, COOKING, READY, SERVED
+  status      String        @default("PENDING") // PENDING, COOKING, READY, SERVED, RETURN_REQUESTED, RETURNED
   
   createdAt   DateTime      @default(now()) @db.Timestamptz(6)
   
+  returnRequest PosReturnRequest?
+
   @@map("pos_order_items")
 }
 

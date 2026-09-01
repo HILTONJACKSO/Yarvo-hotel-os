@@ -20,12 +20,30 @@ type PosOrderItem = {
 export default function WaitstaffPage() {
   const { showToast } = useToast();
   const [items, setItems] = useState<PosOrderItem[]>([]);
+  const [servedItems, setServedItems] = useState<PosOrderItem[]>([]);
   const [printItem, setPrintItem] = useState<PosOrderItem | null>(null);
 
   const fetchItems = () => {
     fetch(`${API_URL}/api/v1/pos/ready-items`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => setItems(data.data || data))
+      .catch(err => console.error(err));
+
+    fetch(`${API_URL}/api/v1/pos/served-orders`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        // Extract all served items from served orders
+        let served: PosOrderItem[] = [];
+        const orders = data.data || data;
+        orders.forEach((o: any) => {
+          o.items.forEach((i: any) => {
+            if (i.status === 'SERVED' || i.status === 'RETURN_REQUESTED' || i.status === 'RETURNED') {
+              served.push({ ...i, order: o });
+            }
+          });
+        });
+        setServedItems(served);
+      })
       .catch(err => console.error(err));
   };
 
@@ -55,6 +73,20 @@ export default function WaitstaffPage() {
     setTimeout(() => {
       window.print();
     }, 100);
+  };
+
+  const requestReturn = async (itemId: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/pos/order-items/${itemId}/return-request`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error("Failed to request return");
+      showToast('Return requested successfully', 'success', 'Success');
+      fetchItems();
+    } catch (err) {
+      showToast('Failed to request return', 'error');
+    }
   };
 
   return (
@@ -87,6 +119,40 @@ export default function WaitstaffPage() {
             <div className="order-footer">
               <button className="btn-secondary" onClick={() => handlePrint(item)}>Print Receipt</button>
               <button className="btn-success" onClick={() => markServed(item.id)}>Deliver & Serve</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <h2 style={{ marginTop: '40px' }}>Recently Served Items</h2>
+      <p className="subtitle">Items that have been delivered. You can request a return if needed.</p>
+      <div className="orders-grid">
+        {servedItems.length === 0 && <div className="no-orders">No recently served items.</div>}
+        {servedItems.map(item => (
+          <div key={item.id} className="order-card" style={{ opacity: item.status !== 'SERVED' ? 0.7 : 1 }}>
+            <div className="order-header">
+              <span className="table-badge" style={{ background: 'hsl(142, 76%, 45%, 0.15)', color: 'hsl(142, 76%, 50%)' }}>
+                {item.order?.folio?.reservation?.room 
+                  ? `Room ${item.order.folio.reservation.room.number}` 
+                  : item.order?.table 
+                    ? `Table ${item.order.table.number}` 
+                    : 'Walk-in'
+                }
+              </span>
+              <span className="time-badge">{item.status.replace('_', ' ')}</span>
+            </div>
+            <div className="order-body">
+              <div className="item-row">
+                <span className="qty">{item.quantity}x</span>
+                <span className="name">{item.menuItem.name}</span>
+              </div>
+            </div>
+            <div className="order-footer" style={{ gridTemplateColumns: '1fr' }}>
+              {item.status === 'SERVED' ? (
+                <button className="btn-secondary" onClick={() => requestReturn(item.id)} style={{ color: 'hsl(0, 84%, 60%)', borderColor: 'hsl(0, 84%, 30%)' }}>Request Return</button>
+              ) : (
+                <button className="btn-secondary" disabled style={{ opacity: 0.5 }}>{item.status.replace('_', ' ')}</button>
+              )}
             </div>
           </div>
         ))}

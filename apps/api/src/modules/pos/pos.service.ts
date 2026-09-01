@@ -143,7 +143,7 @@ export class PosService {
         table: true,
         user: { select: { firstName: true, lastName: true } },
         items: {
-          include: { menuItem: true },
+          include: { menuItem: true, returnRequest: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -357,6 +357,112 @@ export class PosService {
       where: { id: orderId },
       data: { status: 'PAID', totalAmount }
     });
+  }
+
+  // --- Return Workflow ---
+
+  async requestReturn(itemId: string, userId: string) {
+    const item = await this.prisma.posOrderItem.findUnique({
+      where: { id: itemId }
+    });
+    if (!item) throw new Error("Item not found");
+    if (item.status === "RETURN_REQUESTED" || item.status === "RETURNED") {
+      throw new Error("Item is already requested for return or returned");
+    }
+
+    await this.prisma.posOrderItem.update({
+      where: { id: itemId },
+      data: { status: 'RETURN_REQUESTED' }
+    });
+
+    return this.prisma.posReturnRequest.create({
+      data: {
+        orderItemId: itemId,
+        requestedById: userId,
+        status: 'PENDING_CONFIRMATION'
+      }
+    });
+  }
+
+  async getReturnRequests() {
+    return this.prisma.posReturnRequest.findMany({
+      include: {
+        orderItem: {
+          include: {
+            menuItem: true,
+            order: { include: { table: true } }
+          }
+        },
+        requestedBy: true,
+        confirmedBy: true,
+        approvedBy: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async confirmReturn(returnId: string, userId: string, kitchenNote: string) {
+    const returnReq = await this.prisma.posReturnRequest.findUnique({ where: { id: returnId } });
+    if (!returnReq) throw new Error("Return request not found");
+    
+    return this.prisma.posReturnRequest.update({
+      where: { id: returnId },
+      data: {
+        confirmedById: userId,
+        kitchenNote,
+        status: 'PENDING_APPROVAL'
+      }
+    });
+  }
+
+  async approveReturn(returnId: string, userId: string, approved: boolean) {
+    const returnReq = await this.prisma.posReturnRequest.findUnique({ 
+      where: { id: returnId },
+      include: { orderItem: { include: { order: { include: { items: { include: { menuItem: true } } } } } } }
+    });
+    
+    if (!returnReq) throw new Error("Return request not found");
+
+    if (!approved) {
+      // Reject
+      await this.prisma.posOrderItem.update({
+        where: { id: returnReq.orderItemId },
+        data: { status: 'SERVED' }
+      });
+      return this.prisma.posReturnRequest.update({
+        where: { id: returnId },
+        data: { approvedById: userId, status: 'REJECTED' }
+      });
+    }
+
+    // Approve
+    const updatedReturn = await this.prisma.posReturnRequest.update({
+      where: { id: returnId },
+      data: { approvedById: userId, status: 'APPROVED' }
+    });
+
+    await this.prisma.posOrderItem.update({
+      where: { id: returnReq.orderItemId },
+      data: { status: 'RETURNED' }
+    });
+
+    // Recalculate total amount for the order if it hasn't been PAID
+    const order = returnReq.orderItem.order;
+    if (order.status !== 'PAID' && order.status !== 'BILLED_TO_ROOM') {
+      let newTotal = 0;
+      order.items.forEach(i => {
+        // Exclude the returned item when recalculating
+        if (i.id !== returnReq.orderItemId && i.status !== 'RETURNED') {
+          newTotal += Number(i.menuItem.price) * i.quantity;
+        }
+      });
+      await this.prisma.posOrder.update({
+        where: { id: order.id },
+        data: { totalAmount: newTotal }
+      });
+    }
+
+    return updatedReturn;
   }
 }
 

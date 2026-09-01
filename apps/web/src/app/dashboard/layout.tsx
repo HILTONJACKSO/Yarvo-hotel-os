@@ -29,7 +29,8 @@ import {
   Landmark,
   Ticket,
   CalendarDays,
-  Clock
+  Clock,
+  RotateCcw
 } from 'lucide-react';
 
 type NavItem = 
@@ -62,6 +63,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: ChefHat, label: 'Kitchen KDS', href: '/dashboard/kitchen', id: 'nav-kitchen', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant'] },
   { icon: Martini, label: 'Bar Drinks', href: '/dashboard/bar', id: 'nav-bar', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant'] },
   { icon: Coffee, label: 'Waitstaff', href: '/dashboard/waitstaff', id: 'nav-waitstaff', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant'] },
+  { icon: RotateCcw, label: 'Returns', href: '/dashboard/returns', id: 'nav-returns', allowedRoles: ['super_admin', 'admin', 'manager'] },
   { icon: Package, label: 'Inventory', href: '/dashboard/inventory', id: 'nav-inventory', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant'] },
   { type: 'divider' },
   { icon: Wallet, label: 'POS Cashier', href: '/dashboard/cashier', id: 'nav-cashier', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant', 'pos'] },
