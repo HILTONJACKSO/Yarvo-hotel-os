@@ -28,6 +28,7 @@ export default function InventoryPage() {
   const [transferItem, setTransferItem] = useState<InventoryItem | null>(null);
   const [transferData, setTransferData] = useState({ from: 'MAIN', to: 'BAR', amount: 0 });
   const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [newItem, setNewItem] = useState({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
 
   const fetchItems = () => {
@@ -70,6 +71,22 @@ export default function InventoryPage() {
       fetchItems();
     } catch (err) {
       showToast(`Failed to ${editItemId ? 'update' : 'create'} item`, 'error', 'Error');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      const res = await fetch(`${API_URL}/api/v1/inventory/${itemToDelete.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      showToast('Item deleted successfully', 'success', 'Success');
+      setItemToDelete(null);
+      fetchItems();
+    } catch (err) {
+      showToast('Failed to delete item', 'error', 'Error');
     }
   };
 
@@ -181,6 +198,7 @@ export default function InventoryPage() {
                         setShowAddModal(true);
                       }}>✎</button>
                       <button title="Transfer Stock" onClick={() => { setTransferItem(item); setShowTransferModal(true); }}>⇄</button>
+                      <button title="Delete Item" onClick={() => setItemToDelete(item)} style={{ color: 'hsl(0, 84%, 65%)' }}>🗑️</button>
                     </div>
                   </td>
                 </tr>
@@ -270,6 +288,21 @@ export default function InventoryPage() {
                 <button type="submit" className="btn-primary">Transfer Stock</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {itemToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Delete Item</h3>
+            <p style={{ color: 'hsl(215, 20%, 65%)', marginBottom: '24px' }}>
+              Are you sure you want to delete <strong>{itemToDelete.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="modal-actions">
+              <button type="button" className="btn-cancel" onClick={() => setItemToDelete(null)}>Cancel</button>
+              <button type="button" className="btn-primary" style={{ background: 'hsl(0, 84%, 60%)', color: 'white' }} onClick={handleDelete}>Delete Item</button>
+            </div>
           </div>
         </div>
       )}
