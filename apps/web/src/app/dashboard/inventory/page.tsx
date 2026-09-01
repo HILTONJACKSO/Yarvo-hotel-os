@@ -212,10 +212,20 @@ export default function InventoryPage() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>{editItemId ? 'Edit' : 'Add'} Inventory Item</h3>
+            <datalist id="inventory-names">
+              {Array.from(new Set(items.map(i => i.name))).map(name => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+            <datalist id="inventory-units">
+              {Array.from(new Set(items.map(i => i.unit))).map(unit => (
+                <option key={unit} value={unit} />
+              ))}
+            </datalist>
             <form onSubmit={handleAddItem}>
               <div className="form-group">
                 <label>Name</label>
-                <input required type="text" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} placeholder="e.g. Tomatoes" />
+                <input required type="text" list="inventory-names" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} placeholder="e.g. Tomatoes" />
               </div>
               <div className="form-group">
                 <label>Category</label>
@@ -229,7 +239,7 @@ export default function InventoryPage() {
               </div>
               <div className="form-group">
                 <label>Unit</label>
-                <input required type="text" value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})} placeholder="e.g. kg, bottles" />
+                <input required type="text" list="inventory-units" value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})} placeholder="e.g. kg, bottles" />
               </div>
               <div className="form-row">
                 <div className="form-group">
