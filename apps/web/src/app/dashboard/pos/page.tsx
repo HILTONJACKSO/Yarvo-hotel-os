@@ -24,7 +24,8 @@ export default function PosPage() {
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [selectedFolioId, setSelectedFolioId] = useState<string | null>(null);
 
-  const [cart, setCart] = useState<{item: PosMenuItem, quantity: number}[]>([]);
+  const [cart, setCart] = useState<{item: PosMenuItem, quantity: number, notes?: string}[]>([]);
+  const [orderDiscount, setOrderDiscount] = useState<number>(0);
 
   const [showAddTable, setShowAddTable] = useState(false);
   const [newTable, setNewTable] = useState({ number: '', capacity: 2 });
@@ -234,6 +235,7 @@ export default function PosPage() {
       const payload: any = {};
       if (orderDestinationType === 'TABLE') payload.tableId = selectedTable;
       if (orderDestinationType === 'ROOM') payload.folioId = selectedFolioId;
+      if (orderDiscount > 0) payload.discountAmount = orderDiscount;
 
       const orderRes = await fetch(`${API_URL}/api/v1/pos/orders`, {
         method: 'POST',
@@ -248,8 +250,7 @@ export default function PosPage() {
         fetch(`${API_URL}/api/v1/pos/orders/${orderId}/items`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ menuItemId: c.item.id, quantity: c.quantity })
+          body: JSON.stringify({ menuItemId: c.item.id, quantity: c.quantity, notes: c.notes })
         })
       ));
 
@@ -257,6 +258,7 @@ export default function PosPage() {
       setCart([]);
       setSelectedTable(null);
       setSelectedFolioId(null);
+      setOrderDiscount(0);
     } catch (err) {
       showToast('Failed to submit order', 'error', 'Error');
     }
@@ -333,6 +335,7 @@ export default function PosPage() {
     cartTaxes += (itemTotal - itemBeforeTax);
   });
   const cartSubtotal = cartTotal - cartTaxes;
+  const finalTotal = Math.max(0, cartTotal - orderDiscount);
 
   const linkedInventoryIds = new Set(menuItems.flatMap(m => m.recipes?.map(r => r.inventoryItemId) || []));
   const availableInventoryItems = inventoryItems.filter(inv => inv.category !== 'HOUSEKEEPING' && inv.category !== 'MAINTENANCE' && !linkedInventoryIds.has(inv.id));
@@ -456,6 +459,15 @@ export default function PosPage() {
                 </div>
                 <button className="ci-remove" style={{ marginLeft: '8px', fontSize: '1.25rem' }} onClick={() => removeFromCart(c.item.id)}>×</button>
               </div>
+              <div style={{ marginTop: '8px', width: '100%' }}>
+                <input 
+                  type="text" 
+                  placeholder="Special request (e.g., no onions)..." 
+                  style={{ width: '100%', background: 'hsl(222, 35%, 15%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', padding: '6px', borderRadius: '4px', fontSize: '0.85rem' }}
+                  value={c.notes || ''}
+                  onChange={(e) => setCart(prev => prev.map(p => p.item.id === c.item.id ? { ...p, notes: e.target.value } : p))}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -465,13 +477,24 @@ export default function PosPage() {
             <span>Subtotal:</span>
             <span>${cartTotal.toFixed(2)}</span>
           </div>
-          <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '8px', borderBottom: '1px solid hsl(217, 20%, 18%)', paddingBottom: '8px' }}>
+          <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '8px' }}>
             <span>GST (inclusive):</span>
             <span>${cartTaxes.toFixed(2)}</span>
           </div>
+          <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '8px', borderBottom: '1px solid hsl(217, 20%, 18%)', paddingBottom: '8px' }}>
+            <span>Discount:</span>
+            <input 
+              type="number" 
+              step="0.01"
+              value={orderDiscount || ''} 
+              onChange={e => setOrderDiscount(Math.max(0, Number(e.target.value)))} 
+              style={{ width: '80px', background: 'hsl(222, 35%, 15%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', padding: '4px', borderRadius: '4px', fontSize: '0.85rem', textAlign: 'right' }} 
+              placeholder="0.00"
+            />
+          </div>
           <div className="cart-summary" style={{ fontWeight: 600, fontSize: '1.125rem' }}>
             <span>Total:</span>
-            <span>${cartTotal.toFixed(2)}</span>
+            <span>${finalTotal.toFixed(2)}</span>
           </div>
           <button className="btn-primary w-full mt-4" disabled={cart.length === 0 || (orderDestinationType === 'TABLE' && !selectedTable) || (orderDestinationType === 'ROOM' && !selectedFolioId)} onClick={submitOrder}>
             Send to Kitchen/Bar

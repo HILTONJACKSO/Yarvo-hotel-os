@@ -179,18 +179,28 @@ export class PosService {
     });
   }
 
-  async createOrder(data: { tableId?: string; folioId?: string; userId?: string }) {
+  async createOrder(data: { tableId?: string; folioId?: string; userId?: string; discountAmount?: number }) {
     // Check if an OPEN order already exists for this destination
     if (data.tableId) {
       const existing = await this.prisma.posOrder.findFirst({
         where: { tableId: data.tableId, status: 'OPEN' }
       });
-      if (existing) return existing;
+      if (existing) {
+        if (data.discountAmount) {
+          return this.prisma.posOrder.update({ where: { id: existing.id }, data: { discountAmount: data.discountAmount }});
+        }
+        return existing;
+      }
     } else if (data.folioId) {
       const existing = await this.prisma.posOrder.findFirst({
         where: { folioId: data.folioId, status: 'OPEN' }
       });
-      if (existing) return existing;
+      if (existing) {
+        if (data.discountAmount) {
+          return this.prisma.posOrder.update({ where: { id: existing.id }, data: { discountAmount: data.discountAmount }});
+        }
+        return existing;
+      }
     }
 
     return this.prisma.posOrder.create({
@@ -199,6 +209,7 @@ export class PosService {
         folioId: data.folioId,
         userId: data.userId,
         status: 'OPEN',
+        discountAmount: data.discountAmount || 0,
       },
     });
   }
@@ -270,11 +281,11 @@ export class PosService {
           calculatedTax += (itemTotal - itemBeforeTax);
         });
         
-        const total = subtotal; // Prices are tax-inclusive
+        const finalTotal = Math.max(0, subtotal - Number(item.order.discountAmount || 0));
         
         await this.prisma.posOrder.update({
           where: { id: item.orderId },
-          data: { status: 'SERVED', totalAmount: total }
+          data: { status: 'SERVED', totalAmount: finalTotal }
         });
       }
     }
