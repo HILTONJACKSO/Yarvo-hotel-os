@@ -19,6 +19,7 @@ type Order = {
   items: OrderItem[];
   user?: { firstName: string; lastName: string };
   createdAt: string;
+  notes?: string | null;
 };
 
 export default function KitchenPage() {
@@ -100,6 +101,13 @@ export default function KitchenPage() {
               Staff: {order.user ? `${order.user.firstName} ${order.user.lastName}` : 'Unknown'}
             </div>
             
+            {order.notes && (
+              <div style={{ padding: '8px 16px', background: 'hsl(35, 90%, 15%)', color: 'hsl(35, 90%, 70%)', borderTop: '1px solid hsl(35, 90%, 25%)', borderBottom: '1px solid hsl(35, 90%, 25%)', fontSize: '0.9rem', marginBottom: '12px' }}>
+                <strong style={{ display: 'block', color: 'hsl(35, 90%, 60%)', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '4px' }}>Special Request</strong>
+                {order.notes}
+              </div>
+            )}
+            
             <div className="ticket-items">
               {order.items.map(item => (
                 <div key={item.id} className={`t-item status-${item.status.toLowerCase()}`}>
@@ -107,7 +115,6 @@ export default function KitchenPage() {
                     <span className="qty">{item.quantity}x</span>
                     <span className="name">{item.menuItem.name}</span>
                   </div>
-                  {item.notes && <div className="t-notes">Note: {item.notes}</div>}
                   
                   <div className="t-actions">
                     {item.status === 'PENDING' && (

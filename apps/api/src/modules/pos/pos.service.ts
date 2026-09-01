@@ -179,15 +179,21 @@ export class PosService {
     });
   }
 
-  async createOrder(data: { tableId?: string; folioId?: string; userId?: string; discountAmount?: number }) {
+  async createOrder(data: { tableId?: string; folioId?: string; userId?: string; discountAmount?: number; notes?: string }) {
     // Check if an OPEN order already exists for this destination
     if (data.tableId) {
       const existing = await this.prisma.posOrder.findFirst({
         where: { tableId: data.tableId, status: 'OPEN' }
       });
       if (existing) {
-        if (data.discountAmount) {
-          return this.prisma.posOrder.update({ where: { id: existing.id }, data: { discountAmount: data.discountAmount }});
+        if (data.discountAmount !== undefined || data.notes !== undefined) {
+          return this.prisma.posOrder.update({ 
+            where: { id: existing.id }, 
+            data: { 
+              ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
+              ...(data.notes !== undefined ? { notes: data.notes } : {})
+            }
+          });
         }
         return existing;
       }
@@ -196,8 +202,14 @@ export class PosService {
         where: { folioId: data.folioId, status: 'OPEN' }
       });
       if (existing) {
-        if (data.discountAmount) {
-          return this.prisma.posOrder.update({ where: { id: existing.id }, data: { discountAmount: data.discountAmount }});
+        if (data.discountAmount !== undefined || data.notes !== undefined) {
+          return this.prisma.posOrder.update({ 
+            where: { id: existing.id }, 
+            data: { 
+              ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
+              ...(data.notes !== undefined ? { notes: data.notes } : {})
+            }
+          });
         }
         return existing;
       }
@@ -210,6 +222,7 @@ export class PosService {
         userId: data.userId,
         status: 'OPEN',
         discountAmount: data.discountAmount || 0,
+        notes: data.notes,
       },
     });
   }
