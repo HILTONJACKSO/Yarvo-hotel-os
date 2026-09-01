@@ -8,7 +8,7 @@ type PosCategory = { id: string; name: string };
 type PosMenuItem = { id: string; name: string; price: string; isAvailable: boolean; categoryId: string; type: string; image?: string; recipes?: { inventoryItemId: string }[] };
 type PosTable = { id: string; number: string; capacity: number; status: string };
 type Reservation = { id: string; folio: { id: string }; room: { number: string }; guest: { firstName: string; lastName: string } };
-type ServedOrder = { id: string; status: string; totalAmount: string; table?: PosTable; folioId?: string; folio?: { reservation: { guest: { firstName: string; lastName: string }; room: { number: string } } }; items: any[] };
+type ServedOrder = { id: string; status: string; totalAmount: string; table?: PosTable; folioId?: string; folio?: { reservation: { guest: { firstName: string; lastName: string }; room: { number: string } } }; items: any[]; user?: { firstName: string; lastName: string } };
 
 export default function PosPage() {
   const { showToast } = useToast();

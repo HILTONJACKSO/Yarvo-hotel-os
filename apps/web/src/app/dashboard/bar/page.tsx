@@ -16,6 +16,7 @@ type Order = {
   id: string;
   table: { number: string } | null;
   items: OrderItem[];
+  user?: { firstName: string; lastName: string };
 };
 
 export default function BarPage() {
