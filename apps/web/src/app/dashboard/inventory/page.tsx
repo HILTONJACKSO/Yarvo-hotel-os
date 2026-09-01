@@ -58,19 +58,23 @@ export default function InventoryPage() {
     try {
       const method = editItemId ? 'PATCH' : 'POST';
       const url = editItemId ? `${API_URL}/api/v1/inventory/${editItemId}` : `${API_URL}/api/v1/inventory`;
-      await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(newItem)
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Failed to ${editItemId ? 'update' : 'create'} item`);
+      }
       showToast(`Inventory item ${editItemId ? 'updated' : 'created'}`, 'success', 'Success');
       setShowAddModal(false);
       setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
       setEditItemId(null);
       fetchItems();
-    } catch (err) {
-      showToast(`Failed to ${editItemId ? 'update' : 'create'} item`, 'error', 'Error');
+    } catch (err: any) {
+      showToast(err.message || `Failed to ${editItemId ? 'update' : 'create'} item`, 'error', 'Error');
     }
   };
 
@@ -81,12 +85,15 @@ export default function InventoryPage() {
         method: 'DELETE',
         credentials: 'include'
       });
-      if (!res.ok) throw new Error('Failed to delete');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to delete item');
+      }
       showToast('Item deleted successfully', 'success', 'Success');
       setItemToDelete(null);
       fetchItems();
-    } catch (err) {
-      showToast('Failed to delete item', 'error', 'Error');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete item', 'error', 'Error');
     }
   };
 

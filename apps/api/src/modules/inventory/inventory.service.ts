@@ -12,6 +12,13 @@ export class InventoryService {
   }
 
   async createInventoryItem(data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }) {
+    const existingItem = await this.prisma.inventoryItem.findFirst({
+      where: { name: { equals: data.name, mode: 'insensitive' } }
+    });
+    if (existingItem) {
+      throw new BadRequestException('An item with this name already exists in the system');
+    }
+
     return this.prisma.inventoryItem.create({
       data: {
         name: data.name,
@@ -29,6 +36,36 @@ export class InventoryService {
     return this.prisma.inventoryItem.update({
       where: { id },
       data: { stockLevel: amount },
+    });
+  }
+
+  async updateInventoryItem(id: string, data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }) {
+    const existingItem = await this.prisma.inventoryItem.findFirst({
+      where: { 
+        name: { equals: data.name, mode: 'insensitive' },
+        id: { not: id }
+      }
+    });
+    if (existingItem) {
+      throw new BadRequestException('An item with this name already exists in the system');
+    }
+
+    return this.prisma.inventoryItem.update({
+      where: { id },
+      data: {
+        name: data.name,
+        category: data.category,
+        unit: data.unit,
+        stockLevel: data.stockLevel,
+        minThreshold: data.minThreshold,
+        costPerUnit: data.costPerUnit
+      }
+    });
+  }
+
+  async deleteInventoryItem(id: string) {
+    return this.prisma.inventoryItem.delete({
+      where: { id }
     });
   }
 

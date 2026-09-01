@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { ApiTags, ApiCookieAuth } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -19,6 +19,18 @@ export class InventoryController {
   @Roles('SUPER_ADMIN', 'MANAGER')
   createInventoryItem(@Body() data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }) {
     return this.inventoryService.createInventoryItem(data);
+  }
+
+  @Patch(':id')
+  @Roles('SUPER_ADMIN', 'MANAGER')
+  updateInventoryItem(@Param('id') id: string, @Body() data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }) {
+    return this.inventoryService.updateInventoryItem(id, data);
+  }
+
+  @Delete(':id')
+  @Roles('SUPER_ADMIN', 'MANAGER')
+  deleteInventoryItem(@Param('id') id: string) {
+    return this.inventoryService.deleteInventoryItem(id);
   }
 
   @Patch(':id/stock')
