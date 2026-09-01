@@ -31,10 +31,12 @@ export default function PosPage() {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '' });
   const [editCategoryId, setEditCategoryId] = useState<string | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<PosCategory | null>(null);
 
   const [showAddMenuItem, setShowAddMenuItem] = useState(false);
   const [newMenuItem, setNewMenuItem] = useState<{name: string, price: number, categoryId: string, type: string, inventoryItemId: string, image: string, taxIds: string[]}>({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', taxIds: [] });
   const [editMenuItemId, setEditMenuItemId] = useState<string | null>(null);
+  const [menuItemToDelete, setMenuItemToDelete] = useState<PosMenuItem | null>(null);
 
   // Cashier Settlement
   const [showSettleModal, setShowSettleModal] = useState(false);
@@ -143,17 +145,21 @@ export default function PosPage() {
     } catch (err) { showToast('Failed to save category', 'error', 'Error'); }
   };
 
-  const handleDeleteCategory = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this category? All menu items within it will also be deleted!')) return;
+  const handleDeleteCategory = async () => {
+    if (!categoryToDelete) return;
     try {
-      const res = await fetch(`${API_URL}/api/v1/pos/categories/${id}`, { method: 'DELETE', credentials: 'include' });
+      const res = await fetch(`${API_URL}/api/v1/pos/categories/${categoryToDelete.id}`, { method: 'DELETE', credentials: 'include' });
       if (res.ok) {
         showToast('Category deleted', 'success', 'Success');
-        if (activeCategory === id) setActiveCategory('ALL');
+        if (activeCategory === categoryToDelete.id) setActiveCategory('ALL');
+        setCategoryToDelete(null);
         fetchData();
-      } else throw new Error('Failed to delete category');
-    } catch (err) {
-      showToast('Failed to delete category', 'error', 'Error');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to delete category');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete category', 'error', 'Error');
     }
   };
 
@@ -177,16 +183,20 @@ export default function PosPage() {
     } catch (err) { showToast('Failed to save menu item', 'error', 'Error'); }
   };
 
-  const handleDeleteMenuItem = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this menu item?')) return;
+  const handleDeleteMenuItem = async () => {
+    if (!menuItemToDelete) return;
     try {
-      const res = await fetch(`${API_URL}/api/v1/pos/menu-items/${id}`, { method: 'DELETE', credentials: 'include' });
+      const res = await fetch(`${API_URL}/api/v1/pos/menu-items/${menuItemToDelete.id}`, { method: 'DELETE', credentials: 'include' });
       if (res.ok) {
         showToast('Menu Item deleted', 'success', 'Success');
+        setMenuItemToDelete(null);
         fetchData();
-      } else throw new Error('Failed to delete menu item');
-    } catch (err) {
-      showToast('Failed to delete menu item', 'error', 'Error');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to delete menu item');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete menu item', 'error', 'Error');
     }
   };
 
@@ -377,7 +387,7 @@ export default function PosPage() {
             <div key={cat.id} className="cat-wrapper" style={{ display: 'flex', alignItems: 'center', background: 'hsl(220, 30%, 12%)', borderRadius: '20px', paddingRight: '12px' }}>
               <button className={`cat-btn ${activeCategory === cat.id ? 'active' : ''}`} style={{ border: 'none', background: 'transparent' }} onClick={() => setActiveCategory(cat.id)}>{cat.name}</button>
               <button onClick={() => handleEditCategory(cat)} style={{ color: 'hsl(215, 20%, 65%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.1rem' }} title="Edit Category">✎</button>
-              <button onClick={() => handleDeleteCategory(cat.id)} style={{ color: 'hsl(0, 84%, 60%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.4rem', lineHeight: 1 }} title="Delete Category">×</button>
+              <button onClick={() => setCategoryToDelete(cat)} style={{ color: 'hsl(0, 84%, 60%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.4rem', lineHeight: 1 }} title="Delete Category">×</button>
             </div>
           ))}
         </div>
@@ -388,7 +398,7 @@ export default function PosPage() {
             <div key={item.id} className="menu-card" onClick={() => addToCart(item)}>
               <div className="menu-card-actions" style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', zIndex: 10 }}>
                 <button onClick={(e) => { e.stopPropagation(); handleEditMenuItem(item); }} style={{ background: 'hsl(220, 30%, 20%)', color: 'hsl(215, 20%, 80%)', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Item">✎</button>
-                <button onClick={(e) => { e.stopPropagation(); handleDeleteMenuItem(item.id); }} style={{ background: 'hsl(0, 84%, 30%)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', lineHeight: 1 }} title="Delete Item">×</button>
+                <button onClick={(e) => { e.stopPropagation(); setMenuItemToDelete(item); }} style={{ background: 'hsl(0, 84%, 30%)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', lineHeight: 1 }} title="Delete Item">×</button>
               </div>
               {item.image && <div className="menu-card-image" style={{ backgroundImage: `url(${item.image})` }}></div>}
               <div className="menu-card-content">
@@ -572,6 +582,23 @@ export default function PosPage() {
         </div>
       )}
 
+      {categoryToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Delete Category</h3>
+            <p style={{ color: 'hsl(215, 20%, 65%)', marginBottom: '24px' }}>
+              Are you sure you want to delete <strong>{categoryToDelete.name}</strong>? 
+              <br/><br/>
+              <span style={{ color: 'hsl(0, 84%, 65%)' }}>All menu items within this category will also be deleted! This action cannot be undone.</span>
+            </p>
+            <div className="modal-actions">
+              <button type="button" className="btn-cancel" onClick={() => setCategoryToDelete(null)}>Cancel</button>
+              <button type="button" className="btn-primary" style={{ background: 'hsl(0, 84%, 60%)', color: 'white' }} onClick={handleDeleteCategory}>Delete Category</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAddMenuItem && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -616,6 +643,21 @@ export default function PosPage() {
               </div>
               <div className="modal-actions"><button type="button" className="btn-cancel" onClick={() => { setShowAddMenuItem(false); setEditMenuItemId(null); setNewMenuItem({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', taxIds: [] }); }}>Cancel</button><button type="submit" className="btn-primary">Save</button></div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {menuItemToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Delete Menu Item</h3>
+            <p style={{ color: 'hsl(215, 20%, 65%)', marginBottom: '24px' }}>
+              Are you sure you want to delete <strong>{menuItemToDelete.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="modal-actions">
+              <button type="button" className="btn-cancel" onClick={() => setMenuItemToDelete(null)}>Cancel</button>
+              <button type="button" className="btn-primary" style={{ background: 'hsl(0, 84%, 60%)', color: 'white' }} onClick={handleDeleteMenuItem}>Delete Item</button>
+            </div>
           </div>
         </div>
       )}

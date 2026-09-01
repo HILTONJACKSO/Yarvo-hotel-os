@@ -40,7 +40,14 @@ export class PosService {
   }
 
   async deleteCategory(id: string) {
-    return this.prisma.posCategory.delete({ where: { id } });
+    return this.prisma.$transaction(async (tx) => {
+      const items = await tx.posMenuItem.findMany({ where: { categoryId: id } });
+      for (const item of items) {
+        await tx.inventoryRecipe.deleteMany({ where: { menuItemId: item.id } });
+      }
+      await tx.posMenuItem.deleteMany({ where: { categoryId: id } });
+      return tx.posCategory.delete({ where: { id } });
+    });
   }
 
   async getMenuItems() {
