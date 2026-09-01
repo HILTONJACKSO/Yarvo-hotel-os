@@ -37,6 +37,18 @@ export class PosController {
     return this.posService.createCategory(data);
   }
 
+  @Patch('categories/:id')
+  @Roles('SUPER_ADMIN', 'MANAGER')
+  updateCategory(@Param('id') id: string, @Body() data: { name: string }) {
+    return this.posService.updateCategory(id, data);
+  }
+
+  @Delete('categories/:id')
+  @Roles('SUPER_ADMIN', 'MANAGER')
+  deleteCategory(@Param('id') id: string) {
+    return this.posService.deleteCategory(id);
+  }
+
   @Get('menu-items')
   getMenuItems() {
     return this.posService.getMenuItems();
@@ -46,6 +58,18 @@ export class PosController {
   @Roles('SUPER_ADMIN', 'MANAGER')
   createMenuItem(@Body() data: { categoryId: string; name: string; description?: string; price: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }) {
     return this.posService.createMenuItem(data);
+  }
+
+  @Patch('menu-items/:id')
+  @Roles('SUPER_ADMIN', 'MANAGER')
+  updateMenuItem(@Param('id') id: string, @Body() data: { categoryId?: string; name?: string; description?: string; price?: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }) {
+    return this.posService.updateMenuItem(id, data);
+  }
+
+  @Delete('menu-items/:id')
+  @Roles('SUPER_ADMIN', 'MANAGER')
+  deleteMenuItem(@Param('id') id: string) {
+    return this.posService.deleteMenuItem(id);
   }
 
   @Get('orders')

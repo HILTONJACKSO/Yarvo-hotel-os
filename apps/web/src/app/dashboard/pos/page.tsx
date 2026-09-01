@@ -30,8 +30,11 @@ export default function PosPage() {
   const [newTable, setNewTable] = useState({ number: '', capacity: 2 });
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '' });
+  const [editCategoryId, setEditCategoryId] = useState<string | null>(null);
+
   const [showAddMenuItem, setShowAddMenuItem] = useState(false);
   const [newMenuItem, setNewMenuItem] = useState<{name: string, price: number, categoryId: string, type: string, inventoryItemId: string, image: string, taxIds: string[]}>({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', taxIds: [] });
+  const [editMenuItemId, setEditMenuItemId] = useState<string | null>(null);
 
   // Cashier Settlement
   const [showSettleModal, setShowSettleModal] = useState(false);
@@ -130,22 +133,75 @@ export default function PosPage() {
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetch(`${API_URL}/api/v1/pos/categories`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(newCategory) });
-      showToast('Category added', 'success', 'Success');
-      setShowAddCategory(false); setNewCategory({ name: '' });
+      const method = editCategoryId ? 'PATCH' : 'POST';
+      const url = editCategoryId ? `${API_URL}/api/v1/pos/categories/${editCategoryId}` : `${API_URL}/api/v1/pos/categories`;
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(newCategory) });
+      if (!res.ok) throw new Error('Failed to save category');
+      showToast(`Category ${editCategoryId ? 'updated' : 'added'}`, 'success', 'Success');
+      setShowAddCategory(false); setNewCategory({ name: '' }); setEditCategoryId(null);
       fetchData();
-    } catch (err) { showToast('Failed to add category', 'error', 'Error'); }
+    } catch (err) { showToast('Failed to save category', 'error', 'Error'); }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this category? All menu items within it will also be deleted!')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/v1/pos/categories/${id}`, { method: 'DELETE', credentials: 'include' });
+      if (res.ok) {
+        showToast('Category deleted', 'success', 'Success');
+        if (activeCategory === id) setActiveCategory('ALL');
+        fetchData();
+      } else throw new Error('Failed to delete category');
+    } catch (err) {
+      showToast('Failed to delete category', 'error', 'Error');
+    }
+  };
+
+  const handleEditCategory = (cat: PosCategory) => {
+    setEditCategoryId(cat.id);
+    setNewCategory({ name: cat.name });
+    setShowAddCategory(true);
   };
 
   const handleAddMenuItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMenuItem.categoryId) { showToast('Please select a category', 'error', 'Error'); return; }
     try {
-      await fetch(`${API_URL}/api/v1/pos/menu-items`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(newMenuItem) });
-      showToast('Menu Item added', 'success', 'Success');
-      setShowAddMenuItem(false); setNewMenuItem({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', taxIds: [] });
+      const method = editMenuItemId ? 'PATCH' : 'POST';
+      const url = editMenuItemId ? `${API_URL}/api/v1/pos/menu-items/${editMenuItemId}` : `${API_URL}/api/v1/pos/menu-items`;
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(newMenuItem) });
+      if (!res.ok) throw new Error('Failed to save menu item');
+      showToast(`Menu Item ${editMenuItemId ? 'updated' : 'added'}`, 'success', 'Success');
+      setShowAddMenuItem(false); setNewMenuItem({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', taxIds: [] }); setEditMenuItemId(null);
       fetchData();
-    } catch (err) { showToast('Failed to add menu item', 'error', 'Error'); }
+    } catch (err) { showToast('Failed to save menu item', 'error', 'Error'); }
+  };
+
+  const handleDeleteMenuItem = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this menu item?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/v1/pos/menu-items/${id}`, { method: 'DELETE', credentials: 'include' });
+      if (res.ok) {
+        showToast('Menu Item deleted', 'success', 'Success');
+        fetchData();
+      } else throw new Error('Failed to delete menu item');
+    } catch (err) {
+      showToast('Failed to delete menu item', 'error', 'Error');
+    }
+  };
+
+  const handleEditMenuItem = (item: PosMenuItem) => {
+    setEditMenuItemId(item.id);
+    setNewMenuItem({
+      name: item.name,
+      price: Number(item.price),
+      categoryId: item.categoryId,
+      type: item.type,
+      inventoryItemId: item.recipes?.[0]?.inventoryItemId || '',
+      image: item.image || '',
+      taxIds: (item as any).taxes?.map((t: any) => t.id) || []
+    });
+    setShowAddMenuItem(true);
   };
 
   const submitOrder = async () => {
@@ -318,7 +374,11 @@ export default function PosPage() {
         <div className="category-scroll">
           <button className={`cat-btn ${activeCategory === 'ALL' ? 'active' : ''}`} onClick={() => setActiveCategory('ALL')}>All Items</button>
           {categories.map(cat => (
-            <button key={cat.id} className={`cat-btn ${activeCategory === cat.id ? 'active' : ''}`} onClick={() => setActiveCategory(cat.id)}>{cat.name}</button>
+            <div key={cat.id} className="cat-wrapper" style={{ display: 'flex', alignItems: 'center', background: 'hsl(220, 30%, 12%)', borderRadius: '20px', paddingRight: '12px' }}>
+              <button className={`cat-btn ${activeCategory === cat.id ? 'active' : ''}`} style={{ border: 'none', background: 'transparent' }} onClick={() => setActiveCategory(cat.id)}>{cat.name}</button>
+              <button onClick={() => handleEditCategory(cat)} style={{ color: 'hsl(215, 20%, 65%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.1rem' }} title="Edit Category">✎</button>
+              <button onClick={() => handleDeleteCategory(cat.id)} style={{ color: 'hsl(0, 84%, 60%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.4rem', lineHeight: 1 }} title="Delete Category">×</button>
+            </div>
           ))}
         </div>
 
@@ -326,6 +386,10 @@ export default function PosPage() {
         <div className="menu-grid">
           {filteredItems.map(item => (
             <div key={item.id} className="menu-card" onClick={() => addToCart(item)}>
+              <div className="menu-card-actions" style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', zIndex: 10 }}>
+                <button onClick={(e) => { e.stopPropagation(); handleEditMenuItem(item); }} style={{ background: 'hsl(220, 30%, 20%)', color: 'hsl(215, 20%, 80%)', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Item">✎</button>
+                <button onClick={(e) => { e.stopPropagation(); handleDeleteMenuItem(item.id); }} style={{ background: 'hsl(0, 84%, 30%)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', lineHeight: 1 }} title="Delete Item">×</button>
+              </div>
               {item.image && <div className="menu-card-image" style={{ backgroundImage: `url(${item.image})` }}></div>}
               <div className="menu-card-content">
                 <div className="menu-card-type">{item.type}</div>
@@ -499,10 +563,10 @@ export default function PosPage() {
       {showAddCategory && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>Add Category</h3>
+            <h3>{editCategoryId ? 'Edit' : 'Add'} Category</h3>
             <form onSubmit={handleAddCategory}>
               <div className="form-group"><label>Name</label><input required type="text" value={newCategory.name} onChange={e => setNewCategory({...newCategory, name: e.target.value})} /></div>
-              <div className="modal-actions"><button type="button" className="btn-cancel" onClick={() => setShowAddCategory(false)}>Cancel</button><button type="submit" className="btn-primary">Save</button></div>
+              <div className="modal-actions"><button type="button" className="btn-cancel" onClick={() => { setShowAddCategory(false); setEditCategoryId(null); setNewCategory({name: ''}); }}>Cancel</button><button type="submit" className="btn-primary">Save</button></div>
             </form>
           </div>
         </div>
@@ -511,7 +575,7 @@ export default function PosPage() {
       {showAddMenuItem && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>Add Menu Item</h3>
+            <h3>{editMenuItemId ? 'Edit' : 'Add'} Menu Item</h3>
             <form onSubmit={handleAddMenuItem}>
               <div className="form-group"><label>Name</label><input required type="text" value={newMenuItem.name} onChange={e => setNewMenuItem({...newMenuItem, name: e.target.value})} /></div>
               <div className="form-group"><label>Price ($)</label><input required type="number" min="0" step="0.01" value={newMenuItem.price} onChange={e => setNewMenuItem({...newMenuItem, price: Number(e.target.value)})} /></div>
@@ -550,7 +614,7 @@ export default function PosPage() {
                 </select>
                 <small style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.75rem' }}>Hold Ctrl/Cmd to select multiple</small>
               </div>
-              <div className="modal-actions"><button type="button" className="btn-cancel" onClick={() => setShowAddMenuItem(false)}>Cancel</button><button type="submit" className="btn-primary">Save</button></div>
+              <div className="modal-actions"><button type="button" className="btn-cancel" onClick={() => { setShowAddMenuItem(false); setEditMenuItemId(null); setNewMenuItem({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', taxIds: [] }); }}>Cancel</button><button type="submit" className="btn-primary">Save</button></div>
             </form>
           </div>
         </div>

@@ -32,6 +32,17 @@ export class PosService {
     return this.prisma.posCategory.create({ data });
   }
 
+  async updateCategory(id: string, data: { name: string }) {
+    return this.prisma.posCategory.update({
+      where: { id },
+      data
+    });
+  }
+
+  async deleteCategory(id: string) {
+    return this.prisma.posCategory.delete({ where: { id } });
+  }
+
   async getMenuItems() {
     return this.prisma.posMenuItem.findMany({
       include: { category: true, recipes: true, taxes: true },
@@ -66,6 +77,54 @@ export class PosService {
       }
 
       return item;
+    });
+  }
+
+  async updateMenuItem(id: string, data: { categoryId?: string; name?: string; description?: string; price?: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }) {
+    return this.prisma.$transaction(async (tx) => {
+      // First update the core fields
+      const item = await tx.posMenuItem.update({
+        where: { id },
+        data: {
+          categoryId: data.categoryId,
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          type: data.type,
+          image: data.image,
+          taxes: data.taxIds ? {
+            set: data.taxIds.map(taxId => ({ id: taxId }))
+          } : undefined
+        }
+      });
+
+      // Handle recipe updates if inventoryItemId is provided
+      if (data.inventoryItemId !== undefined) {
+        // Remove existing recipes for this item
+        await tx.inventoryRecipe.deleteMany({
+          where: { menuItemId: id }
+        });
+
+        // Add new recipe if not empty
+        if (data.inventoryItemId) {
+          await tx.inventoryRecipe.create({
+            data: {
+              menuItemId: id,
+              inventoryItemId: data.inventoryItemId,
+              quantity: 1
+            }
+          });
+        }
+      }
+
+      return item;
+    });
+  }
+
+  async deleteMenuItem(id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.inventoryRecipe.deleteMany({ where: { menuItemId: id } });
+      return tx.posMenuItem.delete({ where: { id } });
     });
   }
 
