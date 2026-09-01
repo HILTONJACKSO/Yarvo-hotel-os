@@ -70,7 +70,9 @@ export default function KitchenPage() {
           <div key={order.id} className="ticket">
             <div className="ticket-header">
               <span className="ticket-table">Table {order.table?.number || 'Takeout'}</span>
-              <span className="ticket-id">#{order.id.split('-')[0]}</span>
+              <span className="ticket-id">
+                #{order.id.split('-')[0]} • {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
             <div style={{ fontSize: '0.8rem', color: 'hsl(215, 20%, 65%)', marginBottom: '12px', padding: '0 16px' }}>
               Staff: {order.user ? `${order.user.firstName} ${order.user.lastName}` : 'Unknown'}
@@ -116,6 +118,11 @@ export default function KitchenPage() {
           flex-wrap: wrap;
           gap: 24px;
           align-items: flex-start;
+          flex: 1;
+          overflow-y: auto;
+          padding-bottom: 24px;
+          /* add some padding right for the scrollbar */
+          padding-right: 8px;
         }
         .no-tickets {
           color: hsl(215, 20%, 65%);
