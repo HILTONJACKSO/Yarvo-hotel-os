@@ -101,6 +101,19 @@ export default function PosPage() {
     });
   };
 
+  const increaseQuantity = (itemId: string) => {
+    setCart(prev => prev.map(c => c.item.id === itemId ? { ...c, quantity: c.quantity + 1 } : c));
+  };
+
+  const decreaseQuantity = (itemId: string) => {
+    setCart(prev => prev.map(c => {
+      if (c.item.id === itemId) {
+        return c.quantity > 1 ? { ...c, quantity: c.quantity - 1 } : c;
+      }
+      return c;
+    }));
+  };
+
   const removeFromCart = (itemId: string) => {
     setCart(prev => prev.filter(p => p.item.id !== itemId));
   };
@@ -428,11 +441,16 @@ export default function PosPage() {
             <div key={c.item.id} className="cart-item">
               <div className="ci-info">
                 <span className="ci-name">{c.item.name}</span>
-                <span className="ci-price">${Number(c.item.price).toFixed(2)} x {c.quantity}</span>
+                <span className="ci-price">${Number(c.item.price).toFixed(2)}</span>
               </div>
               <div className="ci-actions">
-                <span className="ci-total">${(Number(c.item.price) * c.quantity).toFixed(2)}</span>
-                <button className="ci-remove" onClick={() => removeFromCart(c.item.id)}>×</button>
+                <span className="ci-total" style={{ marginRight: '8px' }}>${(Number(c.item.price) * c.quantity).toFixed(2)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'hsl(217, 20%, 15%)', padding: '4px', borderRadius: '8px' }}>
+                  <button onClick={() => decreaseQuantity(c.item.id)} style={{ background: 'hsl(215, 20%, 30%)', border: 'none', color: 'white', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>-</button>
+                  <span style={{ fontSize: '0.9rem', width: '20px', textAlign: 'center' }}>{c.quantity}</span>
+                  <button onClick={() => increaseQuantity(c.item.id)} style={{ background: 'hsl(215, 20%, 30%)', border: 'none', color: 'white', borderRadius: '4px', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                </div>
+                <button className="ci-remove" style={{ marginLeft: '8px', fontSize: '1.25rem' }} onClick={() => removeFromCart(c.item.id)}>×</button>
               </div>
             </div>
           ))}
@@ -444,7 +462,7 @@ export default function PosPage() {
             <span>${cartSubtotal.toFixed(2)}</span>
           </div>
           <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '8px', borderBottom: '1px solid hsl(217, 20%, 18%)', paddingBottom: '8px' }}>
-            <span>Taxes:</span>
+            <span>GST:</span>
             <span>${cartTaxes.toFixed(2)}</span>
           </div>
           <div className="cart-summary" style={{ fontWeight: 600, fontSize: '1.125rem' }}>
@@ -473,6 +491,9 @@ export default function PosPage() {
                     </div>
                     <div className="sc-body">
                       {so.folio?.reservation?.room ? `Room ${so.folio.reservation.room.number} - ${so.folio.reservation.guest.firstName} ${so.folio.reservation.guest.lastName}` : so.table ? `Table ${so.table.number}` : 'Walk-in'}
+                      <div style={{ fontSize: '0.8rem', color: 'hsl(215, 20%, 65%)', marginTop: '4px' }}>
+                        Staff: {so.user ? `${so.user.firstName} ${so.user.lastName}` : 'Unknown'}
+                      </div>
                     </div>
                   </div>
                 ))}

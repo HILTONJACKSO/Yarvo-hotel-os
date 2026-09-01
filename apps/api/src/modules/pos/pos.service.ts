@@ -141,6 +141,7 @@ export class PosService {
       where: { status: { notIn: ['PAID', 'BILLED_TO_ROOM', 'SERVED'] } },
       include: {
         table: true,
+        user: { select: { firstName: true, lastName: true } },
         items: {
           include: { menuItem: true },
         },
@@ -154,7 +155,7 @@ export class PosService {
       where: { status: 'READY' },
       include: {
         menuItem: true,
-        order: { include: { table: true, folio: { include: { reservation: { include: { room: true } } } } } }
+        order: { include: { table: true, user: { select: { firstName: true, lastName: true } }, folio: { include: { reservation: { include: { room: true } } } } } }
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -165,6 +166,7 @@ export class PosService {
       where: { status: 'SERVED' },
       include: {
         table: true,
+        user: { select: { firstName: true, lastName: true } },
         folio: { include: { reservation: { include: { room: true, guest: true } } } },
         items: { include: { menuItem: true } }
       },
@@ -172,11 +174,12 @@ export class PosService {
     });
   }
 
-  async createOrder(data: { tableId?: string; folioId?: string }) {
+  async createOrder(data: { tableId?: string; folioId?: string; userId?: string }) {
     return this.prisma.posOrder.create({
       data: {
         tableId: data.tableId,
         folioId: data.folioId,
+        userId: data.userId,
         status: 'OPEN',
       },
     });

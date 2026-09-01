@@ -108,6 +108,7 @@ model User {
   expenses            Expense[]
   nightAudits         NightAudit[]
   tickets             Ticket[]
+  posOrders           PosOrder[]
   
   staffProfile        StaffProfile?
   shifts              Shift[]
@@ -567,6 +568,9 @@ model PosOrder {
   
   folioId     String?       @db.Uuid
   folio       Folio?        @relation(fields: [folioId], references: [id])
+
+  userId      String?       @db.Uuid
+  user        User?         @relation(fields: [userId], references: [id])
 
   status      String        @default("OPEN") // OPEN, PREPARING, READY, SERVED, PAID, BILLED_TO_ROOM
   totalAmount Decimal       @default(0) @db.Decimal(10, 2)

@@ -71,6 +71,9 @@ export default function KitchenPage() {
               <span className="ticket-table">Table {order.table?.number || 'Takeout'}</span>
               <span className="ticket-id">#{order.id.split('-')[0]}</span>
             </div>
+            <div style={{ fontSize: '0.8rem', color: 'hsl(215, 20%, 65%)', marginBottom: '12px', padding: '0 16px' }}>
+              Staff: {order.user ? `${order.user.firstName} ${order.user.lastName}` : 'Unknown'}
+            </div>
             
             <div className="ticket-items">
               {order.items.map(item => (

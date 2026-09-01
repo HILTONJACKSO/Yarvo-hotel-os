@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 import { PosService } from './pos.service';
 import { ApiTags, ApiCookieAuth } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -88,8 +88,8 @@ export class PosController {
   }
 
   @Post('orders')
-  createOrder(@Body() data: { tableId?: string; folioId?: string }) {
-    return this.posService.createOrder(data);
+  createOrder(@Body() data: { tableId?: string; folioId?: string }, @Req() req: any) {
+    return this.posService.createOrder({ ...data, userId: req.user.userId });
   }
 
   @Post('orders/:id/items')
