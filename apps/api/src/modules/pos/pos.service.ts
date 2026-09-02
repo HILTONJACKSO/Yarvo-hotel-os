@@ -306,7 +306,7 @@ export class PosService {
     return item;
   }
 
-  async checkoutOrder(orderId: string, data: { payments?: { method: string; amount: number }[], folioId?: string }) {
+  async checkoutOrder(orderId: string, data: { payments?: { method: string; amount: number }[], folioId?: string, discountAmount?: number }) {
     const order = await this.prisma.posOrder.findUnique({
       where: { id: orderId },
       include: { items: { include: { menuItem: { include: { taxes: true } } } } }
@@ -333,7 +333,8 @@ export class PosService {
       calculatedTax += (itemTotal - itemBeforeTax);
     });
 
-    const totalAmount = order.totalAmount || subtotal; // Prices are tax-inclusive
+    const appliedDiscount = data.discountAmount !== undefined ? data.discountAmount : Number(order.discountAmount || 0);
+    const totalAmount = Math.max(0, subtotal - appliedDiscount); // Prices are tax-inclusive
 
     // If billing to a room
     if (data.folioId || order.folioId) {
@@ -358,7 +359,7 @@ export class PosService {
 
       return this.prisma.posOrder.update({
         where: { id: orderId },
-        data: { status: 'BILLED_TO_ROOM', folioId: folioIdToUse, totalAmount }
+        data: { status: 'BILLED_TO_ROOM', folioId: folioIdToUse, totalAmount, discountAmount: appliedDiscount }
       });
     }
 
@@ -376,7 +377,7 @@ export class PosService {
         }
         await tx.posOrder.update({
           where: { id: orderId },
-          data: { status: 'PAID', totalAmount }
+          data: { status: 'PAID', totalAmount, discountAmount: appliedDiscount }
         });
       });
       return this.prisma.posOrder.findUnique({ where: { id: orderId } });
@@ -384,7 +385,7 @@ export class PosService {
 
     return this.prisma.posOrder.update({
       where: { id: orderId },
-      data: { status: 'PAID', totalAmount }
+      data: { status: 'PAID', totalAmount, discountAmount: appliedDiscount }
     });
   }
 
