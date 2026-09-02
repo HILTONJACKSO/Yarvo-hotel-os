@@ -235,6 +235,7 @@ export default function PosPage() {
   const submitOrder = async () => {
     if (cart.length === 0) return;
     
+    try {
       const payload: any = {};
       if (orderDestinationType === 'TABLE') payload.tableId = selectedTable;
       if (orderDestinationType === 'ROOM') payload.folioId = selectedFolioId;
