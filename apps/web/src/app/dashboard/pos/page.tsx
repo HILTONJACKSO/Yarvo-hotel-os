@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/toast-provider';
+import { useAuth } from '@/lib/auth-provider';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type PosCategory = { id: string; name: string };
@@ -11,6 +12,9 @@ type Reservation = { id: string; folio: { id: string }; room: { number: string }
 type ServedOrder = { id: string; status: string; totalAmount: string; table?: PosTable; folioId?: string; folio?: { reservation: { guest: { firstName: string; lastName: string }; room: { number: string } } }; items: any[]; user?: { firstName: string; lastName: string } };
 
 export default function PosPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role.toUpperCase()));
+  const canSeeDiscount = user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'POS'].includes(role.toUpperCase()));
   const { showToast } = useToast();
   const [categories, setCategories] = useState<PosCategory[]>([]);
   const [menuItems, setMenuItems] = useState<PosMenuItem[]>([]);
@@ -26,6 +30,7 @@ export default function PosPage() {
 
   const [cart, setCart] = useState<{item: PosMenuItem, quantity: number}[]>([]);
   const [orderNotes, setOrderNotes] = useState<string>('');
+  const [orderDestinationDept, setOrderDestinationDept] = useState<'KITCHEN'|'BAR'|'BOTH'>('KITCHEN');
   const [showOrderNotes, setShowOrderNotes] = useState<boolean>(false);
   
   // Checkout / Settle state
@@ -239,7 +244,7 @@ export default function PosPage() {
       const payload: any = {};
       if (orderDestinationType === 'TABLE') payload.tableId = selectedTable;
       if (orderDestinationType === 'ROOM') payload.folioId = selectedFolioId;
-      if (orderNotes) payload.notes = orderNotes;
+      payload.notes = `[${orderDestinationDept}] ${orderNotes}`.trim();
 
       const orderRes = await fetch(`${API_URL}/api/v1/pos/orders`, {
         method: 'POST',
@@ -362,7 +367,7 @@ export default function PosPage() {
             </div>
             <div className="flex gap-2">
               <button className="btn-success btn-sm" onClick={() => {fetchData(); setShowSettleModal(true);}}>Settle Orders ({servedOrders.length})</button>
-              <button className="btn-secondary btn-sm" onClick={() => setShowAddTable(true)}>+ Add Table</button>
+              {isAdmin && <button className="btn-secondary btn-sm" onClick={() => setShowAddTable(true)}>+ Add Table</button>}
             </div>
           </div>
           
@@ -376,16 +381,18 @@ export default function PosPage() {
                   >
                     Table {table.number}
                   </button>
-                  <button 
-                    className="table-btn-delete" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteTable(table.id);
-                    }}
-                    title="Delete Table"
-                  >
-                    ×
-                  </button>
+                  {isAdmin && (
+                    <button 
+                      className="table-btn-delete" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTable(table.id);
+                      }}
+                      title="Delete Table"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -405,8 +412,8 @@ export default function PosPage() {
         <div className="section-header mt-4">
           <h3>Menu</h3>
           <div className="flex gap-2">
-            <button className="btn-secondary btn-sm" onClick={() => setShowAddCategory(true)}>+ Category</button>
-            <button className="btn-secondary btn-sm" onClick={() => setShowAddMenuItem(true)}>+ Menu Item</button>
+            {isAdmin && <button className="btn-secondary btn-sm" onClick={() => setShowAddCategory(true)}>+ Category</button>}
+            {isAdmin && <button className="btn-secondary btn-sm" onClick={() => setShowAddMenuItem(true)}>+ Menu Item</button>}
           </div>
         </div>
         <div className="category-scroll">
@@ -414,8 +421,8 @@ export default function PosPage() {
           {categories.map(cat => (
             <div key={cat.id} className="cat-wrapper" style={{ display: 'flex', alignItems: 'center', background: 'hsl(220, 30%, 12%)', borderRadius: '20px', paddingRight: '12px' }}>
               <button className={`cat-btn ${activeCategory === cat.id ? 'active' : ''}`} style={{ border: 'none', background: 'transparent' }} onClick={() => setActiveCategory(cat.id)}>{cat.name}</button>
-              <button onClick={() => handleEditCategory(cat)} style={{ color: 'hsl(215, 20%, 65%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.1rem' }} title="Edit Category">✎</button>
-              <button onClick={() => setCategoryToDelete(cat)} style={{ color: 'hsl(0, 84%, 60%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.4rem', lineHeight: 1 }} title="Delete Category">×</button>
+              {isAdmin && <button onClick={() => handleEditCategory(cat)} style={{ color: 'hsl(215, 20%, 65%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.1rem' }} title="Edit Category">✎</button>}
+              {isAdmin && <button onClick={() => setCategoryToDelete(cat)} style={{ color: 'hsl(0, 84%, 60%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.4rem', lineHeight: 1 }} title="Delete Category">×</button>}
             </div>
           ))}
         </div>
@@ -425,8 +432,8 @@ export default function PosPage() {
           {filteredItems.map(item => (
             <div key={item.id} className="menu-card" onClick={() => addToCart(item)}>
               <div className="menu-card-actions" style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', zIndex: 10 }}>
-                <button onClick={(e) => { e.stopPropagation(); handleEditMenuItem(item); }} style={{ background: 'hsl(220, 30%, 20%)', color: 'hsl(215, 20%, 80%)', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Item">✎</button>
-                <button onClick={(e) => { e.stopPropagation(); setMenuItemToDelete(item); }} style={{ background: 'hsl(0, 84%, 30%)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', lineHeight: 1 }} title="Delete Item">×</button>
+                {isAdmin && <button onClick={(e) => { e.stopPropagation(); handleEditMenuItem(item); }} style={{ background: 'hsl(220, 30%, 20%)', color: 'hsl(215, 20%, 80%)', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Item">✎</button>}
+                {isAdmin && <button onClick={(e) => { e.stopPropagation(); setMenuItemToDelete(item); }} style={{ background: 'hsl(0, 84%, 30%)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', lineHeight: 1 }} title="Delete Item">×</button>}
               </div>
               {item.image && <div className="menu-card-image" style={{ backgroundImage: `url(${item.image})` }}></div>}
               <div className="menu-card-content">
@@ -491,13 +498,34 @@ export default function PosPage() {
               {orderNotes ? 'Edit Special Request' : 'Add Special Request'}
             </button>
             {showOrderNotes && (
-              <textarea 
-                className="form-control" 
-                style={{ marginTop: '8px', background: 'hsl(220, 30%, 12%)', color: 'white', border: '1px solid hsl(217, 20%, 25%)', borderRadius: '4px', padding: '8px', width: '100%', minHeight: '60px', fontSize: '0.9rem' }}
-                placeholder="Enter special requests for the entire order..."
-                value={orderNotes}
-                onChange={e => setOrderNotes(e.target.value)}
-              />
+              <div style={{ marginTop: '8px', background: 'hsl(220, 30%, 12%)', border: '1px solid hsl(217, 20%, 25%)', borderRadius: '4px', padding: '8px' }}>
+                <div style={{ marginBottom: '8px', display: 'flex', gap: '12px', fontSize: '0.85rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                    <input type="radio" name="dept" checked={orderDestinationDept === 'KITCHEN'} onChange={() => setOrderDestinationDept('KITCHEN')} /> Kitchen
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                    <input type="radio" name="dept" checked={orderDestinationDept === 'BAR'} onChange={() => setOrderDestinationDept('BAR')} /> Bar
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                    <input type="radio" name="dept" checked={orderDestinationDept === 'BOTH'} onChange={() => setOrderDestinationDept('BOTH')} /> Both
+                  </label>
+                </div>
+                <textarea 
+                  className="form-control" 
+                  style={{ background: 'transparent', color: 'white', border: 'none', width: '100%', minHeight: '60px', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
+                  placeholder="Enter special requests for the entire order..."
+                  value={orderNotes}
+                  onChange={e => setOrderNotes(e.target.value)}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                  <button 
+                    className="btn-success btn-sm"
+                    onClick={() => setShowOrderNotes(false)}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
             )}
           </div>
           <button className="btn-primary w-full mt-4" disabled={cart.length === 0 || (orderDestinationType === 'TABLE' && !selectedTable) || (orderDestinationType === 'ROOM' && !selectedFolioId)} onClick={submitOrder}>
@@ -537,18 +565,20 @@ export default function PosPage() {
                 <div className="sc-header" style={{ marginBottom: '16px' }}>
                   <span>Order #{settleOrder.id.substring(0,8).toUpperCase()}</span>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.9rem', color: 'hsl(215, 20%, 65%)' }}>Discount (%):</span>
-                      <input 
-                        type="number" 
-                        step="1"
-                        max="100"
-                        value={settleDiscountPercent || ''} 
-                        onChange={e => setSettleDiscountPercent(Math.min(100, Math.max(0, Number(e.target.value))))} 
-                        style={{ width: '60px', background: 'hsl(222, 35%, 15%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', padding: '2px 4px', borderRadius: '4px', fontSize: '0.85rem', textAlign: 'right' }} 
-                        placeholder="0"
-                      />
-                    </div>
+                    {canSeeDiscount && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.9rem', color: 'hsl(215, 20%, 65%)' }}>Discount (%):</span>
+                        <input 
+                          type="number" 
+                          step="1"
+                          max="100"
+                          value={settleDiscountPercent || ''} 
+                          onChange={e => setSettleDiscountPercent(Math.min(100, Math.max(0, Number(e.target.value))))} 
+                          style={{ width: '60px', background: 'hsl(222, 35%, 15%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', padding: '2px 4px', borderRadius: '4px', fontSize: '0.85rem', textAlign: 'right' }} 
+                          placeholder="0"
+                        />
+                      </div>
+                    )}
                     <span className="sc-total">${Math.max(0, Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100))).toFixed(2)}</span>
                   </div>
                 </div>

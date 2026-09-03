@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/ui/toast-provider';
+import ReportExportToolbar from '@/components/ReportExportToolbar';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type PosReturnRequest = {
@@ -25,18 +26,32 @@ export default function ReturnsPage() {
   const { showToast } = useToast();
   const [returns, setReturns] = useState<PosReturnRequest[]>([]);
 
-  const fetchReturns = () => {
-    fetch(`${API_URL}/api/v1/pos/returns`, { credentials: 'include' })
+  const fetchReturns = useCallback((start?: string, end?: string) => {
+    let query = '';
+    if (start && end) query = `?start=${start}&end=${end}`;
+    fetch(`${API_URL}/api/v1/pos/returns${query}`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => setReturns(data.data || data))
       .catch(console.error);
-  };
+  }, []);
 
   useEffect(() => {
     fetchReturns();
-    const interval = setInterval(fetchReturns, 5000);
+    const interval = setInterval(() => fetchReturns(), 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchReturns]);
+
+  const handleDateChange = (start: string, end: string) => {
+    fetchReturns(start, end);
+  };
+
+  const handleExport = (format: 'pdf' | 'csv' | 'print') => {
+    if (format === 'print') {
+      window.print();
+    } else {
+      alert(`Exporting Returns as ${format.toUpperCase()}`);
+    }
+  };
 
   const handleApprove = async (returnId: string, approved: boolean) => {
     try {
@@ -59,6 +74,10 @@ export default function ReturnsPage() {
       <div className="header">
         <h2>Order Returns Management</h2>
         <p className="subtitle">Track and approve return requests from waitstaff and kitchen/bar.</p>
+      </div>
+
+      <div style={{ marginBottom: '24px' }}>
+        <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} />
       </div>
 
       <div className="returns-grid">

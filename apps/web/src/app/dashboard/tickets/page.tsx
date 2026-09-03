@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Ticket, Waves, Umbrella, Search, CheckCircle, Plus, Settings, Trash2 } from 'lucide-react';
+import { useAuth } from '@/lib/auth-provider';
 
 export default function TicketsPage() {
+  const { user } = useAuth();
   const [tickets, setTickets] = useState<any[]>([]);
   const [tiers, setTiers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -167,28 +169,32 @@ export default function TicketsPage() {
           >
             Manage Tickets
           </button>
-          <button
-            onClick={() => setActiveTab('SETTINGS')}
-            className={`px-4 py-2 rounded-md font-medium text-sm transition-all flex items-center gap-2 ${
-              activeTab === 'SETTINGS' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-slate-300'
-            }`}
-          >
-            <Settings size={16} />
-            Ticket Types
-          </button>
+          {user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN'].includes(role.toUpperCase())) && (
+            <button
+              onClick={() => setActiveTab('SETTINGS')}
+              className={`px-4 py-2 rounded-md font-medium text-sm transition-all flex items-center gap-2 ${
+                activeTab === 'SETTINGS' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-slate-300'
+              }`}
+            >
+              <Settings size={16} />
+              Ticket Types
+            </button>
+          )}
         </div>
       </div>
 
       {activeTab === 'TICKETS' && (
         <>
           <div className="flex justify-end mb-6">
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="bg-cyan-500 hover:bg-cyan-600 text-slate-900 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
-            >
-              <Plus size={18} />
-              Issue Ticket
-            </button>
+            {user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN'].includes(role.toUpperCase())) && (
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="bg-cyan-500 hover:bg-cyan-600 text-slate-900 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
+              >
+                <Plus size={18} />
+                Issue Ticket
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

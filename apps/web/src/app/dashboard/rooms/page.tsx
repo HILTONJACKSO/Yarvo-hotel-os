@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { AddRoomModal } from '@/components/rooms/AddRoomModal';
 import { Modal } from '@/components/ui/Modal';
 import { AlertCircle, Trash2 } from 'lucide-react';
+import { useAuth } from '@/lib/auth-provider';
 
 type RoomType = {
   id: string;
@@ -30,6 +31,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function RoomsPage() {
+  const { user } = useAuth();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -86,7 +88,9 @@ export default function RoomsPage() {
     <div className="page-container">
       <div className="page-header">
         <h2>Rooms</h2>
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>Add Room</button>
+        {user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'MAINTENANCE'].includes(role.toUpperCase())) && (
+          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>Add Room</button>
+        )}
       </div>
 
       <AddRoomModal 
@@ -156,7 +160,9 @@ export default function RoomsPage() {
                     </td>
                     <td className="actions-cell">
                       <div className="flex-actions">
-                        <button className="btn-danger-outline-small" onClick={() => setRoomToDelete(room)}>Delete</button>
+                        {user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role.toUpperCase())) && (
+                          <button className="btn-danger-outline-small" onClick={() => setRoomToDelete(room)}>Delete</button>
+                        )}
                         <button className="action-btn" onClick={() => setRoomToEdit(room)}>Edit</button>
                       </div>
                     </td>

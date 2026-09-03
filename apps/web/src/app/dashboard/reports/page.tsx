@@ -18,6 +18,7 @@ import {
   Cell
 } from 'recharts';
 import { AlertCircle, TrendingUp, Utensils, Bed, Wallet } from 'lucide-react';
+import ReportExportToolbar from '@/components/ReportExportToolbar';
 
 type ChartData = { date: string; revenue: number; };
 type FbMetrics = { todayFbRevenue: number; weekFbRevenue: number; monthFbRevenue: number; };
@@ -53,41 +54,57 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        if (activeTab === 'HOTEL') {
-          const [resTrend, resHeatmap] = await Promise.all([
-            fetch('/api/v1/analytics/revenue-chart', { credentials: 'include' }).then(r => r.json()),
-            fetch('/api/v1/analytics/occupancy-heatmap', { credentials: 'include' }).then(r => r.json())
-          ]);
+  const fetchData = async (start?: string, end?: string) => {
+    setLoading(true);
+    setError(null);
+    let query = '';
+    if (start && end) query = `?start=${start}&end=${end}`;
+    
+    try {
+      if (activeTab === 'HOTEL') {
+        const [resTrend, resHeatmap] = await Promise.all([
+          fetch(`/api/v1/analytics/revenue-chart${query}`, { credentials: 'include' }).then(r => r.json()),
+          fetch(`/api/v1/analytics/occupancy-heatmap${query}`, { credentials: 'include' }).then(r => r.json())
+        ]);
           setHotelData(resTrend.data || []);
           setHeatmapData(resHeatmap.data || null);
         } else if (activeTab === 'FB') {
           const [resMetrics, resChart, resItems] = await Promise.all([
-            fetch('/api/v1/analytics/fb-metrics', { credentials: 'include' }).then(r => r.json()),
-            fetch('/api/v1/analytics/fb-chart', { credentials: 'include' }).then(r => r.json()),
-            fetch('/api/v1/analytics/fb-top-items', { credentials: 'include' }).then(r => r.json())
+            fetch(`/api/v1/analytics/fb-metrics${query}`, { credentials: 'include' }).then(r => r.json()),
+            fetch(`/api/v1/analytics/fb-chart${query}`, { credentials: 'include' }).then(r => r.json()),
+            fetch(`/api/v1/analytics/fb-top-items${query}`, { credentials: 'include' }).then(r => r.json())
           ]);
           setFbMetrics(resMetrics.data);
           setFbChart(resChart.data);
           setTopItems(resItems.data);
         } else if (activeTab === 'FINANCIAL') {
-          const res = await fetch('/api/v1/analytics/revenue-by-method', { credentials: 'include' });
+          const res = await fetch(`/api/v1/analytics/revenue-by-method${query}`, { credentials: 'include' });
           const json = await res.json();
           if (!res.ok) throw new Error(json.message || 'Failed to fetch payment data');
           setPaymentData(json.data);
         }
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [activeTab]);
+
+  const handleDateChange = (start: string, end: string) => {
+    fetchData(start, end);
+  };
+
+  const handleExport = (format: 'pdf' | 'csv' | 'print') => {
+    if (format === 'print') {
+      window.print();
+    } else {
+      alert(`Exporting Reports as ${format.toUpperCase()}`);
+    }
+  };
 
   const hotelTotalRevenue = hotelData.reduce((acc, curr) => acc + curr.revenue, 0);
   const fbTotalChartRevenue = fbChart.reduce((acc, curr) => acc + curr.revenue, 0);
@@ -97,8 +114,9 @@ export default function ReportsPage() {
     <div className="page-container">
       <div className="page-header">
         <h2>Reports & Analytics</h2>
-        <button className="btn-secondary" onClick={() => window.print()}>Export PDF</button>
       </div>
+
+      <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} />
 
       <div className="tabs">
         <button 

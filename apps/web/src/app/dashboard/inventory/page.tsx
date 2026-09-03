@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/toast-provider';
+import { useAuth } from '@/lib/auth-provider';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type InventoryItem = {
@@ -19,6 +20,10 @@ type InventoryItem = {
 };
 
 export default function InventoryPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.some(r => ['ADMIN', 'SUPER_ADMIN'].includes(r.toUpperCase()));
+  const canEdit = user?.roles?.some(r => ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(r.toUpperCase())) || !user?.roles?.some(r => r.toUpperCase() === 'POS');
+  
   const { showToast } = useToast();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,11 +146,13 @@ export default function InventoryPage() {
     <div className="inventory-layout">
       <div className="inv-header">
         <h2>Inventory Management</h2>
-        <button className="btn-primary" onClick={() => {
-          setEditItemId(null);
-          setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
-          setShowAddModal(true);
-        }}>+ Add Item</button>
+        {isAdmin && (
+          <button className="btn-primary" onClick={() => {
+            setEditItemId(null);
+            setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
+            setShowAddModal(true);
+          }}>+ Add Item</button>
+        )}
       </div>
 
       <div className="inv-table-container">
@@ -192,20 +199,24 @@ export default function InventoryPage() {
                   <td>${Number(item.costPerUnit).toFixed(2)}</td>
                   <td>
                     <div className="action-buttons">
-                      <button title="Edit Item" onClick={() => {
-                        setEditItemId(item.id);
-                        setNewItem({
-                          name: item.name,
-                          category: item.category,
-                          unit: item.unit,
-                          stockLevel: Number(item.stockLevel),
-                          minThreshold: Number(item.minThreshold),
-                          costPerUnit: Number(item.costPerUnit)
-                        });
-                        setShowAddModal(true);
-                      }}>✎</button>
+                      {canEdit && (
+                        <button title="Edit Item" onClick={() => {
+                          setEditItemId(item.id);
+                          setNewItem({
+                            name: item.name,
+                            category: item.category,
+                            unit: item.unit,
+                            stockLevel: Number(item.stockLevel),
+                            minThreshold: Number(item.minThreshold),
+                            costPerUnit: Number(item.costPerUnit)
+                          });
+                          setShowAddModal(true);
+                        }}>✎</button>
+                      )}
                       <button title="Transfer Stock" onClick={() => { setTransferItem(item); setShowTransferModal(true); }}>⇄</button>
-                      <button title="Delete Item" onClick={() => setItemToDelete(item)} style={{ color: 'hsl(0, 84%, 65%)' }}>🗑️</button>
+                      {isAdmin && (
+                        <button title="Delete Item" onClick={() => setItemToDelete(item)} style={{ color: 'hsl(0, 84%, 65%)' }}>🗑️</button>
+                      )}
                     </div>
                   </td>
                 </tr>

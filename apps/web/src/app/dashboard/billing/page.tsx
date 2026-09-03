@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/toast-provider';
+import { useAuth } from '@/lib/auth-provider';
 
 type FolioLineItem = {
   id: string;
@@ -25,6 +26,7 @@ type Folio = {
 };
 
 export default function BillingPage() {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [folios, setFolios] = useState<Folio[]>([]);
   const [selectedFolio, setSelectedFolio] = useState<Folio | null>(null);
@@ -229,15 +231,17 @@ export default function BillingPage() {
                   <button type="submit" className="btn-charge">Add Charge</button>
                 </form>
 
-                <form className="action-form" onSubmit={handlePostPayment}>
-                  <h4>Post Payment</h4>
-                  <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                    <option value="PAYMENT_CARD">Credit Card</option>
-                    <option value="PAYMENT_CASH">Cash</option>
-                  </select>
-                  <input type="number" step="0.01" min="0.01" placeholder="Amount ($)" required value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} />
-                  <button type="submit" className="btn-payment">Add Payment</button>
-                </form>
+                {user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'POS'].includes(role.toUpperCase())) && (
+                  <form className="action-form" onSubmit={handlePostPayment}>
+                    <h4>Post Payment</h4>
+                    <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                      <option value="PAYMENT_CARD">Credit Card</option>
+                      <option value="PAYMENT_CASH">Cash</option>
+                    </select>
+                    <input type="number" step="0.01" min="0.01" placeholder="Amount ($)" required value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} />
+                    <button type="submit" className="btn-payment">Add Payment</button>
+                  </form>
+                )}
               </div>
             )}
           </>

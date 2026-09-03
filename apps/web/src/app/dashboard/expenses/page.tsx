@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Receipt, Search, Filter, Trash2 } from 'lucide-react';
+import ReportExportToolbar from '@/components/ReportExportToolbar';
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -15,9 +16,11 @@ export default function ExpensesPage() {
     referenceCode: '',
   });
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async (start?: string, end?: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/expenses`, {
+      let query = '';
+      if (start && end) query = `?start=${start}&end=${end}`;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/expenses${query}`, {
         credentials: 'include'
       });
       if (res.ok) {
@@ -29,11 +32,23 @@ export default function ExpensesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchExpenses();
-  }, []);
+  }, [fetchExpenses]);
+
+  const handleDateChange = (start: string, end: string) => {
+    fetchExpenses(start, end);
+  };
+
+  const handleExport = (format: 'pdf' | 'csv' | 'print') => {
+    if (format === 'print') {
+      window.print();
+    } else {
+      alert(`Exporting Expenses as ${format.toUpperCase()}`);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +110,8 @@ export default function ExpensesPage() {
           Record Expense
         </button>
       </div>
+
+      <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} />
 
       <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
         <div className="p-4 border-b border-slate-700 flex gap-4">

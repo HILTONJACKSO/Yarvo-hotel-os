@@ -345,6 +345,24 @@ enum ReservationStatus {
   @@map("reservation_status")
 }
 
+// Phase 7: Audit Tracking
+// =============================================================================
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  action    String   @db.VarChar(50) // e.g., EDIT_INVENTORY, EDIT_MENU
+  entity    String   @db.VarChar(50) // e.g., InventoryItem, PosMenuItem
+  entityId  String   @db.Uuid
+  oldValues Json     @default("{}")
+  newValues Json     @default("{}")
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
 model Reservation {
   id               String            @id @default(uuid()) @db.Uuid
   confirmationCode String            @unique @db.VarChar(20)

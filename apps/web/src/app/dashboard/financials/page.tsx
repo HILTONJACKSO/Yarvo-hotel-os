@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Landmark, TrendingUp, TrendingDown, Scale, Calculator, Download } from 'lucide-react';
+import ReportExportToolbar from '@/components/ReportExportToolbar';
 
 export default function FinancialsPage() {
   const [activeTab, setActiveTab] = useState<'PNL' | 'BALANCE_SHEET' | 'TRIAL_BALANCE'>('PNL');
@@ -11,15 +12,16 @@ export default function FinancialsPage() {
   const [tbData, setTbData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchReports = async () => {
-      setIsLoading(true);
-      try {
-        const [pnlRes, bsRes, tbRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/analytics/reports/pnl`, { credentials: 'include' }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/analytics/reports/balance-sheet`, { credentials: 'include' }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/analytics/reports/trial-balance`, { credentials: 'include' })
-        ]);
+  const fetchReports = useCallback(async (start?: string, end?: string) => {
+    setIsLoading(true);
+    try {
+      let query = '';
+      if (start && end) query = `?start=${start}&end=${end}`;
+      const [pnlRes, bsRes, tbRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/analytics/reports/pnl${query}`, { credentials: 'include' }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/analytics/reports/balance-sheet${query}`, { credentials: 'include' }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/analytics/reports/trial-balance${query}`, { credentials: 'include' })
+      ]);
 
         if (pnlRes.ok) setPnlData((await pnlRes.json()).data);
         if (bsRes.ok) setBsData((await bsRes.json()).data);
@@ -29,9 +31,22 @@ export default function FinancialsPage() {
       } finally {
         setIsLoading(false);
       }
-    };
-    fetchReports();
   }, []);
+
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
+  const handleDateChange = (start: string, end: string) => {
+    fetchReports(start, end);
+  };
+
+  const handleExport = (format: 'pdf' | 'csv' | 'print') => {
+    if (format === 'print') {
+      window.print();
+    } else {
+      alert(`Exporting Financials as ${format.toUpperCase()}`);
+    }
+  };
 
   return (
     <div className="p-6">
@@ -43,11 +58,9 @@ export default function FinancialsPage() {
           </h1>
           <p className="text-slate-400">View Profit & Loss, Balance Sheet, and Trial Balance</p>
         </div>
-        <button className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
-          <Download size={18} />
-          Export PDF
-        </button>
       </div>
+
+      <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} />
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-slate-700">

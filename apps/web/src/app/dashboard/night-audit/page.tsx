@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Moon, History, FileText, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import ReportExportToolbar from '@/components/ReportExportToolbar';
 
 export default function NightAuditPage() {
   const [history, setHistory] = useState<any[]>([]);
@@ -9,9 +10,11 @@ export default function NightAuditPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState('');
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async (start?: string, end?: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/night-audit/history`, {
+      let query = '';
+      if (start && end) query = `?start=${start}&end=${end}`;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/night-audit/history${query}`, {
         credentials: 'include'
       });
       if (res.ok) {
@@ -23,11 +26,23 @@ export default function NightAuditPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [fetchHistory]);
+
+  const handleDateChange = (start: string, end: string) => {
+    fetchHistory(start, end);
+  };
+
+  const handleExport = (format: 'pdf' | 'csv' | 'print') => {
+    if (format === 'print') {
+      window.print();
+    } else {
+      alert(`Exporting Night Audit as ${format.toUpperCase()}`);
+    }
+  };
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
@@ -73,6 +88,8 @@ export default function NightAuditPage() {
           <p className="text-slate-400">Run End-of-Day operations and finalize daily revenue</p>
         </div>
       </div>
+
+      <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
