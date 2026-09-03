@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-provider';
 import { Search, Loader2, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 interface AuditLog {
   id: string;
@@ -31,7 +32,9 @@ export default function AuditLogsPage() {
   const fetchLogs = async () => {
     try {
       setIsLoading(true);
-      const data = await api.get('/audit-logs');
+      const res = await fetch(`${API_URL}/api/v1/audit-logs`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch audit logs');
+      const data = await res.json();
       setLogs(data);
     } catch (err) {
       console.error('Failed to fetch audit logs:', err);
