@@ -13,6 +13,10 @@ async function main() {
     { name: 'FRONT_DESK', description: 'Front desk operations, check-in, check-out' },
     { name: 'HOUSEKEEPING', description: 'Room status management' },
     { name: 'ACCOUNTING', description: 'Financial reports and audits' },
+    { name: 'CASHIER', description: 'Handles payments and POS transactions' },
+    { name: 'KITCHEN_CHEF', description: 'Kitchen and food preparation staff' },
+    { name: 'STAFF_WAITER', description: 'Restaurant and bar service staff' },
+    { name: 'SUPERVISOR', description: 'Shift supervisor with elevated permissions' },
   ];
 
   console.log('Seeding roles...');
