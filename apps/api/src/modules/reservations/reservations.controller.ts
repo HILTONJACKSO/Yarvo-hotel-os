@@ -26,14 +26,14 @@ export class ReservationsController {
   constructor(private readonly reservationsService: ReservationsService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Create a new reservation' })
   create(@Body() createReservationDto: CreateReservationDto, @Req() req: any) {
     return this.reservationsService.create(createReservationDto, req.user?.id);
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK', 'ACCOUNTING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTING')
   @ApiOperation({ summary: 'List and filter reservations' })
   @ApiQuery({ name: 'status', enum: ReservationStatus, required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
@@ -47,14 +47,14 @@ export class ReservationsController {
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK', 'ACCOUNTING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTING')
   @ApiOperation({ summary: 'Get a specific reservation' })
   findOne(@Param('id') id: string) {
     return this.reservationsService.findOne(id);
   }
 
   @Patch(':id/status')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Update reservation status (e.g., Check-In)' })
   updateStatus(
     @Param('id') id: string,
@@ -65,14 +65,14 @@ export class ReservationsController {
   }
 
   @Post(':id/check-in')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Execute full Check-In workflow' })
   checkIn(@Param('id') id: string, @Body() checkInDto: CheckInDto, @Req() req: any) {
     return this.reservationsService.checkIn(id, checkInDto.roomId, req.user?.id);
   }
 
   @Post(':id/check-out')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Execute full Check-Out workflow' })
   checkOut(@Param('id') id: string, @Body() checkOutDto: CheckOutDto, @Req() req: any) {
     return this.reservationsService.checkOut(id, checkOutDto, req.user?.id);

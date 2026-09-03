@@ -12,7 +12,7 @@ export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Get('dashboard')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Get main dashboard aggregates' })
   async getDashboard() {
     const data = await this.analyticsService.getDashboardMetrics();
@@ -20,7 +20,7 @@ export class AnalyticsController {
   }
 
   @Get('revenue-chart')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @ApiOperation({ summary: 'Get revenue charting data for the last 7 days' })
   async getRevenueChart() {
     const data = await this.analyticsService.getRevenueChart();
@@ -28,42 +28,42 @@ export class AnalyticsController {
   }
 
   @Get('fb-metrics')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   async getFbMetrics() {
     const data = await this.analyticsService.getFbMetrics();
     return { data };
   }
 
   @Get('fb-chart')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   async getFbChart() {
     const data = await this.analyticsService.getFbRevenueChart();
     return { data };
   }
 
   @Get('fb-top-items')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   async getFbTopItems() {
     const data = await this.analyticsService.getFbTopItems();
     return { data };
   }
 
   @Get('revenue-by-method')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   async getRevenueByMethod() {
     const data = await this.analyticsService.getRevenueByMethod();
     return { data };
   }
 
   @Get('occupancy-heatmap')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
   async getOccupancyHeatmap() {
     const data = await this.analyticsService.getOccupancyHeatmap();
     return { data };
   }
 
   @Get('recent-activity')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
   async getRecentActivity() {
     const data = await this.analyticsService.getRecentActivity();
     return { data };
@@ -72,7 +72,7 @@ export class AnalyticsController {
   // --- Financial Reports ---
 
   @Get('reports/pnl')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @ApiOperation({ summary: 'Get Profit & Loss statement' })
   async getProfitAndLoss() {
     const data = await this.analyticsService.getProfitAndLoss();
@@ -80,7 +80,7 @@ export class AnalyticsController {
   }
 
   @Get('reports/trial-balance')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @ApiOperation({ summary: 'Get Trial Balance' })
   async getTrialBalance() {
     const data = await this.analyticsService.getTrialBalance();
@@ -88,7 +88,7 @@ export class AnalyticsController {
   }
 
   @Get('reports/balance-sheet')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @ApiOperation({ summary: 'Get Balance Sheet' })
   async getBalanceSheet() {
     const data = await this.analyticsService.getBalanceSheet();

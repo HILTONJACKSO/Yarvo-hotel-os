@@ -25,7 +25,7 @@ export class GuestsController {
   constructor(private readonly guestsService: GuestsService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Create a new guest profile' })
   @ApiResponse({ status: 201, description: 'Guest successfully created.' })
   @ApiResponse({ status: 409, description: 'Guest email already exists.' })
@@ -34,7 +34,7 @@ export class GuestsController {
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK', 'HOUSEKEEPING', 'ACCOUNTING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'HOUSEKEEPING', 'ACCOUNTING')
   @ApiOperation({ summary: 'List and search guests' })
   @ApiQuery({ name: 'search', required: false, description: 'Search by name, email, or phone' })
   @ApiQuery({ name: 'page', required: false, type: Number })
@@ -48,21 +48,21 @@ export class GuestsController {
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Get a specific guest by ID' })
   findOne(@Param('id') id: string) {
     return this.guestsService.findOne(id);
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Update a guest profile' })
   update(@Param('id') id: string, @Body() updateGuestDto: UpdateGuestDto) {
     return this.guestsService.update(id, updateGuestDto);
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft delete a guest' })
   remove(@Param('id') id: string) {

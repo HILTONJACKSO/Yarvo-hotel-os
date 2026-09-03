@@ -91,14 +91,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     
     // Check if user is trying to access a restricted path
-    if (user && user.roles && window.location.pathname !== '/dashboard') {
-      const currentItem = NAV_ITEMS.find(item => item.type !== 'divider' && window.location.pathname.startsWith(item.href));
-      if (currentItem && currentItem.type !== 'divider') {
+    if (user && user.roles) {
+      // Find the most specific matching route by sorting descending by href length
+      const matchableItems = NAV_ITEMS.filter(item => item.type !== 'divider');
+      matchableItems.sort((a, b) => (b.href?.length || 0) - (a.href?.length || 0));
+      
+      const currentItem = matchableItems.find(item => window.location.pathname.startsWith(item.href!));
+      if (currentItem) {
         const hasAccess = user.roles.some((role: string) => 
-          currentItem.allowedRoles.includes(role.toLowerCase())
+          currentItem.allowedRoles!.includes(role.toLowerCase())
         );
         if (!hasAccess) {
-          router.replace('/dashboard');
+          // Find the first route this user IS allowed to access
+          const firstAllowed = NAV_ITEMS.find(item => 
+            item.type !== 'divider' && 
+            user.roles.some((role: string) => item.allowedRoles!.includes(role.toLowerCase()))
+          );
+          if (firstAllowed && firstAllowed.href) {
+            router.replace(firstAllowed.href);
+          } else {
+            router.replace('/login');
+          }
         }
       }
     }

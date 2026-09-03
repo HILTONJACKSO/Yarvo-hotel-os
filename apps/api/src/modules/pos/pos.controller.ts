@@ -15,13 +15,13 @@ export class PosController {
   }
 
   @Post('tables')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   createTable(@Body() data: { number: string; capacity: number }) {
     return this.posService.createTable(data);
   }
 
   @Delete('tables/:id')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   deleteTable(@Param('id') id: string) {
     return this.posService.deleteTable(id);
   }
@@ -32,19 +32,19 @@ export class PosController {
   }
 
   @Post('categories')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   createCategory(@Body() data: { name: string }) {
     return this.posService.createCategory(data);
   }
 
   @Patch('categories/:id')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   updateCategory(@Param('id') id: string, @Body() data: { name: string }, @Req() req: any) {
     return this.posService.updateCategory(id, data, req.user.id);
   }
 
   @Delete('categories/:id')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   deleteCategory(@Param('id') id: string) {
     return this.posService.deleteCategory(id);
   }
@@ -55,19 +55,19 @@ export class PosController {
   }
 
   @Post('menu-items')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   createMenuItem(@Body() data: { categoryId: string; name: string; description?: string; price: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }) {
     return this.posService.createMenuItem(data);
   }
 
   @Patch('menu-items/:id')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   updateMenuItem(@Param('id') id: string, @Body() data: { categoryId?: string; name?: string; description?: string; price?: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }, @Req() req: any) {
     return this.posService.updateMenuItem(id, data, req.user.id);
   }
 
   @Delete('menu-items/:id')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   deleteMenuItem(@Param('id') id: string) {
     return this.posService.deleteMenuItem(id);
   }
@@ -114,19 +114,19 @@ export class PosController {
   }
 
   @Get('returns')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'KITCHEN', 'BAR', 'WAITSTAFF')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'KITCHEN', 'BAR', 'WAITSTAFF')
   getReturnRequests() {
     return this.posService.getReturnRequests();
   }
 
   @Post('returns/:returnId/confirm')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'KITCHEN', 'BAR')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'KITCHEN', 'BAR')
   confirmReturn(@Param('returnId') returnId: string, @Body('kitchenNote') kitchenNote: string, @Req() req: any) {
     return this.posService.confirmReturn(returnId, req.user.id, kitchenNote);
   }
 
   @Post('returns/:returnId/approve')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   approveReturn(@Param('returnId') returnId: string, @Body('approved') approved: boolean, @Req() req: any) {
     return this.posService.approveReturn(returnId, req.user.id, approved);
   }

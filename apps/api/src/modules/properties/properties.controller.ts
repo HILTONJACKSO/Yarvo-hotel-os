@@ -18,7 +18,7 @@ export class PropertiesController {
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @ApiOperation({ summary: 'Update property configuration' })
   @ApiResponse({ status: 200, description: 'Property successfully updated.' })
   @ApiResponse({ status: 404, description: 'Property not found.' })

@@ -12,7 +12,7 @@ export class RoomTypesController {
   constructor(private readonly roomTypesService: RoomTypesService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @ApiOperation({ summary: 'Create a new room type' })
   @ApiResponse({ status: 201, description: 'Room type successfully created.' })
   @ApiResponse({ status: 409, description: 'Room type with this code already exists.' })
@@ -36,7 +36,7 @@ export class RoomTypesController {
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @ApiOperation({ summary: 'Update a room type' })
   @ApiResponse({ status: 200, description: 'Room type successfully updated.' })
   @ApiResponse({ status: 404, description: 'Room type not found.' })
@@ -45,7 +45,7 @@ export class RoomTypesController {
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft delete a room type' })
   @ApiResponse({ status: 204, description: 'Room type successfully deleted.' })

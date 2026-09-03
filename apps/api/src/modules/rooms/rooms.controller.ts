@@ -87,7 +87,7 @@ export class RoomsController {
   }
 
   @Patch(':id/status')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'FRONT_DESK', 'HOUSEKEEPING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'HOUSEKEEPING')
   @ApiOperation({ summary: 'Change a room status (writes to history)' })
   @ApiResponse({ status: 200, description: 'Room status successfully updated.' })
   changeStatus(
@@ -99,7 +99,7 @@ export class RoomsController {
   }
 
   @Patch(':id/clean')
-  @Roles('SUPER_ADMIN', 'MANAGER', 'HOUSEKEEPING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'HOUSEKEEPING')
   @ApiOperation({ summary: 'Mark a dirty room as clean (AVAILABLE)' })
   markAsClean(@Param('id') id: string, @Req() req: any) {
     return this.roomsService.changeStatus(
