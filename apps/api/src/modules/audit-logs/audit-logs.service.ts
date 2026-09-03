@@ -34,6 +34,14 @@ export class AuditLogsService {
     return this.prisma.auditLog.findMany({
       orderBy: { createdAt: 'desc' },
       take: 200, // Limit to recent 200 for now
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
     });
   }
 }

@@ -15,6 +15,10 @@ interface AuditLog {
   oldValues: any;
   newValues: any;
   createdAt: string;
+  user?: {
+    firstName: string;
+    lastName: string;
+  };
 }
 
 export default function AuditLogsPage() {
@@ -86,10 +90,10 @@ export default function AuditLogsPage() {
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-800">
                 <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Timestamp</th>
-                <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">User ID</th>
+                <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">User</th>
                 <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Action</th>
                 <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Entity</th>
-                <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Entity ID</th>
+                <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Entity Details</th>
                 <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-right">Details</th>
               </tr>
             </thead>
@@ -114,8 +118,8 @@ export default function AuditLogsPage() {
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                         {log?.createdAt ? format(new Date(log.createdAt), 'MMM d, yyyy HH:mm:ss') : 'N/A'}
                       </td>
-                      <td className="px-4 py-3 text-sm font-mono text-gray-500" title={log?.userId || 'System'}>
-                        {log?.userId ? String(log.userId).substring(0, 8) + '...' : 'System'}
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white" title={log?.userId || 'System'}>
+                        {log?.user ? `${log.user.firstName} ${log.user.lastName}` : (log?.userId ? String(log.userId).substring(0, 8) + '...' : 'System')}
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
@@ -125,8 +129,8 @@ export default function AuditLogsPage() {
                       <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                         {log.entity}
                       </td>
-                      <td className="px-4 py-3 text-sm font-mono text-gray-500" title={log?.entityId}>
-                        {log?.entityId ? String(log.entityId).substring(0, 8) + '...' : ''}
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300" title={log?.entityId}>
+                        {log.newValues?.name || log.oldValues?.name || log.newValues?.number || log.oldValues?.number || log.newValues?.title || log.oldValues?.title || (log?.entityId ? String(log.entityId).substring(0, 8) + '...' : '')}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button 
