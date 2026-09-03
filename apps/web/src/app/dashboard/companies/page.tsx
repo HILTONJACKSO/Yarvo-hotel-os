@@ -108,9 +108,11 @@ export default function CompaniesPage() {
           <h1 className="page-title">Corporate Accounts</h1>
           <p className="page-subtitle">Manage company profiles, billing, and outstanding balances.</p>
         </div>
-        <button className="primary-btn" onClick={() => openModal()}>
-          <Plus size={18} /> Add Company
-        </button>
+        {user?.role === 'ADMIN' && (
+          <button className="primary-btn" onClick={() => openModal()}>
+            <Plus size={18} /> Add Company
+          </button>
+        )}
       </div>
 
       <div className="toolbar">
