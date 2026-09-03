@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import * as argon2 from 'argon2';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -45,7 +45,16 @@ export class UsersService {
     });
   }
 
-  async create(createUserDto: CreateUserDto) {
+    async create(createUserDto: CreateUserDto, currentUser?: any) {
+    if (currentUser?.roles?.includes('MANAGER') && !currentUser?.roles?.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r))) {
+      const assigningRoles = await this.prisma.role.findMany({
+        where: { id: { in: createUserDto.roleIds } }
+      });
+      const hasRestrictedRole = assigningRoles.some(r => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER'].includes(r.name));
+      if (hasRestrictedRole) {
+        throw new ForbiddenException('Managers are not permitted to assign SUPER_ADMIN, ADMIN, CEO, or MANAGER roles.');
+      }
+    }
     const existingUser = await this.prisma.user.findUnique({
       where: { email: createUserDto.email },
     });
@@ -74,7 +83,16 @@ export class UsersService {
     });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
+    async update(id: string, updateUserDto: UpdateUserDto, currentUser?: any) {
+    if (updateUserDto.roleIds && currentUser?.roles?.includes('MANAGER') && !currentUser?.roles?.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r))) {
+      const assigningRoles = await this.prisma.role.findMany({
+        where: { id: { in: updateUserDto.roleIds } }
+      });
+      const hasRestrictedRole = assigningRoles.some(r => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER'].includes(r.name));
+      if (hasRestrictedRole) {
+        throw new ForbiddenException('Managers are not permitted to assign SUPER_ADMIN, ADMIN, CEO, or MANAGER roles.');
+      }
+    }
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('User not found');
