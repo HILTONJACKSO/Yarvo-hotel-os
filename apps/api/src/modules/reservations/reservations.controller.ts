@@ -33,7 +33,7 @@ export class ReservationsController {
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT')
   @ApiOperation({ summary: 'List and filter reservations' })
   @ApiQuery({ name: 'status', enum: ReservationStatus, required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
@@ -47,7 +47,7 @@ export class ReservationsController {
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get a specific reservation' })
   findOne(@Param('id') id: string) {
     return this.reservationsService.findOne(id);

@@ -10,14 +10,14 @@ export class NightAuditController {
   constructor(private readonly nightAuditService: NightAuditService) {}
 
   @Post('run')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
   async runAudit(@CurrentUser() user: any) {
     const data = await this.nightAuditService.runAudit(user.id);
     return { message: 'Night Audit completed successfully', data };
   }
 
   @Get('history')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
   async getHistory() {
     const data = await this.nightAuditService.getHistory();
     return { data };

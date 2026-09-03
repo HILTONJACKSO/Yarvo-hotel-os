@@ -20,21 +20,21 @@ export class FoliosController {
   constructor(private readonly foliosService: FoliosService) {}
 
   @Get()
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
   @ApiOperation({ summary: 'List all folios' })
   getAllFolios(@Query('status') status?: 'OPEN' | 'CLOSED') {
     return this.foliosService.getAllFolios(status);
   }
 
   @Get(':id/statement')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
   @ApiOperation({ summary: 'Get a full folio statement with all line items' })
   getStatement(@Param('id') id: string) {
     return this.foliosService.getStatement(id);
   }
 
   @Post(':id/charges')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
   @ApiOperation({ summary: 'Post a new charge to a folio' })
   postCharge(
     @Param('id') id: string,
@@ -45,7 +45,7 @@ export class FoliosController {
   }
 
   @Post(':id/payments')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
   @ApiOperation({ summary: 'Post a payment to a folio' })
   postPayment(
     @Param('id') id: string,

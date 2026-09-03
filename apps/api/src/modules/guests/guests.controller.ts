@@ -34,7 +34,7 @@ export class GuestsController {
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'HOUSEKEEPING', 'ACCOUNTING')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'HOUSEKEEPING', 'ACCOUNTANT')
   @ApiOperation({ summary: 'List and search guests' })
   @ApiQuery({ name: 'search', required: false, description: 'Search by name, email, or phone' })
   @ApiQuery({ name: 'page', required: false, type: Number })
