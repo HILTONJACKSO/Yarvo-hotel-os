@@ -34,8 +34,8 @@ export class RoomsController {
   @ApiResponse({ status: 201, description: 'Room successfully created.' })
   @ApiResponse({ status: 400, description: 'RoomType not found.' })
   @ApiResponse({ status: 409, description: 'Room number already exists.' })
-  create(@Body() createRoomDto: CreateRoomDto) {
-    return this.roomsService.create(createRoomDto);
+  create(@Body() createRoomDto: CreateRoomDto, @CurrentUser() user: any) {
+    return this.roomsService.create(createRoomDto, user?.id);
   }
 
   @Get()
@@ -82,8 +82,8 @@ export class RoomsController {
   @Roles('SUPER_ADMIN', 'MANAGER')
   @ApiOperation({ summary: 'Update a room details' })
   @ApiResponse({ status: 200, description: 'Room successfully updated.' })
-  update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto) {
-    return this.roomsService.update(id, updateRoomDto);
+  update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto, @CurrentUser() user: any) {
+    return this.roomsService.update(id, updateRoomDto, user?.id);
   }
 
   @Patch(':id/status')

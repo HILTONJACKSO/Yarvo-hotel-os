@@ -4,12 +4,16 @@ import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import { ChangeRoomStatusDto } from './dto/change-status.dto';
 import { RoomStatus } from '@prisma/client';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @Injectable()
 export class RoomsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
 
-  async create(createRoomDto: CreateRoomDto) {
+  async create(createRoomDto: CreateRoomDto, userId?: string) {
     const existing = await this.prisma.room.findUnique({
       where: { number: createRoomDto.number },
     });
@@ -47,6 +51,16 @@ export class RoomsService {
           reason: 'Initial room creation',
         },
       });
+
+      if (userId) {
+        await this.auditLogsService.logAction({
+          userId,
+          action: 'CREATE_ROOM',
+          entity: 'Room',
+          entityId: room.id,
+          newValues: room,
+        });
+      }
 
       return room;
     });
@@ -106,8 +120,8 @@ export class RoomsService {
     return room;
   }
 
-  async update(id: string, updateRoomDto: UpdateRoomDto) {
-    await this.findOne(id); // Ensure it exists
+  async update(id: string, updateRoomDto: UpdateRoomDto, userId?: string) {
+    const oldRoom = await this.findOne(id); // Ensure it exists
 
     if (updateRoomDto.number) {
       const existing = await this.prisma.room.findFirst({
@@ -159,6 +173,17 @@ export class RoomsService {
           reason: changeStatusDto.reason,
         },
       });
+
+      if (userId && oldRoom) {
+        await this.auditLogsService.logAction({
+          userId,
+          action: 'EDIT_ROOM',
+          entity: 'Room',
+          entityId: id,
+          oldValues: oldRoom,
+          newValues: updatedRoom
+        });
+      }
 
       return updatedRoom;
     });
