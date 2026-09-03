@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/ui/toast-provider';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
+import { downloadCSV } from '@/utils/export';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type PosReturnRequest = {
@@ -46,10 +47,19 @@ export default function ReturnsPage() {
   };
 
   const handleExport = (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print') {
+    if (format === 'print' || format === 'pdf') {
       window.print();
-    } else {
-      alert(`Exporting Returns as ${format.toUpperCase()}`);
+    } else if (format === 'csv') {
+      downloadCSV(returns.map(r => ({
+        date: r.createdAt,
+        status: r.status,
+        item: r.orderItem.menuItem.name,
+        quantity: r.orderItem.quantity,
+        price: r.orderItem.menuItem.price,
+        table: r.orderItem.order.table?.number || 'Takeout',
+        requestedBy: `${r.requestedBy.firstName} ${r.requestedBy.lastName}`,
+        kitchenNote: r.kitchenNote || ''
+      })), 'returns-report');
     }
   };
 

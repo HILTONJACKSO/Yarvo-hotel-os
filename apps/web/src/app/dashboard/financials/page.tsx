@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Landmark, TrendingUp, TrendingDown, Scale, Calculator, Download } from 'lucide-react';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
+import { downloadCSV } from '@/utils/export';
 
 export default function FinancialsPage() {
   const [activeTab, setActiveTab] = useState<'PNL' | 'BALANCE_SHEET' | 'TRIAL_BALANCE'>('PNL');
@@ -41,10 +42,28 @@ export default function FinancialsPage() {
   };
 
   const handleExport = (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print') {
+    if (format === 'print' || format === 'pdf') {
       window.print();
-    } else {
-      alert(`Exporting Financials as ${format.toUpperCase()}`);
+    } else if (format === 'csv') {
+      if (activeTab === 'PNL' && pnlData) {
+        const csvData = [
+          ...pnlData.revenues.map((r: any) => ({ type: 'Revenue', category: r.category, amount: r.amount })),
+          ...pnlData.expenses.map((e: any) => ({ type: 'Expense', category: e.category, amount: e.amount }))
+        ];
+        downloadCSV(csvData, 'profit-and-loss-report');
+      } else if (activeTab === 'BALANCE_SHEET' && bsData) {
+        const csvData = [
+          ...bsData.assets.map((a: any) => ({ type: 'Asset', name: a.name, amount: a.amount })),
+          ...bsData.liabilities.map((l: any) => ({ type: 'Liability', name: l.name, amount: l.amount }))
+        ];
+        downloadCSV(csvData, 'balance-sheet-report');
+      } else if (activeTab === 'TRIAL_BALANCE' && tbData) {
+        const csvData = [
+          ...tbData.debits.map((d: any) => ({ type: 'Debit', account: d.account, amount: d.amount })),
+          ...tbData.credits.map((c: any) => ({ type: 'Credit', account: c.account, amount: c.amount }))
+        ];
+        downloadCSV(csvData, 'trial-balance-report');
+      }
     }
   };
 

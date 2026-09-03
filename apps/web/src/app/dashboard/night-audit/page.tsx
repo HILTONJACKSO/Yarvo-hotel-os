@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Moon, History, FileText, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
+import { downloadCSV } from '@/utils/export';
 
 export default function NightAuditPage() {
   const [history, setHistory] = useState<any[]>([]);
@@ -37,10 +38,16 @@ export default function NightAuditPage() {
   };
 
   const handleExport = (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print') {
+    if (format === 'print' || format === 'pdf') {
       window.print();
-    } else {
-      alert(`Exporting Night Audit as ${format.toUpperCase()}`);
+    } else if (format === 'csv') {
+      downloadCSV(history.map(a => ({
+        date: a.auditDate,
+        status: a.status,
+        roomRevenue: a.totalRoomRevenue,
+        fbRevenue: a.totalFbRevenue,
+        completedAt: a.completedAt
+      })), 'night-audit-history');
     }
   };
 

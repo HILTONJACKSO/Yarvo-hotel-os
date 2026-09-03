@@ -19,6 +19,7 @@ import {
 } from 'recharts';
 import { AlertCircle, TrendingUp, Utensils, Bed, Wallet } from 'lucide-react';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
+import { downloadCSV } from '@/utils/export';
 
 type ChartData = { date: string; revenue: number; };
 type FbMetrics = { todayFbRevenue: number; weekFbRevenue: number; monthFbRevenue: number; };
@@ -99,10 +100,16 @@ export default function ReportsPage() {
   };
 
   const handleExport = (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print') {
+    if (format === 'print' || format === 'pdf') {
       window.print();
-    } else {
-      alert(`Exporting Reports as ${format.toUpperCase()}`);
+    } else if (format === 'csv') {
+      if (activeTab === 'HOTEL') {
+        downloadCSV(hotelData, 'hotel-revenue-report');
+      } else if (activeTab === 'FB') {
+        downloadCSV(fbChart, 'fb-revenue-report');
+      } else if (activeTab === 'FINANCIAL') {
+        downloadCSV(paymentData, 'financial-revenue-report');
+      }
     }
   };
 

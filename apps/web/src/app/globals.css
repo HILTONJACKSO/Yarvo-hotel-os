@@ -200,22 +200,70 @@ body {
 }
 
 @media print {
-  body * {
-    visibility: hidden;
+  /* Hide specific elements that shouldn't be printed */
+  .no-print, nav, aside, .sidebar, .ReportExportToolbar {
+    display: none !important;
   }
-  .print-only-receipt, .print-only-receipt * {
-    visibility: visible !important;
+
+  /* Reset colors for printing */
+  body {
+    background: white !important;
+    color: black !important;
   }
+  
+  /* Ensure full width and no scrollbars */
+  html, body, main, .page-container, .dashboard-content {
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Make charts scale properly */
+  .chart-card, .chart-body, .recharts-responsive-container {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    background: transparent !important;
+    border: 1px solid #ddd !important;
+  }
+  .chart-title, .stat-label, .summary-label, .item-name, .item-sales, .item-rev {
+    color: black !important;
+  }
+  .summary-card {
+    background: transparent !important;
+    border: 1px solid #ddd !important;
+    color: black !important;
+  }
+  .summary-val, .stat-val {
+    color: #333 !important;
+  }
+
+  /* Receipt Specific Printing */
   .print-only-receipt {
     display: block !important;
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-    color: black;
+    height: 100%;
     background: white;
+    z-index: 9999;
     padding: 20px;
   }
+  
+  /* Hide other content when a receipt is being printed */
+  body:has(.print-only-receipt) > *:not(.print-only-receipt) {
+     display: none !important;
+  }
+  body:has(.print-only-receipt) .modal-overlay {
+    display: block !important;
+    background: transparent !important;
+  }
+  body:has(.print-only-receipt) .modal-overlay > *:not(.print-only-receipt) {
+    display: none !important;
+  }
+
   .modal-overlay {
     background: transparent !important;
     backdrop-filter: none !important;
@@ -233,12 +281,13 @@ body {
     padding-bottom: 10px;
     margin-bottom: 20px;
   }
-  .receipt-header h2 { margin: 0; font-size: 24px; }
+  .receipt-header h2 { margin: 0; font-size: 24px; color: black; }
   .receipt-header p { margin: 5px 0 0; color: #666; }
-  .receipt-header h3 { margin: 15px 0 0; font-size: 18px; text-transform: uppercase; }
+  .receipt-header h3 { margin: 15px 0 0; font-size: 18px; text-transform: uppercase; color: black; }
   
   .receipt-info {
     margin-bottom: 20px;
+    color: black;
   }
   .receipt-info p { margin: 4px 0; font-size: 14px; }
   
@@ -252,6 +301,7 @@ body {
     padding: 8px;
     text-align: left;
     font-size: 14px;
+    color: black;
   }
   .receipt-table th { background: transparent; color: #333; font-weight: bold; }
   .receipt-table tfoot td {

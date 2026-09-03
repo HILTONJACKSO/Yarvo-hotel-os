@@ -15,7 +15,7 @@ export default function ReportExportToolbar({ onDateChange, onExport }: ReportEx
   };
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-800/80 p-4 rounded-xl border border-slate-700/50 mb-6 gap-4 shadow-lg shadow-slate-900/20">
+    <div className="no-print flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-800/80 p-4 rounded-xl border border-slate-700/50 mb-6 gap-4 shadow-lg shadow-slate-900/20">
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 text-sm text-slate-300 font-medium">
           <Calendar size={18} className="text-cyan-400" />

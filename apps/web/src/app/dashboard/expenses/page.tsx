@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Receipt, Search, Filter, Trash2 } from 'lucide-react';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
+import { downloadCSV } from '@/utils/export';
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -43,10 +44,10 @@ export default function ExpensesPage() {
   };
 
   const handleExport = (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print') {
+    if (format === 'print' || format === 'pdf') {
       window.print();
-    } else {
-      alert(`Exporting Expenses as ${format.toUpperCase()}`);
+    } else if (format === 'csv') {
+      downloadCSV(expenses, 'expenses-report');
     }
   };
 
