@@ -34,7 +34,7 @@ export default function AuditLogsPage() {
       const res = await fetch('/api/v1/audit-logs');
       if (!res.ok) throw new Error('Failed to fetch audit logs');
       const data = await res.json();
-      setLogs(data);
+      setLogs(data.data || data);
     } catch (err) {
       console.error('Failed to fetch audit logs:', err);
     } finally {
