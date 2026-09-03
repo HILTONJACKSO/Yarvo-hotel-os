@@ -43,11 +43,11 @@ export default function AuditLogsPage() {
     }
   };
 
-  const filteredLogs = logs.filter(log => 
-    log.action.toLowerCase().includes(search.toLowerCase()) || 
-    log.entity.toLowerCase().includes(search.toLowerCase()) ||
-    (log.userId && log.userId.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filteredLogs = Array.isArray(logs) ? logs.filter(log => 
+    log?.action?.toLowerCase()?.includes(search.toLowerCase()) || 
+    log?.entity?.toLowerCase()?.includes(search.toLowerCase()) ||
+    (log?.userId && String(log.userId).toLowerCase().includes(search.toLowerCase()))
+  ) : [];
 
   const toggleRow = (id: string) => {
     if (expandedRowId === id) {
@@ -113,10 +113,10 @@ export default function AuditLogsPage() {
                   <React.Fragment key={log.id}>
                     <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                        {format(new Date(log.createdAt), 'MMM d, yyyy HH:mm:ss')}
+                        {log?.createdAt ? format(new Date(log.createdAt), 'MMM d, yyyy HH:mm:ss') : 'N/A'}
                       </td>
-                      <td className="px-4 py-3 text-sm font-mono text-gray-500" title={log.userId || 'System'}>
-                        {log.userId ? log.userId.substring(0, 8) + '...' : 'System'}
+                      <td className="px-4 py-3 text-sm font-mono text-gray-500" title={log?.userId || 'System'}>
+                        {log?.userId ? String(log.userId).substring(0, 8) + '...' : 'System'}
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
@@ -126,8 +126,8 @@ export default function AuditLogsPage() {
                       <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                         {log.entity}
                       </td>
-                      <td className="px-4 py-3 text-sm font-mono text-gray-500" title={log.entityId}>
-                        {log.entityId.substring(0, 8) + '...'}
+                      <td className="px-4 py-3 text-sm font-mono text-gray-500" title={log?.entityId}>
+                        {log?.entityId ? String(log.entityId).substring(0, 8) + '...' : ''}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button 
