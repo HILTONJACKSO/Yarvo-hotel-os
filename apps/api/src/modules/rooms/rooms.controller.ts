@@ -29,7 +29,7 @@ export class RoomsController {
   constructor(private readonly roomsService: RoomsService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
   @ApiOperation({ summary: 'Create a new room' })
   @ApiResponse({ status: 201, description: 'Room successfully created.' })
   @ApiResponse({ status: 400, description: 'RoomType not found.' })
@@ -79,7 +79,7 @@ export class RoomsController {
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
   @ApiOperation({ summary: 'Update a room details' })
   @ApiResponse({ status: 200, description: 'Room successfully updated.' })
   update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto, @CurrentUser() user: any) {
@@ -110,7 +110,7 @@ export class RoomsController {
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft delete a room' })
   @ApiResponse({ status: 204, description: 'Room successfully deleted.' })

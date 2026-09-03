@@ -88,7 +88,7 @@ export default function RoomsPage() {
     <div className="page-container">
       <div className="page-header">
         <h2>Rooms</h2>
-        {user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'MAINTENANCE'].includes(role.toUpperCase())) && (
+        {user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.())) && (
           <button className="btn-primary" onClick={() => setIsModalOpen(true)}>Add Room</button>
         )}
       </div>

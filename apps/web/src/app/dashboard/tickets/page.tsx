@@ -186,7 +186,7 @@ export default function TicketsPage() {
       {activeTab === 'TICKETS' && (
         <>
           <div className="flex justify-end mb-6">
-            {user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'FRONT_DESK', 'CASHIER'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.())) && (
+            {user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'FRONT_DESK', 'CASHIER', 'TICKETING_STAFF'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.())) && (
               <button 
                 onClick={() => setIsModalOpen(true)}
                 className="bg-cyan-500 hover:bg-cyan-600 text-slate-900 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
