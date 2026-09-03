@@ -260,6 +260,7 @@ export default function PosPage() {
         fetch(`${API_URL}/api/v1/pos/orders/${orderId}/items`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ menuItemId: c.item.id, quantity: c.quantity })
         })
       ));
