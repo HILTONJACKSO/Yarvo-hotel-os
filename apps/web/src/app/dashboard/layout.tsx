@@ -107,7 +107,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             item.type !== 'divider' && 
             user.roles.some((role: string) => item.allowedRoles!.includes(role.toLowerCase()))
           );
-          if (firstAllowed && firstAllowed.href) {
+          if (firstAllowed && firstAllowed.type !== 'divider' && firstAllowed.href) {
             router.replace(firstAllowed.href);
           } else {
             router.replace('/login');
