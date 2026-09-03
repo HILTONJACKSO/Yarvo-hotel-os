@@ -17,8 +17,8 @@ export class InventoryController {
 
   @Post()
   @Roles('SUPER_ADMIN', 'MANAGER')
-  createInventoryItem(@Body() data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }) {
-    return this.inventoryService.createInventoryItem(data);
+  createInventoryItem(@Body() data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }, @Req() req: any) {
+    return this.inventoryService.createInventoryItem(data, req.user?.id);
   }
 
   @Patch(':id')
@@ -29,8 +29,8 @@ export class InventoryController {
 
   @Delete(':id')
   @Roles('SUPER_ADMIN', 'MANAGER')
-  deleteInventoryItem(@Param('id') id: string) {
-    return this.inventoryService.deleteInventoryItem(id);
+  deleteInventoryItem(@Param('id') id: string, @Req() req: any) {
+    return this.inventoryService.deleteInventoryItem(id, req.user?.id);
   }
 
   @Patch(':id/stock')

@@ -15,7 +15,7 @@ export class InventoryService {
     });
   }
 
-  async createInventoryItem(data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }) {
+  async createInventoryItem(data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }, userId?: string) {
     const existingItem = await this.prisma.inventoryItem.findFirst({
       where: { name: { equals: data.name, mode: 'insensitive' } }
     });
@@ -23,16 +23,30 @@ export class InventoryService {
       throw new BadRequestException('An item with this name already exists in the system');
     }
 
-    return this.prisma.inventoryItem.create({
-      data: {
-        name: data.name,
-        category: data.category || 'GENERAL',
-        unit: data.unit,
-        stockLevel: data.stockLevel || 0,
-        stockMain: data.stockLevel || 0,
-        minThreshold: data.minThreshold || 10,
-        costPerUnit: data.costPerUnit || 0
+    return this.prisma.$transaction(async (tx) => {
+      const newItem = await tx.inventoryItem.create({
+        data: {
+          name: data.name,
+          category: data.category || 'GENERAL',
+          unit: data.unit,
+          stockLevel: data.stockLevel || 0,
+          stockMain: data.stockLevel || 0,
+          minThreshold: data.minThreshold || 10,
+          costPerUnit: data.costPerUnit || 0
+        }
+      });
+
+      if (userId) {
+        await this.auditLogsService.logAction({
+          userId,
+          action: 'CREATE_INVENTORY_ITEM',
+          entity: 'InventoryItem',
+          entityId: newItem.id,
+          newValues: newItem
+        });
       }
+
+      return newItem;
     });
   }
 
@@ -97,9 +111,22 @@ export class InventoryService {
     });
   }
 
-  async deleteInventoryItem(id: string) {
-    return this.prisma.inventoryItem.delete({
-      where: { id }
+  async deleteInventoryItem(id: string, userId?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const oldRecord = await tx.inventoryItem.findUnique({ where: { id } });
+      const deletedItem = await tx.inventoryItem.delete({
+        where: { id }
+      });
+      if (userId && oldRecord) {
+        await this.auditLogsService.logAction({
+          userId,
+          action: 'DELETE_INVENTORY_ITEM',
+          entity: 'InventoryItem',
+          entityId: id,
+          oldValues: oldRecord
+        });
+      }
+      return deletedItem;
     });
   }
 
