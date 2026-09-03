@@ -5,7 +5,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Inventory')
 @ApiCookieAuth('accessToken')
-@Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+@Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER')
 @Controller('inventory')
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
@@ -34,13 +34,13 @@ export class InventoryController {
   }
 
   @Patch(':id/stock')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER')
   updateStock(@Param('id') id: string, @Body('amount') amount: number, @Req() req: any) {
     return this.inventoryService.updateStock(id, amount, req.user.id);
   }
 
   @Post(':id/transfer')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER')
   transferStock(
     @Param('id') id: string,
     @Body() data: { from: string, to: string, amount: number },
