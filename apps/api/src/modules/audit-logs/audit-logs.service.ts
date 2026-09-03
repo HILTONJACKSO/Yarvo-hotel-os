@@ -31,17 +31,21 @@ export class AuditLogsService {
   }
 
   async getLogs() {
-    return this.prisma.auditLog.findMany({
+    const logs = await this.prisma.auditLog.findMany({
       orderBy: { createdAt: 'desc' },
       take: 200, // Limit to recent 200 for now
-      include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
     });
+
+    const userIds = [...new Set(logs.map(l => l.userId).filter(Boolean))] as string[];
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    return logs.map(log => ({
+      ...log,
+      user: log.userId ? userMap.get(log.userId) || null : null,
+    }));
   }
 }
