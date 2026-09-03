@@ -83,15 +83,15 @@ export default function AuditLogsPage() {
         </div>
 
         <div className="table-container">
-          <table className="table">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>User ID</th>
-                <th>Action</th>
-                <th>Entity</th>
-                <th>Entity ID</th>
-                <th className="text-right">Details</th>
+              <tr className="border-b border-gray-200 dark:border-gray-800">
+                <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Timestamp</th>
+                <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">User ID</th>
+                <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Action</th>
+                <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Entity</th>
+                <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">Entity ID</th>
+                <th className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300 text-right">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -112,24 +112,24 @@ export default function AuditLogsPage() {
                 filteredLogs.map((log) => (
                   <React.Fragment key={log.id}>
                     <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                      <td className="whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                         {format(new Date(log.createdAt), 'MMM d, yyyy HH:mm:ss')}
                       </td>
-                      <td className="text-sm font-mono text-gray-500" title={log.userId || 'System'}>
+                      <td className="px-4 py-3 text-sm font-mono text-gray-500" title={log.userId || 'System'}>
                         {log.userId ? log.userId.substring(0, 8) + '...' : 'System'}
                       </td>
-                      <td>
+                      <td className="px-4 py-3">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
                           {log.action}
                         </span>
                       </td>
-                      <td className="text-sm font-medium text-gray-900 dark:text-white">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                         {log.entity}
                       </td>
-                      <td className="text-sm font-mono text-gray-500" title={log.entityId}>
+                      <td className="px-4 py-3 text-sm font-mono text-gray-500" title={log.entityId}>
                         {log.entityId.substring(0, 8) + '...'}
                       </td>
-                      <td className="text-right">
+                      <td className="px-4 py-3 text-right">
                         <button 
                           onClick={() => toggleRow(log.id)}
                           className="btn btn-ghost p-2"
