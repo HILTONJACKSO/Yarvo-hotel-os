@@ -62,7 +62,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Activity, label: 'Audit Tracking', href: '/dashboard/audit-logs', id: 'nav-audit-logs', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'accounting'] },
   { type: 'divider' },
   { icon: Utensils, label: 'Point of Sale', href: '/dashboard/pos', id: 'nav-pos', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk', 'staff_waiter'] },
-  { icon: ChefHat, label: 'Kitchen KDS', href: '/dashboard/kitchen', id: 'nav-kitchen', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'kitchen_chef'] },
+  { icon: ChefHat, label: 'Kitchen KDS', href: '/dashboard/kitchen', id: 'nav-kitchen', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'kitchen_chef', 'cashier'] },
   { icon: Martini, label: 'Bar Drinks', href: '/dashboard/bar', id: 'nav-bar', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier'] },
   { icon: Coffee, label: 'Waitstaff', href: '/dashboard/waitstaff', id: 'nav-waitstaff', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'staff_waiter'] },
   { icon: RotateCcw, label: 'Returns & Discounts', href: '/dashboard/returns', id: 'nav-returns', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk'] },
