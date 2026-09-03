@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @Injectable()
 export class InventoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly auditLogsService: AuditLogsService
+  ) {}
 
   async getInventoryItems() {
     return this.prisma.inventoryItem.findMany({
@@ -32,14 +36,28 @@ export class InventoryService {
     });
   }
 
-  async updateStock(id: string, amount: number) {
-    return this.prisma.inventoryItem.update({
-      where: { id },
-      data: { stockLevel: amount },
+  async updateStock(id: string, amount: number, userId?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const oldRecord = await tx.inventoryItem.findUnique({ where: { id } });
+      const newRecord = await tx.inventoryItem.update({
+        where: { id },
+        data: { stockLevel: amount },
+      });
+      if (oldRecord) {
+        await this.auditLogsService.logAction({
+          userId,
+          action: 'UPDATE_INVENTORY_STOCK',
+          entity: 'InventoryItem',
+          entityId: id,
+          oldValues: oldRecord,
+          newValues: newRecord
+        });
+      }
+      return newRecord;
     });
   }
 
-  async updateInventoryItem(id: string, data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }) {
+  async updateInventoryItem(id: string, data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }, userId?: string) {
     const existingItem = await this.prisma.inventoryItem.findFirst({
       where: { 
         name: { equals: data.name, mode: 'insensitive' },
@@ -50,16 +68,32 @@ export class InventoryService {
       throw new BadRequestException('An item with this name already exists in the system');
     }
 
-    return this.prisma.inventoryItem.update({
-      where: { id },
-      data: {
-        name: data.name,
-        category: data.category,
-        unit: data.unit,
-        stockLevel: data.stockLevel,
-        minThreshold: data.minThreshold,
-        costPerUnit: data.costPerUnit
+    return this.prisma.$transaction(async (tx) => {
+      const oldRecord = await tx.inventoryItem.findUnique({ where: { id } });
+      const newRecord = await tx.inventoryItem.update({
+        where: { id },
+        data: {
+          name: data.name,
+          category: data.category,
+          unit: data.unit,
+          stockLevel: data.stockLevel,
+          minThreshold: data.minThreshold,
+          costPerUnit: data.costPerUnit
+        }
+      });
+
+      if (oldRecord) {
+        await this.auditLogsService.logAction({
+          userId,
+          action: 'EDIT_INVENTORY_ITEM',
+          entity: 'InventoryItem',
+          entityId: id,
+          oldValues: oldRecord,
+          newValues: newRecord
+        });
       }
+
+      return newRecord;
     });
   }
 
@@ -73,7 +107,7 @@ export class InventoryService {
     return this.prisma.inventoryRecipe.create({ data });
   }
 
-  async transferStock(id: string, data: { from: string, to: string, amount: number }) {
+  async transferStock(id: string, data: { from: string, to: string, amount: number }, userId?: string) {
     const fieldMap: Record<string, string> = {
       'MAIN': 'stockMain',
       'KITCHEN': 'stockKitchen',
@@ -96,13 +130,24 @@ export class InventoryService {
         throw new BadRequestException(`Not enough stock in ${data.from}`);
       }
 
-      return tx.inventoryItem.update({
+      const newRecord = await tx.inventoryItem.update({
         where: { id },
         data: {
           [fromField]: { decrement: data.amount },
           [toField]: { increment: data.amount },
         }
       });
+
+      await this.auditLogsService.logAction({
+        userId,
+        action: 'TRANSFER_INVENTORY_STOCK',
+        entity: 'InventoryItem',
+        entityId: id,
+        oldValues: item,
+        newValues: newRecord
+      });
+
+      return newRecord;
     });
   }
 }

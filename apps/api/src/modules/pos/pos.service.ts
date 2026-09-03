@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @Injectable()
 export class PosService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly auditLogsService: AuditLogsService
+  ) {}
 
   // ─── TABLES ─────────────────────────────────────────────────────────────
   async getTables() {
@@ -32,10 +36,24 @@ export class PosService {
     return this.prisma.posCategory.create({ data });
   }
 
-  async updateCategory(id: string, data: { name: string }) {
-    return this.prisma.posCategory.update({
-      where: { id },
-      data
+  async updateCategory(id: string, data: { name: string }, userId?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const oldRecord = await tx.posCategory.findUnique({ where: { id } });
+      const newRecord = await tx.posCategory.update({
+        where: { id },
+        data
+      });
+      if (oldRecord) {
+        await this.auditLogsService.logAction({
+          userId,
+          action: 'EDIT_POS_CATEGORY',
+          entity: 'PosCategory',
+          entityId: id,
+          oldValues: oldRecord,
+          newValues: newRecord
+        });
+      }
+      return newRecord;
     });
   }
 
@@ -87,8 +105,9 @@ export class PosService {
     });
   }
 
-  async updateMenuItem(id: string, data: { categoryId?: string; name?: string; description?: string; price?: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }) {
+  async updateMenuItem(id: string, data: { categoryId?: string; name?: string; description?: string; price?: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }, userId?: string) {
     return this.prisma.$transaction(async (tx) => {
+      const oldRecord = await tx.posMenuItem.findUnique({ where: { id }, include: { taxes: true } });
       // First update the core fields
       const item = await tx.posMenuItem.update({
         where: { id },
@@ -122,6 +141,17 @@ export class PosService {
             }
           });
         }
+      }
+
+      if (oldRecord) {
+        await this.auditLogsService.logAction({
+          userId,
+          action: 'EDIT_POS_MENU_ITEM',
+          entity: 'PosMenuItem',
+          entityId: id,
+          oldValues: oldRecord,
+          newValues: item
+        });
       }
 
       return item;

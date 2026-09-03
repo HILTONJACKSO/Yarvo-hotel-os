@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { ApiTags, ApiCookieAuth } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -23,8 +23,8 @@ export class InventoryController {
 
   @Patch(':id')
   @Roles('SUPER_ADMIN', 'MANAGER')
-  updateInventoryItem(@Param('id') id: string, @Body() data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }) {
-    return this.inventoryService.updateInventoryItem(id, data);
+  updateInventoryItem(@Param('id') id: string, @Body() data: { name: string; category?: string; unit: string; stockLevel?: number; minThreshold?: number; costPerUnit?: number }, @Req() req: any) {
+    return this.inventoryService.updateInventoryItem(id, data, req.user.id);
   }
 
   @Delete(':id')
@@ -35,17 +35,18 @@ export class InventoryController {
 
   @Patch(':id/stock')
   @Roles('SUPER_ADMIN', 'MANAGER')
-  updateStock(@Param('id') id: string, @Body('amount') amount: number) {
-    return this.inventoryService.updateStock(id, amount);
+  updateStock(@Param('id') id: string, @Body('amount') amount: number, @Req() req: any) {
+    return this.inventoryService.updateStock(id, amount, req.user.id);
   }
 
   @Post(':id/transfer')
   @Roles('SUPER_ADMIN', 'MANAGER')
   transferStock(
     @Param('id') id: string,
-    @Body() data: { from: string, to: string, amount: number }
+    @Body() data: { from: string, to: string, amount: number },
+    @Req() req: any
   ) {
-    return this.inventoryService.transferStock(id, data);
+    return this.inventoryService.transferStock(id, data, req.user.id);
   }
 
   @Post('recipes')

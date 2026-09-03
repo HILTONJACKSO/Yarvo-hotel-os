@@ -32,6 +32,8 @@ import { EventsModule } from './modules/events/events.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { PublicModule } from './modules/public/public.module';
 import { CompaniesModule } from './modules/companies/companies.module';
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
@@ -143,6 +145,8 @@ import { CompaniesModule } from './modules/companies/companies.module';
     PublicModule,
 
     CompaniesModule,
+
+    AuditLogsModule,
   ],
   providers: [
     {

@@ -30,7 +30,8 @@ import {
   Ticket,
   CalendarDays,
   Clock,
-  RotateCcw
+  RotateCcw,
+  Activity
 } from 'lucide-react';
 
 type NavItem = 
@@ -58,6 +59,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Clock, label: 'Night Audit', href: '/dashboard/night-audit', id: 'nav-night-audit', allowedRoles: ['super_admin', 'admin', 'manager', 'accountant', 'pos'] },
   { icon: Landmark, label: 'Financials', href: '/dashboard/financials', id: 'nav-financials', allowedRoles: ['super_admin', 'admin', 'manager', 'accountant'] },
   { icon: BarChart3, label: 'Reports', href: '/dashboard/reports', id: 'nav-reports', allowedRoles: ['super_admin', 'admin', 'manager', 'accountant'] },
+  { icon: Activity, label: 'Audit Tracking', href: '/dashboard/audit-logs', id: 'nav-audit-logs', allowedRoles: ['super_admin', 'admin', 'ceo'] },
   { type: 'divider' },
   { icon: Utensils, label: 'Point of Sale', href: '/dashboard/pos', id: 'nav-pos', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant', 'pos'] },
   { icon: ChefHat, label: 'Kitchen KDS', href: '/dashboard/kitchen', id: 'nav-kitchen', allowedRoles: ['super_admin', 'admin', 'manager', 'restaurant', 'pos'] },

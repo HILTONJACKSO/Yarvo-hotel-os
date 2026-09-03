@@ -39,8 +39,8 @@ export class PosController {
 
   @Patch('categories/:id')
   @Roles('SUPER_ADMIN', 'MANAGER')
-  updateCategory(@Param('id') id: string, @Body() data: { name: string }) {
-    return this.posService.updateCategory(id, data);
+  updateCategory(@Param('id') id: string, @Body() data: { name: string }, @Req() req: any) {
+    return this.posService.updateCategory(id, data, req.user.id);
   }
 
   @Delete('categories/:id')
@@ -62,8 +62,8 @@ export class PosController {
 
   @Patch('menu-items/:id')
   @Roles('SUPER_ADMIN', 'MANAGER')
-  updateMenuItem(@Param('id') id: string, @Body() data: { categoryId?: string; name?: string; description?: string; price?: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }) {
-    return this.posService.updateMenuItem(id, data);
+  updateMenuItem(@Param('id') id: string, @Body() data: { categoryId?: string; name?: string; description?: string; price?: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }, @Req() req: any) {
+    return this.posService.updateMenuItem(id, data, req.user.id);
   }
 
   @Delete('menu-items/:id')
