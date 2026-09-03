@@ -143,11 +143,24 @@ export class RoomsService {
       }
     }
 
-    return this.prisma.room.update({
+    const updatedRoom = await this.prisma.room.update({
       where: { id },
       data: updateRoomDto,
       include: { roomType: true },
     });
+
+    if (userId) {
+      await this.auditLogsService.logAction({
+        userId,
+        action: 'EDIT_ROOM',
+        entity: 'Room',
+        entityId: id,
+        oldValues: oldRoom,
+        newValues: updatedRoom
+      });
+    }
+
+    return updatedRoom;
   }
 
   async changeStatus(id: string, changeStatusDto: ChangeRoomStatusDto, userId: string) {
@@ -174,13 +187,13 @@ export class RoomsService {
         },
       });
 
-      if (userId && oldRoom) {
+      if (userId) {
         await this.auditLogsService.logAction({
           userId,
-          action: 'EDIT_ROOM',
+          action: 'EDIT_ROOM_STATUS',
           entity: 'Room',
           entityId: id,
-          oldValues: oldRoom,
+          oldValues: room,
           newValues: updatedRoom
         });
       }
