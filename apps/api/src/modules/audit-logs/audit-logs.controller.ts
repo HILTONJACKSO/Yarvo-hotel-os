@@ -10,7 +10,7 @@ export class AuditLogsController {
   constructor(private readonly auditLogsService: AuditLogsService) {}
 
   @Get()
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTING')
   getLogs() {
     return this.auditLogsService.getLogs();
   }

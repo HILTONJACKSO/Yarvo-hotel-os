@@ -13,7 +13,8 @@ type ServedOrder = { id: string; status: string; totalAmount: string; table?: Po
 
 export default function PosPage() {
   const { user } = useAuth();
-  const isAdmin = user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role.toUpperCase()));
+  const isAdmin = user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.()));
+  const canEditPos = user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.()));
   const canSeeDiscount = user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'POS'].includes(role.toUpperCase()));
   const { showToast } = useToast();
   const [categories, setCategories] = useState<PosCategory[]>([]);
@@ -367,7 +368,7 @@ export default function PosPage() {
             </div>
             <div className="flex gap-2">
               <button className="btn-success btn-sm" onClick={() => {fetchData(); setShowSettleModal(true);}}>Settle Orders ({servedOrders.length})</button>
-              {isAdmin && <button className="btn-secondary btn-sm" onClick={() => setShowAddTable(true)}>+ Add Table</button>}
+              {canEditPos && <button className="btn-secondary btn-sm" onClick={() => setShowAddTable(true)}>+ Add Table</button>}
             </div>
           </div>
           
@@ -381,7 +382,7 @@ export default function PosPage() {
                   >
                     Table {table.number}
                   </button>
-                  {isAdmin && (
+                  {canEditPos && (
                     <button 
                       className="table-btn-delete" 
                       onClick={(e) => {
@@ -412,8 +413,8 @@ export default function PosPage() {
         <div className="section-header mt-4">
           <h3>Menu</h3>
           <div className="flex gap-2">
-            {isAdmin && <button className="btn-secondary btn-sm" onClick={() => setShowAddCategory(true)}>+ Category</button>}
-            {isAdmin && <button className="btn-secondary btn-sm" onClick={() => setShowAddMenuItem(true)}>+ Menu Item</button>}
+            {canEditPos && <button className="btn-secondary btn-sm" onClick={() => setShowAddCategory(true)}>+ Category</button>}
+            {canEditPos && <button className="btn-secondary btn-sm" onClick={() => setShowAddMenuItem(true)}>+ Menu Item</button>}
           </div>
         </div>
         <div className="category-scroll">
@@ -421,8 +422,8 @@ export default function PosPage() {
           {categories.map(cat => (
             <div key={cat.id} className="cat-wrapper" style={{ display: 'flex', alignItems: 'center', background: 'hsl(220, 30%, 12%)', borderRadius: '20px', paddingRight: '12px' }}>
               <button className={`cat-btn ${activeCategory === cat.id ? 'active' : ''}`} style={{ border: 'none', background: 'transparent' }} onClick={() => setActiveCategory(cat.id)}>{cat.name}</button>
-              {isAdmin && <button onClick={() => handleEditCategory(cat)} style={{ color: 'hsl(215, 20%, 65%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.1rem' }} title="Edit Category">✎</button>}
-              {isAdmin && <button onClick={() => setCategoryToDelete(cat)} style={{ color: 'hsl(0, 84%, 60%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.4rem', lineHeight: 1 }} title="Delete Category">×</button>}
+              {canEditPos && <button onClick={() => handleEditCategory(cat)} style={{ color: 'hsl(215, 20%, 65%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.1rem' }} title="Edit Category">✎</button>}
+              {canEditPos && <button onClick={() => setCategoryToDelete(cat)} style={{ color: 'hsl(0, 84%, 60%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '1.4rem', lineHeight: 1 }} title="Delete Category">×</button>}
             </div>
           ))}
         </div>
@@ -432,8 +433,8 @@ export default function PosPage() {
           {filteredItems.map(item => (
             <div key={item.id} className="menu-card" onClick={() => addToCart(item)}>
               <div className="menu-card-actions" style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', zIndex: 10 }}>
-                {isAdmin && <button onClick={(e) => { e.stopPropagation(); handleEditMenuItem(item); }} style={{ background: 'hsl(220, 30%, 20%)', color: 'hsl(215, 20%, 80%)', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Item">✎</button>}
-                {isAdmin && <button onClick={(e) => { e.stopPropagation(); setMenuItemToDelete(item); }} style={{ background: 'hsl(0, 84%, 30%)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', lineHeight: 1 }} title="Delete Item">×</button>}
+                {canEditPos && <button onClick={(e) => { e.stopPropagation(); handleEditMenuItem(item); }} style={{ background: 'hsl(220, 30%, 20%)', color: 'hsl(215, 20%, 80%)', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Edit Item">✎</button>}
+                {canEditPos && <button onClick={(e) => { e.stopPropagation(); setMenuItemToDelete(item); }} style={{ background: 'hsl(0, 84%, 30%)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px', cursor: 'pointer', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', lineHeight: 1 }} title="Delete Item">×</button>}
               </div>
               {item.image && <div className="menu-card-image" style={{ backgroundImage: `url(${item.image})` }}></div>}
               <div className="menu-card-content">

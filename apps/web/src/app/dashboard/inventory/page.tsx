@@ -21,7 +21,7 @@ type InventoryItem = {
 
 export default function InventoryPage() {
   const { user } = useAuth();
-  const isAdmin = user?.roles?.some(r => ['ADMIN', 'SUPER_ADMIN'].includes(r.toUpperCase()));
+  const isAdmin = user?.roles?.some((r: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO'].includes(r?.toUpperCase?.() || (r as any)?.name?.toUpperCase?.()));
   const canEdit = user?.roles?.some(r => ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(r.toUpperCase())) || !user?.roles?.some(r => r.toUpperCase() === 'POS');
   
   const { showToast } = useToast();
