@@ -12,6 +12,7 @@ type PosOrderItem = {
   createdAt: string;
   menuItem: { name: string; price: string };
   order: { 
+    id: string;
     table: { number: string } | null;
     folio: { reservation: { room: { number: string } | null } } | null;
   };
@@ -89,35 +90,59 @@ export default function WaitstaffPage() {
     }
   };
 
+
+  const groupedReady = items.reduce((acc, item) => {
+    const oid = item.order?.id || 'unknown';
+    if (!acc[oid]) acc[oid] = { order: item.order, items: [] };
+    acc[oid].items.push(item);
+    return acc;
+  }, {} as Record<string, { order: any, items: PosOrderItem[] }>);
+
+  const groupedServed = servedItems.reduce((acc, item) => {
+    const oid = item.order?.id || 'unknown';
+    if (!acc[oid]) acc[oid] = { order: item.order, items: [] };
+    acc[oid].items.push(item);
+    return acc;
+  }, {} as Record<string, { order: any, items: PosOrderItem[] }>);
+
   return (
     <div className="waitstaff-layout">
       <h2>Waitstaff Delivery Queue</h2>
       <p className="subtitle">Items ready to be delivered to tables.</p>
       
       <div className="orders-grid">
-        {items.length === 0 && <div className="no-orders">No items waiting for delivery.</div>}
-        {items.map(item => (
-          <div key={item.id} className="order-card">
+        {Object.values(groupedReady).length === 0 && <div className="no-orders">No items waiting for delivery.</div>}
+        {Object.values(groupedReady).map(group => (
+          <div key={group.order?.id || Math.random()} className="order-card">
             <div className="order-header">
               <span className="table-badge">
-                {item.order?.folio?.reservation?.room 
-                  ? `Room ${item.order.folio.reservation.room.number}` 
-                  : item.order?.table 
-                    ? `Table ${item.order.table.number}` 
+                {group.order?.folio?.reservation?.room 
+                  ? `Room ${group.order.folio.reservation.room.number}` 
+                  : group.order?.table 
+                    ? `Table ${group.order.table.number}` 
                     : 'Walk-in'
                 }
               </span>
               <span className="time-badge">Ready</span>
             </div>
             <div className="order-body">
-              <div className="item-row">
-                <span className="qty">{item.quantity}x</span>
-                <span className="name">{item.menuItem.name}</span>
-              </div>
-              {item.notes && <div className="notes">Note: {item.notes}</div>}
+              {group.items.map((item: any) => (
+                <div key={item.id} style={{ marginBottom: '12px', borderBottom: '1px solid hsl(215, 20%, 20%)', paddingBottom: '12px' }}>
+                  <div className="item-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span className="qty" style={{ marginRight: '8px' }}>{item.quantity}x</span>
+                      <span className="name">{item.menuItem.name}</span>
+                    </div>
+                    <button className="btn-success btn-sm" onClick={() => markServed(item.id)}>Deliver</button>
+                  </div>
+                  {item.notes && <div className="notes" style={{ fontSize: '0.85rem', color: '#888', marginTop: '4px' }}>Note: {item.notes}</div>}
+                </div>
+              ))}
             </div>
             <div className="order-footer">
-              <button className="btn-success" onClick={() => markServed(item.id)}>Deliver & Serve</button>
+              <button className="btn-primary w-full" onClick={() => {
+                group.items.forEach((i: any) => markServed(i.id));
+              }}>Deliver All Items</button>
             </div>
           </div>
         ))}
