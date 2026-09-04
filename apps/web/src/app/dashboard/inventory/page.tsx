@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/toast-provider';
 import { useAuth } from '@/lib/auth-provider';
+import { Plus, Minus, Edit, ArrowRightLeft, Trash2, Search, PackagePlus } from 'lucide-react';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type InventoryItem = {
@@ -27,6 +28,7 @@ export default function InventoryPage() {
   const { showToast } = useToast();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -184,17 +186,37 @@ export default function InventoryPage() {
 
   if (loading) return <div className="p-8 text-white">Loading inventory...</div>;
 
+  const filteredItems = items.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    item.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="inventory-layout">
       <div className="inv-header">
         <h2>Inventory Management</h2>
-        {isAdmin && (
-          <button className="btn-primary" onClick={() => {
-            setEditItemId(null);
-            setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
-            setShowAddModal(true);
-          }}>+ New Item Catalog</button>
-        )}
+        <div className="header-actions">
+          <div className="search-bar-container">
+            <Search className="search-icon" size={18} />
+            <input 
+              type="text" 
+              placeholder="Search inventory..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          {isAdmin && (
+            <button className="btn-primary" onClick={() => {
+              setEditItemId(null);
+              setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
+              setShowAddModal(true);
+            }}>
+              <PackagePlus size={18} className="mr-2" style={{ display: 'inline', marginRight: '6px' }} />
+              New Item Catalog
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="inv-table-container">
@@ -215,12 +237,12 @@ export default function InventoryPage() {
             </tr>
           </thead>
           <tbody>
-            {items.length === 0 && (
+            {filteredItems.length === 0 && (
               <tr>
                 <td colSpan={11} className="text-center">No inventory items found.</td>
               </tr>
             )}
-            {items.map(item => {
+            {filteredItems.map(item => {
               const stock = Number(item.stockLevel);
               const min = Number(item.minThreshold);
               const isLow = stock <= min;
@@ -243,20 +265,24 @@ export default function InventoryPage() {
                     <div className="action-buttons">
                       {canEdit && (
                         <>
-                          <button title="Stock In (Add)" style={{ color: 'hsl(142, 76%, 55%)' }} onClick={() => {
+                          <button title="Stock In (Add)" className="btn-icon" style={{ color: 'hsl(142, 76%, 55%)' }} onClick={() => {
                             setStockItem(item);
                             setStockInData({ amount: 0, costPerUnit: Number(item.costPerUnit) || 0 });
                             setShowStockInModal(true);
-                          }}>➕</button>
-                          <button title="Stock Out (Remove)" style={{ color: 'hsl(0, 84%, 65%)' }} onClick={() => {
+                          }}>
+                            <Plus size={16} />
+                          </button>
+                          <button title="Stock Out (Remove)" className="btn-icon" style={{ color: 'hsl(0, 84%, 65%)' }} onClick={() => {
                             setStockItem(item);
                             setStockOutData({ amount: 0, staffName: '', reason: '' });
                             setShowStockOutModal(true);
-                          }}>➖</button>
+                          }}>
+                            <Minus size={16} />
+                          </button>
                         </>
                       )}
                       {canEdit && (
-                        <button title="Edit Item Details" onClick={() => {
+                        <button title="Edit Item Details" className="btn-icon" onClick={() => {
                           setEditItemId(item.id);
                           setNewItem({
                             name: item.name,
@@ -267,11 +293,17 @@ export default function InventoryPage() {
                             costPerUnit: Number(item.costPerUnit)
                           });
                           setShowAddModal(true);
-                        }}>✏️</button>
+                        }}>
+                          <Edit size={16} />
+                        </button>
                       )}
-                      <button title="Transfer Stock" onClick={() => { setTransferItem(item); setShowTransferModal(true); }}>⇄</button>
+                      <button title="Transfer Stock" className="btn-icon" onClick={() => { setTransferItem(item); setShowTransferModal(true); }}>
+                        <ArrowRightLeft size={16} />
+                      </button>
                       {isAdmin && (
-                        <button title="Delete Item" onClick={() => setItemToDelete(item)} style={{ color: 'hsl(0, 84%, 65%)' }}>🗑️</button>
+                        <button title="Delete Item" className="btn-icon" onClick={() => setItemToDelete(item)} style={{ color: 'hsl(0, 84%, 65%)' }}>
+                          <Trash2 size={16} />
+                        </button>
                       )}
                     </div>
                   </td>
@@ -341,7 +373,7 @@ export default function InventoryPage() {
           <div className="modal-content">
             <h3>{editItemId ? 'Edit' : 'Add'} Item Catalog</h3>
             <p style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', marginBottom: '16px' }}>
-              Note: Do not use this to add daily stock. Use the ➕ button on the table for that.
+              Note: Do not use this to add daily stock. Use the <Plus size={14} style={{ display: 'inline', verticalAlign: 'middle', color: 'hsl(142, 76%, 55%)' }} /> button on the table for that.
             </p>
             <datalist id="inventory-names">
               {Array.from(new Set(items.map(i => i.name))).map(name => (
@@ -458,8 +490,43 @@ export default function InventoryPage() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 16px;
         }
         .inv-header h2 { margin: 0; color: white; }
+        
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+        
+        .search-bar-container {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .search-icon {
+          position: absolute;
+          left: 12px;
+          color: hsl(215, 20%, 65%);
+        }
+        .search-input {
+          background: hsl(220, 30%, 8%);
+          border: 1px solid hsl(217, 20%, 20%);
+          color: white;
+          padding: 10px 12px 10px 38px;
+          border-radius: 6px;
+          outline: none;
+          width: 250px;
+          transition: all 0.2s;
+        }
+        .search-input:focus {
+          border-color: hsl(43,96%,56%);
+          width: 280px;
+        }
+        
         .btn-primary {
           background: hsl(43,96%,56%);
           color: hsl(224, 39%, 6%);
@@ -468,8 +535,11 @@ export default function InventoryPage() {
           border-radius: 6px;
           font-weight: 600;
           cursor: pointer;
+          display: flex;
+          align-items: center;
         }
         .btn-primary:hover { background: hsl(43,96%,60%); }
+        
         .btn-cancel {
           background: transparent;
           color: hsl(215, 20%, 65%);
@@ -531,20 +601,20 @@ export default function InventoryPage() {
           display: flex;
           gap: 8px;
         }
-        .action-buttons button {
+        .btn-icon {
           width: 32px;
           height: 32px;
           border-radius: 6px;
           border: 1px solid hsl(217, 20%, 20%);
           background: hsl(220, 25%, 16%);
           color: white;
-          font-size: 1.1rem;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: background 0.2s;
         }
-        .action-buttons button:hover { background: hsl(217, 20%, 22%); }
+        .btn-icon:hover { background: hsl(217, 20%, 26%); }
 
         .font-medium { font-weight: 500; }
         .font-bold { font-weight: 700; }
