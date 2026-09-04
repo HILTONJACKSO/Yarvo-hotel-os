@@ -101,6 +101,84 @@ export default function CashierPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const printViaIframe = (mode: 'RECEIPT' | 'INVOICE') => {
+    if (!selectedOrder) return;
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    let itemsHtml = '';
+    selectedOrder.items.forEach((item: any) => {
+      itemsHtml += `
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+          <div><span style="margin-right: 8px;">${item.quantity}x</span><span>${item.menuItem.name}</span></div>
+          <span>$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}</span>
+        </div>
+      `;
+    });
+
+    const signatureBlock = mode === 'INVOICE' ? `
+      <div style="margin-top: 50px; text-align: center;">
+        <div style="border-top: 1px solid #000; width: 200px; margin: 0 auto 8px auto;"></div>
+        <p style="font-size: 12px; margin: 0;">Customer Signature</p>
+      </div>
+    ` : '';
+
+    doc.write(`
+      <html>
+        <head>
+          <title>Print ${mode}</title>
+          <style>
+            body { font-family: 'Courier New', Courier, monospace; color: #000; max-width: 380px; margin: 0 auto; padding: 20px; }
+            h2 { text-align: center; margin: 0 0 4px 0; font-size: 22px; font-weight: bold; }
+            p.sub { text-align: center; font-size: 12px; margin: 0 0 20px 0; }
+            .divider { border-bottom: 1px dashed #000; margin: 12px 0; opacity: 0.4; }
+            .meta { font-size: 12px; margin-bottom: 4px; display: flex; justify-content: space-between; }
+            .meta span:first-child { color: #666; }
+            .totals { font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; margin-top: 16px; }
+            .footer { text-align: center; font-size: 11px; margin-top: 40px; color: #555; }
+          </style>
+        </head>
+        <body>
+          <h2>Yarvo Restaurant</h2>
+          <p class="sub">${mode === 'INVOICE' ? 'CUSTOMER INVOICE' : 'CUSTOMER RECEIPT'}</p>
+          
+          <div class="meta"><span>ORDER ID</span> <span>#${selectedOrder.id.substring(0,8).toUpperCase()}</span></div>
+          <div class="meta"><span>LOCATION</span> <span>${selectedOrder.folio?.reservation?.room ? `Room ${selectedOrder.folio.reservation.room.number}` : selectedOrder.table?.number || 'Walk-in'}</span></div>
+          <div class="meta"><span>DATE</span> <span>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</span></div>
+          
+          <div class="divider"></div>
+          
+          ${itemsHtml}
+          
+          <div class="divider"></div>
+          
+          <div class="totals"><span>TOTAL</span><span>$${Number(selectedOrder.totalAmount).toFixed(2)}</span></div>
+          
+          ${signatureBlock}
+
+          <div class="footer">
+            <p>Thank you for dining with us!</p>
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+    iframe.contentWindow?.focus();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      setTimeout(() => { document.body.removeChild(iframe); }, 1000);
+    }, 250);
+  };
+
   const handlePrintInvoice = async (orderId: string) => {
     if (!selectedOrder) return;
     const isStaff = currentUser?.roles?.includes('WAITSTAFF') || currentUser?.roles?.includes('CASHIER') || currentUser?.roles?.includes('BAR') || currentUser?.roles?.includes('KITCHEN');
@@ -115,21 +193,15 @@ export default function CashierPage() {
       return;
     }
     
-    setPrintMode('INVOICE');
-    setTimeout(async () => {
-      window.print();
-      try {
-        await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/increment-print`, { method: 'POST', credentials: 'include' });
-        fetchOrders();
-      } catch(e) {}
-    }, 500);
+    printViaIframe('INVOICE');
+    try {
+      await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/increment-print`, { method: 'POST', credentials: 'include' });
+      fetchOrders();
+    } catch(e) {}
   };
 
   const handlePrintReceipt = () => {
-    setPrintMode('RECEIPT');
-    setTimeout(() => {
-      window.print();
-    }, 500);
+    printViaIframe('RECEIPT');
   };
 
   const handleCheckout = async (orderId: string) => {
