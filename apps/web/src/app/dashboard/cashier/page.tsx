@@ -117,10 +117,16 @@ export default function CashierPage() {
 
     let itemsHtml = '';
     selectedOrder.items.forEach((item: any) => {
+      const isReturned = item.status === 'RETURNED';
+      const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
+      const displayPrice = isReturned 
+          ? `-$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`
+          : `$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`;
+          
       itemsHtml += `
-        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
-          <div><span style="margin-right: 8px;">${item.quantity}x</span><span>${item.menuItem.name}</span></div>
-          <span>$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}</span>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; ${isReturned ? 'color: #dc2626;' : ''}">
+          <div><span style="margin-right: 8px;">${item.quantity}x</span><span>${displayName}</span></div>
+          <span>${displayPrice}</span>
         </div>
       `;
     });
@@ -319,13 +325,15 @@ export default function CashierPage() {
             </div>
             
             <div className="receipt">
-              {selectedOrder.items.map(item => (
-                <div key={item.id} className="receipt-item">
-                  <span className="qty">{item.quantity}x</span>
-                  <span className="name">{item.menuItem.name}</span>
-                  <span className="price">${(Number(item.menuItem.price) * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
+                {selectedOrder.items.map(item => {
+                  const isReturned = item.status === 'RETURNED';
+                  return (
+                  <div key={item.id} className={`receipt-item ${isReturned ? 'text-rose-400' : ''}`}>
+                    <span className="qty">{item.quantity}x</span>
+                    <span className="name">{isReturned ? '(Returned) ' : ''}{item.menuItem.name}</span>
+                    <span className="price">{isReturned ? '-' : ''}${(Number(item.menuItem.price) * item.quantity).toFixed(2)}</span>
+                  </div>
+                )})}
               <div className="receipt-total">
                 <span>Total Amount</span>
                 <span>${Number(selectedOrder.totalAmount).toFixed(2)}</span>
@@ -437,16 +445,18 @@ export default function CashierPage() {
               <div className="receipt-divider"></div>
               
               <div className="receipt-items">
-                {selectedOrder.items.map((item) => (
-                  <div key={item.id} className="modern-item">
-                    <div className="item-main">
-                      <span className="item-qty">{item.quantity}x</span>
-                      <span className="item-name">{item.menuItem.name}</span>
+                  {selectedOrder.items.map((item) => {
+                    const isReturned = item.status === 'RETURNED';
+                    return (
+                    <div key={item.id} className={`modern-item ${isReturned ? 'text-rose-400' : ''}`}>
+                      <div className="item-main">
+                        <span className="item-qty">{item.quantity}x</span>
+                        <span className="item-name">{isReturned ? '(Returned) ' : ''}{item.menuItem.name}</span>
+                      </div>
+                      <span className="item-price">{isReturned ? '-' : ''}${(Number(item.menuItem.price) * item.quantity).toFixed(2)}</span>
                     </div>
-                    <span className="item-price">${(Number(item.menuItem.price) * item.quantity).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
+                  )})}
+                </div>
               
               <div className="receipt-divider"></div>
               
