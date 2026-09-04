@@ -101,7 +101,7 @@ export default function CashierPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const printViaIframe = (mode: 'RECEIPT' | 'INVOICE') => {
+    const printViaIframe = (mode: 'RECEIPT' | 'INVOICE') => {
     if (!selectedOrder) return;
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
@@ -132,23 +132,44 @@ export default function CashierPage() {
       </div>
     ` : '';
 
+    const orderTotal = Number(selectedOrder.totalAmount);
+    // Assuming 10% GST included in the price for display purposes
+    const subtotal = orderTotal / 1.10;
+    const gst = orderTotal - subtotal;
+
     doc.write(`
       <html>
         <head>
           <title>Print ${mode}</title>
           <style>
             body { font-family: 'Courier New', Courier, monospace; color: #000; max-width: 380px; margin: 0 auto; padding: 20px; }
-            h2 { text-align: center; margin: 0 0 4px 0; font-size: 22px; font-weight: bold; }
-            p.sub { text-align: center; font-size: 12px; margin: 0 0 20px 0; }
+            .header-container { text-align: left; margin-bottom: 20px; }
+            .header-container img { max-width: 120px; margin-bottom: 10px; }
+            .header-title { font-size: 20px; font-weight: bold; margin: 0 0 4px 0; }
+            .header-info { font-size: 12px; margin: 0; line-height: 1.4; }
+            
+            p.sub { text-align: center; font-size: 14px; font-weight: bold; margin: 20px 0; }
             .divider { border-bottom: 1px dashed #000; margin: 12px 0; opacity: 0.4; }
             .meta { font-size: 12px; margin-bottom: 4px; display: flex; justify-content: space-between; }
             .meta span:first-child { color: #666; }
-            .totals { font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; margin-top: 16px; }
-            .footer { text-align: center; font-size: 11px; margin-top: 40px; color: #555; }
+            
+            .summary-row { font-size: 14px; display: flex; justify-content: space-between; margin-top: 8px; }
+            .totals { font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; margin-top: 12px; }
+            
+            .footer { text-align: center; font-size: 11px; margin-top: 40px; color: #333; line-height: 1.5; }
+            .footer-terms { text-align: left; font-size: 10px; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; color: #555; }
           </style>
         </head>
         <body>
-          <h2>Yarvo Restaurant</h2>
+          <div class="header-container">
+            <img src="/kwalee-logo.png" alt="Logo" />
+            <div class="header-title">KWAALEE BEACH RESORT</div>
+            <div class="header-info">www.kwaleebeachresort.com</div>
+            <div class="header-info">+231 774 340 843 / +231 881 774 350</div>
+            <div class="header-info">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
+          </div>
+          
+          <div class="divider"></div>
           <p class="sub">${mode === 'INVOICE' ? 'CUSTOMER INVOICE' : 'CUSTOMER RECEIPT'}</p>
           
           <div class="meta"><span>ORDER ID</span> <span>#${selectedOrder.id.substring(0,8).toUpperCase()}</span></div>
@@ -161,14 +182,23 @@ export default function CashierPage() {
           
           <div class="divider"></div>
           
-          <div class="totals"><span>TOTAL</span><span>$${Number(selectedOrder.totalAmount).toFixed(2)}</span></div>
+          <div class="summary-row"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span>GST (10%)</span><span>$${gst.toFixed(2)}</span></div>
+          <div class="totals"><span>TOTAL</span><span>$${orderTotal.toFixed(2)}</span></div>
           
           ${signatureBlock}
 
           <div class="footer">
-              <p>Served by: ${selectedOrder.user ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName}` : 'Staff'}</p>
-              <p>Thank you for dining with us!</p>
-            </div>
+            <p><strong>THANK YOU FOR CHOOSING KWAALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
+            <p>Served by: ${selectedOrder.user ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName}` : 'Staff'}</p>
+          </div>
+          
+          <div class="footer-terms">
+            <strong>PAYMENT TERMS & CONDITIONS:</strong><br/>
+            Payment is due immediately upon receipt of this invoice unless otherwise agreed. All prices are subject to applicable charges. Any additional orders or services will be added to the final bill.
+            <br/><br/>
+            Thank you for choosing Kwalee Beach Restaurant.
+          </div>
         </body>
       </html>
     `);
