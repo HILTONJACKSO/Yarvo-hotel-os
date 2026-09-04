@@ -117,7 +117,6 @@ export default function WaitstaffPage() {
               {item.notes && <div className="notes">Note: {item.notes}</div>}
             </div>
             <div className="order-footer">
-              <button className="btn-secondary" onClick={() => handlePrint(item)}>Print Receipt</button>
               <button className="btn-success" onClick={() => markServed(item.id)}>Deliver & Serve</button>
             </div>
           </div>
