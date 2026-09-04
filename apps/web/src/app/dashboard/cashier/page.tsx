@@ -494,18 +494,35 @@ export default function CashierPage() {
         }
 
         @media print {
-          body * {
-            visibility: hidden;
+          .cashier-layout > h2,
+          .cashier-layout > p,
+          .orders-list,
+          .checkout-header,
+          .receipt,
+          .payment-entry-section,
+          .payment-actions {
+            display: none !important;
           }
-          .print-only-receipt, .print-only-receipt * {
-            visibility: visible;
+          
+          .cashier-layout, .cashier-content, .checkout-panel {
+            display: block !important;
+            height: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: transparent !important;
           }
+
           .print-only-receipt {
             display: block !important;
-            position: absolute !important;
+            position: fixed !important;
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
+            height: 100% !important;
+            background: white !important;
+            z-index: 999999 !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .modern-receipt {
             position: fixed !important;
