@@ -77,8 +77,9 @@ export default function PosPage() {
       fetch(`${API_URL}/api/v1/inventory`, { credentials: 'include' }).then(res => res.json()),
       fetch(`${API_URL}/api/v1/reservations?status=CHECKED_IN`, { credentials: 'include' }).then(res => res.json()),
       fetch(`${API_URL}/api/v1/pos/served-orders`, { credentials: 'include' }).then(res => res.json()),
-      fetch(`${API_URL}/api/v1/taxes`, { credentials: 'include' }).then(res => res.json())
-    ]).then(([cats, items, tbls, invs, resvs, served, txs]) => {
+      fetch(`${API_URL}/api/v1/taxes`, { credentials: 'include' }).then(res => res.json()),
+      fetch(`${API_URL}/api/v1/guests`, { credentials: 'include' }).then(res => res.json())
+    ]).then(([cats, items, tbls, invs, resvs, served, txs, gsts]) => {
       setCategories(cats.data || cats);
       setMenuItems(items.data || items);
       setTables(tbls.data || tbls);
@@ -92,6 +93,9 @@ export default function PosPage() {
 
       const servedData = served.data || served;
       setServedOrders(Array.isArray(servedData) ? servedData : []);
+
+      const gstsData = gsts.data || gsts;
+      setGuests(Array.isArray(gstsData) ? gstsData : []);
     }).catch(err => {
       console.error(err);
       showToast('Failed to load POS data', 'error', 'Error');
