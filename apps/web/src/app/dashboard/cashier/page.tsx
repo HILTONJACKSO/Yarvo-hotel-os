@@ -166,8 +166,9 @@ export default function CashierPage() {
           ${signatureBlock}
 
           <div class="footer">
-            <p>Thank you for dining with us!</p>
-          </div>
+              <p>Served by: ${selectedOrder.user ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName}` : 'Staff'}</p>
+              <p>Thank you for dining with us!</p>
+            </div>
         </body>
       </html>
     `);
