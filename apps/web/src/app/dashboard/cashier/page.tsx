@@ -494,6 +494,19 @@ export default function CashierPage() {
         }
 
         @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-only-receipt, .print-only-receipt * {
+            visibility: visible;
+          }
+          .print-only-receipt {
+            display: block !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+          }
           .modern-receipt {
             position: fixed !important;
             top: 0 !important;
