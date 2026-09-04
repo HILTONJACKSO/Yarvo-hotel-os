@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
@@ -176,6 +176,7 @@ export class PosService {
       },
       include: {
         table: true,
+        guest: true,
         user: { select: { firstName: true, lastName: true } },
         items: {
           include: { menuItem: true, returnRequest: true },
@@ -190,7 +191,7 @@ export class PosService {
       where: { status: 'READY' },
       include: {
         menuItem: true,
-        order: { include: { table: true, user: { select: { firstName: true, lastName: true } }, folio: { include: { reservation: { include: { room: true } } } } } }
+        order: { include: { table: true, guest: true, user: { select: { firstName: true, lastName: true } }, folio: { include: { reservation: { include: { room: true } } } } } }
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -201,6 +202,7 @@ export class PosService {
       where: { status: 'SERVED' },
       include: {
         table: true,
+        guest: true,
         user: { select: { firstName: true, lastName: true } },
         folio: { include: { reservation: { include: { room: true, guest: true } } } },
         items: { include: { menuItem: true } }
@@ -209,13 +211,21 @@ export class PosService {
     });
   }
 
-  async createOrder(data: { tableId?: string; folioId?: string; userId?: string; discountAmount?: number; notes?: string }) {
-    // Check if an OPEN order already exists for this destination
+  async createOrder(data: { tableId?: string; folioId?: string; guestId?: string; userId?: string; userRoles?: string[]; discountAmount?: number; notes?: string }) {
+    // Check if an OPEN or SERVED order already exists for this destination to consolidate bills
     if (data.tableId) {
       const existing = await this.prisma.posOrder.findFirst({
-        where: { tableId: data.tableId, status: 'OPEN' }
+        where: { tableId: data.tableId, status: { in: ['OPEN', 'SERVED'] } },
+        orderBy: { createdAt: 'desc' }
       });
       if (existing) {
+        if (existing.invoicePrintCount > 0) {
+          const isAdmin = data.userRoles?.includes('SUPER_ADMIN') || data.userRoles?.includes('ADMIN') || data.userRoles?.includes('CEO');
+          if (!isAdmin) {
+            throw new ForbiddenException('Invoice has already been printed. Only Admin or CEO can edit this bill.');
+          }
+        }
+
         if (data.discountAmount !== undefined || data.notes !== undefined) {
           return this.prisma.posOrder.update({ 
             where: { id: existing.id }, 
@@ -229,9 +239,41 @@ export class PosService {
       }
     } else if (data.folioId) {
       const existing = await this.prisma.posOrder.findFirst({
-        where: { folioId: data.folioId, status: 'OPEN' }
+        where: { folioId: data.folioId, status: { in: ['OPEN', 'SERVED'] } },
+        orderBy: { createdAt: 'desc' }
       });
       if (existing) {
+        if (existing.invoicePrintCount > 0) {
+          const isAdmin = data.userRoles?.includes('SUPER_ADMIN') || data.userRoles?.includes('ADMIN') || data.userRoles?.includes('CEO');
+          if (!isAdmin) {
+            throw new ForbiddenException('Invoice has already been printed. Only Admin or CEO can edit this bill.');
+          }
+        }
+
+        if (data.discountAmount !== undefined || data.notes !== undefined) {
+          return this.prisma.posOrder.update({ 
+            where: { id: existing.id }, 
+            data: { 
+              ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
+              ...(data.notes !== undefined ? { notes: data.notes } : {})
+            }
+          });
+        }
+        return existing;
+      }
+    } else if (data.guestId) {
+      const existing = await this.prisma.posOrder.findFirst({
+        where: { guestId: data.guestId, status: { in: ['OPEN', 'SERVED'] } },
+        orderBy: { createdAt: 'desc' }
+      });
+      if (existing) {
+        if (existing.invoicePrintCount > 0) {
+          const isAdmin = data.userRoles?.includes('SUPER_ADMIN') || data.userRoles?.includes('ADMIN') || data.userRoles?.includes('CEO');
+          if (!isAdmin) {
+            throw new ForbiddenException('Invoice has already been printed. Only Admin or CEO can edit this bill.');
+          }
+        }
+
         if (data.discountAmount !== undefined || data.notes !== undefined) {
           return this.prisma.posOrder.update({ 
             where: { id: existing.id }, 
@@ -249,6 +291,7 @@ export class PosService {
       data: {
         tableId: data.tableId,
         folioId: data.folioId,
+        guestId: data.guestId,
         userId: data.userId,
         status: 'OPEN',
         discountAmount: data.discountAmount || 0,
@@ -266,6 +309,12 @@ export class PosService {
         notes: data.notes,
         status: 'PENDING',
       },
+    });
+
+    // Revert the order back to OPEN if it was SERVED
+    await this.prisma.posOrder.updateMany({
+      where: { id: orderId, status: 'SERVED' },
+      data: { status: 'OPEN' }
     });
     
     // Fetch menu item to determine type (FOOD -> Kitchen, DRINK -> Bar)
@@ -294,6 +343,13 @@ export class PosService {
     }
 
     return item;
+  }
+
+  async incrementInvoicePrint(orderId: string) {
+    return this.prisma.posOrder.update({
+      where: { id: orderId },
+      data: { invoicePrintCount: { increment: 1 } }
+    });
   }
 
   async updateOrderItemStatus(itemId: string, status: string) {

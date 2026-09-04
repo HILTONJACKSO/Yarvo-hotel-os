@@ -25,9 +25,13 @@ export default function PosPage() {
   
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   
-  const [orderDestinationType, setOrderDestinationType] = useState<'TABLE' | 'ROOM'>('TABLE');
+  const [orderDestinationType, setOrderDestinationType] = useState<'TABLE' | 'ROOM' | 'GUEST'>('TABLE');
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [selectedFolioId, setSelectedFolioId] = useState<string | null>(null);
+  const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
+  const [guests, setGuests] = useState<any[]>([]);
+  const [showCreateGuest, setShowCreateGuest] = useState(false);
+  const [newGuest, setNewGuest] = useState({ firstName: '', lastName: '', companyName: '', address: '', phone: '', email: '', nationality: '' });
 
   const [cart, setCart] = useState<{item: PosMenuItem, quantity: number}[]>([]);
   const [orderNotes, setOrderNotes] = useState<string>('');
@@ -101,6 +105,10 @@ export default function PosPage() {
     }
     if (orderDestinationType === 'ROOM' && !selectedFolioId) {
       showToast('Please select an in-house guest first', 'error', 'Warning');
+      return;
+    }
+    if (orderDestinationType === 'GUEST' && !selectedGuestId) {
+      showToast('Please select a walk-in guest first', 'error', 'Warning');
       return;
     }
     setCart(prev => {
@@ -245,6 +253,7 @@ export default function PosPage() {
       const payload: any = {};
       if (orderDestinationType === 'TABLE') payload.tableId = selectedTable;
       if (orderDestinationType === 'ROOM') payload.folioId = selectedFolioId;
+      if (orderDestinationType === 'GUEST') payload.guestId = selectedGuestId;
       payload.notes = `[${orderDestinationDept}] ${orderNotes}`.trim();
 
       const orderRes = await fetch(`${API_URL}/api/v1/pos/orders`, {
@@ -356,6 +365,27 @@ export default function PosPage() {
   const availableInventoryItems = inventoryItems.filter(inv => inv.category !== 'HOUSEKEEPING' && inv.category !== 'MAINTENANCE' && !linkedInventoryIds.has(inv.id));
 
 
+  const handleCreateGuest = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/guests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(newGuest)
+      });
+      if (res.ok) {
+        showToast('Guest created successfully', 'success', 'Success');
+        setShowCreateGuest(false);
+        setNewGuest({ firstName: '', lastName: '', companyName: '', address: '', phone: '', email: '', nationality: '' });
+        fetchData(); // refresh guests
+      } else {
+        const err = await res.json();
+        showToast(err.message || 'Failed to create guest', 'error', 'Error');
+      }
+    } catch (err) {
+      showToast('Error creating guest', 'error', 'Error');
+    }
+  };
   return (
     <div className="pos-layout">
       {/* LEFT: Menu & Tables */}
@@ -366,6 +396,10 @@ export default function PosPage() {
             <div className="flex gap-2">
               <button className={`btn-secondary ${orderDestinationType === 'TABLE' ? 'active-dest' : ''}`} onClick={() => setOrderDestinationType('TABLE')}>Walk-in / Table</button>
               <button className={`btn-secondary ${orderDestinationType === 'ROOM' ? 'active-dest' : ''}`} onClick={() => setOrderDestinationType('ROOM')}>In-House Guest</button>
+              <button className={`btn-secondary ${orderDestinationType === 'GUEST' ? 'active-dest' : ''}`} onClick={() => setOrderDestinationType('GUEST')}>Walk-in Guest</button>
+              {orderDestinationType === 'GUEST' && (
+                <button className="btn-primary btn-sm" onClick={() => setShowCreateGuest(true)}>+ Create Guest</button>
+              )}
             </div>
             <div className="flex gap-2">
               <button className="btn-success btn-sm" onClick={() => {fetchData(); setShowSettleModal(true);}}>Settle Orders ({servedOrders.length})</button>
@@ -483,7 +517,11 @@ export default function PosPage() {
         <div className="cart-footer">
           <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '4px' }}>
             <span>Subtotal:</span>
-            <span>${cartTotal.toFixed(2)}</span>
+            <span>${cartSubtotal.toFixed(2)}</span>
+          </div>
+          <div className="cart-summary" style={{ fontSize: '0.875rem', color: 'hsl(215, 20%, 65%)', marginBottom: '4px' }}>
+            <span>GST:</span>
+            <span>${cartTaxes.toFixed(2)}</span>
           </div>
           <div className="cart-summary" style={{ fontWeight: 600, fontSize: '1.125rem', marginBottom: '12px', borderTop: '1px solid hsl(217, 20%, 18%)', paddingTop: '8px' }}>
             <span>Total:</span>
@@ -530,7 +568,7 @@ export default function PosPage() {
               </div>
             )}
           </div>
-          <button className="btn-primary w-full mt-4" disabled={cart.length === 0 || (orderDestinationType === 'TABLE' && !selectedTable) || (orderDestinationType === 'ROOM' && !selectedFolioId)} onClick={submitOrder}>
+          <button className="btn-primary w-full mt-4" disabled={cart.length === 0 || (orderDestinationType === 'TABLE' && !selectedTable) || (orderDestinationType === 'ROOM' && !selectedFolioId) || (orderDestinationType === 'GUEST' && !selectedGuestId)} onClick={submitOrder}>
             Send to Kitchen/Bar
           </button>
         </div>
@@ -866,6 +904,46 @@ export default function PosPage() {
           }
         }
       `}</style>
+
+        {showCreateGuest && (
+          <div className="modal-overlay">
+            <div className="modal-content" style={{ maxWidth: '500px' }}>
+              <h3>Create Walk-in Guest</h3>
+              <div className="form-group">
+                <label>First Name*</label>
+                <input type="text" value={newGuest.firstName} onChange={e => setNewGuest({...newGuest, firstName: e.target.value})} className="input-field" required />
+              </div>
+              <div className="form-group">
+                <label>Last Name*</label>
+                <input type="text" value={newGuest.lastName} onChange={e => setNewGuest({...newGuest, lastName: e.target.value})} className="input-field" required />
+              </div>
+              <div className="form-group">
+                <label>Company Name</label>
+                <input type="text" value={newGuest.companyName} onChange={e => setNewGuest({...newGuest, companyName: e.target.value})} className="input-field" />
+              </div>
+              <div className="form-group">
+                <label>Contact (Phone)</label>
+                <input type="text" value={newGuest.phone} onChange={e => setNewGuest({...newGuest, phone: e.target.value})} className="input-field" />
+              </div>
+              <div className="form-group">
+                <label>Email</label>
+                <input type="email" value={newGuest.email} onChange={e => setNewGuest({...newGuest, email: e.target.value})} className="input-field" />
+              </div>
+              <div className="form-group">
+                <label>Address</label>
+                <input type="text" value={newGuest.address} onChange={e => setNewGuest({...newGuest, address: e.target.value})} className="input-field" />
+              </div>
+              <div className="form-group">
+                <label>Nationality</label>
+                <input type="text" value={newGuest.nationality} onChange={e => setNewGuest({...newGuest, nationality: e.target.value})} className="input-field" />
+              </div>
+              <div className="modal-actions">
+                <button className="btn-secondary" onClick={() => setShowCreateGuest(false)}>Cancel</button>
+                <button className="btn-primary" onClick={handleCreateGuest} disabled={!newGuest.firstName || !newGuest.lastName}>Create</button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

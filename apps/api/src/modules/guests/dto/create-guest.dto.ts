@@ -76,5 +76,11 @@ export class CreateGuestDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  companyName?: string;
 }
 

@@ -25,7 +25,7 @@ export class GuestsController {
   constructor(private readonly guestsService: GuestsService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN')
   @ApiOperation({ summary: 'Create a new guest profile' })
   @ApiResponse({ status: 201, description: 'Guest successfully created.' })
   @ApiResponse({ status: 409, description: 'Guest email already exists.' })
@@ -34,7 +34,7 @@ export class GuestsController {
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'HOUSEKEEPING', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'HOUSEKEEPING', 'ACCOUNTANT', 'WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN')
   @ApiOperation({ summary: 'List and search guests' })
   @ApiQuery({ name: 'search', required: false, description: 'Search by name, email, or phone' })
   @ApiQuery({ name: 'page', required: false, type: Number })

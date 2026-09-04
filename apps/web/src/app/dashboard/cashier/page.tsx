@@ -15,6 +15,9 @@ type PosOrder = {
       guest?: { firstName: string; lastName: string };
     }
   };
+  guest?: { firstName: string; lastName: string; companyName?: string; phone?: string };
+  invoicePrintCount: number;
+  user?: { firstName: string; lastName: string };
   items: Array<{
     id: string;
     quantity: number;
@@ -27,6 +30,15 @@ export default function CashierPage() {
   const [orders, setOrders] = useState<PosOrder[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<PosOrder | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [printMode, setPrintMode] = useState<'RECEIPT' | 'INVOICE'>('RECEIPT');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/v1/users/me`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => setCurrentUser(data.data || data))
+      .catch(() => {});
+  }, []);
 
   // Split payment state
   const [payments, setPayments] = useState<Array<{method: string; amount: number}>>([]);
@@ -88,6 +100,37 @@ export default function CashierPage() {
     const interval = setInterval(fetchOrders, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  const handlePrintInvoice = async (orderId: string) => {
+    if (!selectedOrder) return;
+    const isStaff = currentUser?.roles?.includes('WAITSTAFF') || currentUser?.roles?.includes('CASHIER') || currentUser?.roles?.includes('BAR') || currentUser?.roles?.includes('KITCHEN');
+    const isManager = currentUser?.roles?.includes('MANAGER');
+    
+    if (isStaff && selectedOrder.invoicePrintCount >= 1) {
+      showToast('Staff can only print an invoice once. Please contact management.', 'error');
+      return;
+    }
+    if (isManager && selectedOrder.invoicePrintCount >= 3) {
+      showToast('Manager can only print an invoice 3 times. Please contact CEO.', 'error');
+      return;
+    }
+    
+    setPrintMode('INVOICE');
+    setTimeout(async () => {
+      window.print();
+      try {
+        await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/increment-print`, { method: 'POST', credentials: 'include' });
+        fetchOrders();
+      } catch(e) {}
+    }, 500);
+  };
+
+  const handlePrintReceipt = () => {
+    setPrintMode('RECEIPT');
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  };
 
   const handleCheckout = async (orderId: string) => {
     if (isProcessing || !selectedOrder) return;
@@ -241,8 +284,11 @@ export default function CashierPage() {
             </div>
 
             <div className="payment-actions">
-              <button className="btn-secondary" onClick={() => window.print()}>
+              <button className="btn-secondary" onClick={() => handlePrintReceipt()}>
                 Print Receipt
+              </button>
+              <button className="btn-secondary" onClick={() => handlePrintInvoice(selectedOrder.id)}>
+                Print Invoice
               </button>
               <button 
                 className="btn-pay" 

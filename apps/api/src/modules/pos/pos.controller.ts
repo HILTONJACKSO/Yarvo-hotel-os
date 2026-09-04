@@ -88,8 +88,8 @@ export class PosController {
   }
 
   @Post('orders')
-  createOrder(@Body() data: { tableId?: string; folioId?: string; discountAmount?: number; notes?: string }, @Req() req: any) {
-    return this.posService.createOrder({ ...data, userId: req.user.id });
+  createOrder(@Body() data: { tableId?: string; folioId?: string; guestId?: string; discountAmount?: number; notes?: string }, @Req() req: any) {
+    return this.posService.createOrder({ ...data, userId: req.user.id, userRoles: req.user.roles });
   }
 
   @Post('orders/:id/items')
@@ -105,6 +105,11 @@ export class PosController {
   @Post('orders/:id/checkout')
   checkoutOrder(@Param('id') id: string, @Body() data: { payments?: { method: string; amount: number }[], folioId?: string, discountAmount?: number }) {
     return this.posService.checkoutOrder(id, data);
+  }
+
+  @Post('orders/:id/increment-print')
+  incrementInvoicePrint(@Param('id') id: string) {
+    return this.posService.incrementInvoicePrint(id);
   }
 
   // --- Return Workflow ---
