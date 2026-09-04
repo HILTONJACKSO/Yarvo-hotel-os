@@ -151,32 +151,39 @@ export default function WaitstaffPage() {
       <h2 style={{ marginTop: '40px' }}>Recently Served Items</h2>
       <p className="subtitle">Items that have been delivered. You can request a return if needed.</p>
       <div className="orders-grid">
-        {servedItems.length === 0 && <div className="no-orders">No recently served items.</div>}
-        {servedItems.map(item => (
-          <div key={item.id} className="order-card" style={{ opacity: item.status !== 'SERVED' ? 0.7 : 1 }}>
+        {Object.values(groupedServed).length === 0 && <div className="no-orders">No recently served items.</div>}
+        {Object.values(groupedServed).map(group => (
+          <div key={group.order?.id || Math.random()} className="order-card">
             <div className="order-header">
               <span className="table-badge" style={{ background: 'hsl(142, 76%, 45%, 0.15)', color: 'hsl(142, 76%, 50%)' }}>
-                {item.order?.folio?.reservation?.room 
-                  ? `Room ${item.order.folio.reservation.room.number}` 
-                  : item.order?.table 
-                    ? `Table ${item.order.table.number}` 
+                {group.order?.folio?.reservation?.room 
+                  ? `Room ${group.order.folio.reservation.room.number}` 
+                  : group.order?.table 
+                    ? `Table ${group.order.table.number}` 
                     : 'Walk-in'
                 }
               </span>
-              <span className="time-badge">{item.status.replace('_', ' ')}</span>
             </div>
             <div className="order-body">
-              <div className="item-row">
-                <span className="qty">{item.quantity}x</span>
-                <span className="name">{item.menuItem.name}</span>
-              </div>
-            </div>
-            <div className="order-footer" style={{ gridTemplateColumns: '1fr' }}>
-              {item.status === 'SERVED' ? (
-                <button className="btn-secondary" onClick={() => requestReturn(item.id)} style={{ color: 'hsl(0, 84%, 60%)', borderColor: 'hsl(0, 84%, 30%)' }}>Request Return</button>
-              ) : (
-                <button className="btn-secondary" disabled style={{ opacity: 0.5 }}>{item.status.replace('_', ' ')}</button>
-              )}
+              {group.items.map((item: any) => (
+                <div key={item.id} style={{ marginBottom: '12px', borderBottom: '1px solid hsl(215, 20%, 20%)', paddingBottom: '12px', opacity: item.status !== 'SERVED' ? 0.7 : 1 }}>
+                  <div className="item-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span className="qty" style={{ marginRight: '8px' }}>{item.quantity}x</span>
+                      <span className="name">{item.menuItem.name}</span>
+                    </div>
+                    <span className="time-badge" style={{ fontSize: '0.75rem' }}>{item.status.replace('_', ' ')}</span>
+                  </div>
+                  {item.notes && <div className="notes" style={{ fontSize: '0.85rem', color: '#888', marginTop: '4px' }}>Note: {item.notes}</div>}
+                  <div style={{ marginTop: '8px' }}>
+                    {item.status === 'SERVED' ? (
+                      <button className="btn-secondary btn-sm" onClick={() => requestReturn(item.id)} style={{ color: 'hsl(0, 84%, 60%)', borderColor: 'hsl(0, 84%, 30%)' }}>Request Return</button>
+                    ) : (
+                      <span className="text-warning" style={{ fontSize: '0.8rem' }}>{item.status.replace('_', ' ')}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ))}
