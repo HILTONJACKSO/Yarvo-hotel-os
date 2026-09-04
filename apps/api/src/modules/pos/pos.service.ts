@@ -423,14 +423,14 @@ export class PosService {
     const totalAmount = Math.max(0, subtotal - appliedDiscount); // Prices are tax-inclusive
     
     // Log discount if applied during checkout
-    if (appliedDiscount > 0 && order.discountAmount !== appliedDiscount) {
+    if (appliedDiscount > 0 && Number(order.discountAmount || 0) !== appliedDiscount) {
       this.auditLogsService.logAction({
         action: 'APPLY_DISCOUNT',
         entity: 'PosOrder',
         entityId: orderId,
         oldValues: { discountAmount: Number(order.discountAmount || 0) },
         newValues: { discountAmount: appliedDiscount },
-        userId: null
+        userId: undefined
       }).catch(console.error);
     }
 
