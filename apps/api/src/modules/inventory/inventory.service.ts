@@ -156,21 +156,30 @@ export class InventoryService {
     });
   }
 
-  async stockOut(id: string, data: { amount: number, staffName: string, reason?: string }, userId?: string) {
+  async stockOut(id: string, data: { amount: number, staffName: string, reason?: string, location?: string }, userId?: string) {
     return this.prisma.$transaction(async (tx) => {
       const oldRecord = await tx.inventoryItem.findUnique({ where: { id } });
       if (!oldRecord) throw new NotFoundException('Item not found');
 
-      const currentMain = Number(oldRecord.stockMain) || 0;
-      if (currentMain < data.amount) {
-        throw new BadRequestException(`Not enough stock in Main Storage to stock out ${data.amount}. Current: ${currentMain}`);
+      const locMap: Record<string, string> = {
+        'MAIN': 'stockMain',
+        'BAR': 'stockBar',
+        'KITCHEN': 'stockKitchen',
+        'HOUSEKEEPING': 'stockHousekeeping'
+      };
+      const locKey = data.location ? data.location.toUpperCase() : 'MAIN';
+      const targetField = locMap[locKey] || 'stockMain';
+
+      const currentStock = Number((oldRecord as any)[targetField]) || 0;
+      if (currentStock < data.amount) {
+        throw new BadRequestException(`Not enough stock in ${locKey} Storage to stock out ${data.amount}. Current: ${currentStock}`);
       }
 
       const newRecord = await tx.inventoryItem.update({
         where: { id },
         data: {
           stockLevel: { decrement: data.amount },
-          stockMain: { decrement: data.amount },
+          [targetField]: { decrement: data.amount },
         },
       });
 

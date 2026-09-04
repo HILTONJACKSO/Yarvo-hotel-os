@@ -42,7 +42,7 @@ export default function InventoryPage() {
   
   const [stockItem, setStockItem] = useState<InventoryItem | null>(null);
   const [stockInData, setStockInData] = useState({ amount: 0, costPerUnit: 0 });
-  const [stockOutData, setStockOutData] = useState({ amount: 0, staffName: '', reason: '' });
+  const [stockOutData, setStockOutData] = useState({ amount: 0, staffName: '', reason: '', location: 'MAIN' });
 
   const [newItem, setNewItem] = useState({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
 
@@ -177,7 +177,7 @@ export default function InventoryPage() {
       showToast('Stock reduced successfully', 'success');
       setShowStockOutModal(false);
       setStockItem(null);
-      setStockOutData({ amount: 0, staffName: '', reason: '' });
+      setStockOutData({ amount: 0, staffName: '', reason: '', location: 'MAIN' });
       fetchItems();
     } catch (err: any) {
       showToast(err.message || 'Failed to stock out', 'error');
@@ -274,7 +274,7 @@ export default function InventoryPage() {
                           </button>
                           <button title="Stock Out (Remove)" className="btn-icon" style={{ color: 'hsl(0, 84%, 65%)' }} onClick={() => {
                             setStockItem(item);
-                            setStockOutData({ amount: 0, staffName: '', reason: '' });
+                            setStockOutData({ amount: 0, staffName: '', reason: '', location: 'MAIN' });
                             setShowStockOutModal(true);
                           }}>
                             <Minus size={16} />
@@ -344,6 +344,15 @@ export default function InventoryPage() {
             <h3>Stock Out: {stockItem.name}</h3>
             <form onSubmit={handleStockOut}>
               <div className="form-row">
+                <div className="form-group">
+                  <label>Location</label>
+                  <select required value={stockOutData.location} onChange={e => setStockOutData({...stockOutData, location: e.target.value})}>
+                    <option value="MAIN">Main Storage</option>
+                    <option value="KITCHEN">Kitchen</option>
+                    <option value="BAR">Bar</option>
+                    <option value="HOUSEKEEPING">Housekeeping</option>
+                  </select>
+                </div>
                 <div className="form-group">
                   <label>Quantity to remove ({stockItem.unit})</label>
                   <input required type="number" step="0.01" min="0.01" value={stockOutData.amount} onChange={e => setStockOutData({...stockOutData, amount: Number(e.target.value)})} />

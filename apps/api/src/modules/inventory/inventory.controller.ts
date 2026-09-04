@@ -57,7 +57,7 @@ export class InventoryController {
 
   @Post(':id/stock-out')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
-  stockOut(@Param('id') id: string, @Body() data: { amount: number, staffName: string, reason?: string }, @Req() req: any) {
+  stockOut(@Param('id') id: string, @Body() data: { amount: number, staffName: string, reason?: string, location?: string }, @Req() req: any) {
     return this.inventoryService.stockOut(id, data, req.user.id);
   }
 
