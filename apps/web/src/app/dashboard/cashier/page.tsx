@@ -21,6 +21,7 @@ type PosOrder = {
   items: Array<{
     id: string;
     quantity: number;
+    status?: string;
     menuItem: { name: string; price: string };
   }>;
 };
