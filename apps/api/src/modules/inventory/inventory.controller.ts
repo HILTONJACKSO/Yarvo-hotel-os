@@ -49,6 +49,18 @@ export class InventoryController {
     return this.inventoryService.transferStock(id, data, req.user.id);
   }
 
+  @Post(':id/stock-in')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+  stockIn(@Param('id') id: string, @Body() data: { amount: number, costPerUnit?: number }, @Req() req: any) {
+    return this.inventoryService.stockIn(id, data, req.user.id);
+  }
+
+  @Post(':id/stock-out')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+  stockOut(@Param('id') id: string, @Body() data: { amount: number, staffName: string, reason?: string }, @Req() req: any) {
+    return this.inventoryService.stockOut(id, data, req.user.id);
+  }
+
   @Post('recipes')
   addRecipeIngredient(@Body() data: { menuItemId: string; inventoryItemId: string; quantity: number }) {
     return this.inventoryService.addRecipeIngredient(data);

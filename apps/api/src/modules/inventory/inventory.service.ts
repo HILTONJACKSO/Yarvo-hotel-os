@@ -130,6 +130,62 @@ export class InventoryService {
     });
   }
 
+  async stockIn(id: string, data: { amount: number, costPerUnit?: number }, userId?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const oldRecord = await tx.inventoryItem.findUnique({ where: { id } });
+      if (!oldRecord) throw new NotFoundException('Item not found');
+
+      const newRecord = await tx.inventoryItem.update({
+        where: { id },
+        data: {
+          stockLevel: { increment: data.amount },
+          stockMain: { increment: data.amount },
+          ...(data.costPerUnit !== undefined ? { costPerUnit: data.costPerUnit } : {})
+        },
+      });
+
+      await this.auditLogsService.logAction({
+        userId,
+        action: 'STOCK_IN',
+        entity: 'InventoryItem',
+        entityId: id,
+        oldValues: oldRecord,
+        newValues: newRecord
+      });
+      return newRecord;
+    });
+  }
+
+  async stockOut(id: string, data: { amount: number, staffName: string, reason?: string }, userId?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const oldRecord = await tx.inventoryItem.findUnique({ where: { id } });
+      if (!oldRecord) throw new NotFoundException('Item not found');
+
+      const currentMain = Number(oldRecord.stockMain) || 0;
+      if (currentMain < data.amount) {
+        throw new BadRequestException(`Not enough stock in Main Storage to stock out ${data.amount}. Current: ${currentMain}`);
+      }
+
+      const newRecord = await tx.inventoryItem.update({
+        where: { id },
+        data: {
+          stockLevel: { decrement: data.amount },
+          stockMain: { decrement: data.amount },
+        },
+      });
+
+      await this.auditLogsService.logAction({
+        userId,
+        action: 'STOCK_OUT',
+        entity: 'InventoryItem',
+        entityId: id,
+        oldValues: { ...oldRecord, _stockOutDetails: data },
+        newValues: newRecord
+      });
+      return newRecord;
+    });
+  }
+
   async addRecipeIngredient(data: { menuItemId: string; inventoryItemId: string; quantity: number }) {
     return this.prisma.inventoryRecipe.create({ data });
   }

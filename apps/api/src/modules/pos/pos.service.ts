@@ -301,6 +301,34 @@ export class PosService {
   }
 
   async addOrderItem(orderId: string, data: { menuItemId: string; quantity: number; notes?: string }) {
+    // Fetch menu item to determine type (FOOD -> Kitchen, DRINK -> Bar)
+    const menuItem = await this.prisma.posMenuItem.findUnique({
+      where: { id: data.menuItemId }
+    });
+
+    let deductField = 'stockMain';
+    if (menuItem?.type === 'DRINK' || menuItem?.type === 'BAR') deductField = 'stockBar';
+    if (menuItem?.type === 'FOOD') deductField = 'stockKitchen';
+
+    // Verify stock before creating order item
+    const recipes = await this.prisma.inventoryRecipe.findMany({
+      where: { menuItemId: data.menuItemId }
+    });
+    
+    for (const recipe of recipes) {
+      const deductionAmount = Number(recipe.quantity) * data.quantity;
+      const invItem = await this.prisma.inventoryItem.findUnique({
+        where: { id: recipe.inventoryItemId }
+      });
+      if (invItem) {
+        const currentStock = Number((invItem as any)[deductField]) || 0;
+        if (currentStock < deductionAmount) {
+          throw new Error(`Out of stock: ${invItem.name} only has ${currentStock} available in ${deductField.replace('stock', '')}. Cannot order ${data.quantity} units of ${menuItem?.name}.`);
+        }
+      }
+    }
+
+    // Now safe to create
     const item = await this.prisma.posOrderItem.create({
       data: {
         orderId,
@@ -317,20 +345,7 @@ export class PosService {
       data: { status: 'OPEN' }
     });
     
-    // Fetch menu item to determine type (FOOD -> Kitchen, DRINK -> Bar)
-    const menuItem = await this.prisma.posMenuItem.findUnique({
-      where: { id: data.menuItemId }
-    });
-
-    let deductField = 'stockMain';
-    if (menuItem?.type === 'DRINK' || menuItem?.type === 'BAR') deductField = 'stockBar';
-    if (menuItem?.type === 'FOOD') deductField = 'stockKitchen';
-
-    // Auto deduct inventory if recipes exist
-    const recipes = await this.prisma.inventoryRecipe.findMany({
-      where: { menuItemId: data.menuItemId }
-    });
-    
+    // Auto deduct inventory
     for (const recipe of recipes) {
       const deductionAmount = Number(recipe.quantity) * data.quantity;
       await this.prisma.inventoryItem.update({

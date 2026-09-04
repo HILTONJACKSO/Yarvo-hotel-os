@@ -30,10 +30,18 @@ export default function InventoryPage() {
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showStockInModal, setShowStockInModal] = useState(false);
+  const [showStockOutModal, setShowStockOutModal] = useState(false);
+
   const [transferItem, setTransferItem] = useState<InventoryItem | null>(null);
   const [transferData, setTransferData] = useState({ from: 'MAIN', to: 'BAR', amount: 0 });
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
+  
+  const [stockItem, setStockItem] = useState<InventoryItem | null>(null);
+  const [stockInData, setStockInData] = useState({ amount: 0, costPerUnit: 0 });
+  const [stockOutData, setStockOutData] = useState({ amount: 0, staffName: '', reason: '' });
+
   const [newItem, setNewItem] = useState({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
 
   const fetchItems = () => {
@@ -102,20 +110,6 @@ export default function InventoryPage() {
     }
   };
 
-  const updateStock = async (id: string, amount: number) => {
-    try {
-      await fetch(`${API_URL}/api/v1/inventory/${id}/stock`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ amount })
-      });
-      fetchItems();
-    } catch (err) {
-      showToast('Failed to update stock', 'error', 'Error');
-    }
-  };
-
   const handleTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!transferItem) return;
@@ -140,6 +134,54 @@ export default function InventoryPage() {
     }
   };
 
+  const handleStockIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stockItem) return;
+    try {
+      const res = await fetch(`${API_URL}/api/v1/inventory/${stockItem.id}/stock-in`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(stockInData)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to stock in');
+      }
+      showToast('Stock added successfully', 'success');
+      setShowStockInModal(false);
+      setStockItem(null);
+      setStockInData({ amount: 0, costPerUnit: 0 });
+      fetchItems();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to stock in', 'error');
+    }
+  };
+
+  const handleStockOut = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stockItem) return;
+    try {
+      const res = await fetch(`${API_URL}/api/v1/inventory/${stockItem.id}/stock-out`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(stockOutData)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to stock out');
+      }
+      showToast('Stock reduced successfully', 'success');
+      setShowStockOutModal(false);
+      setStockItem(null);
+      setStockOutData({ amount: 0, staffName: '', reason: '' });
+      fetchItems();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to stock out', 'error');
+    }
+  };
+
   if (loading) return <div className="p-8 text-white">Loading inventory...</div>;
 
   return (
@@ -151,7 +193,7 @@ export default function InventoryPage() {
             setEditItemId(null);
             setNewItem({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
             setShowAddModal(true);
-          }}>+ Add Item</button>
+          }}>+ New Item Catalog</button>
         )}
       </div>
 
@@ -175,7 +217,7 @@ export default function InventoryPage() {
           <tbody>
             {items.length === 0 && (
               <tr>
-                <td colSpan={10} className="text-center">No inventory items found.</td>
+                <td colSpan={11} className="text-center">No inventory items found.</td>
               </tr>
             )}
             {items.map(item => {
@@ -200,7 +242,21 @@ export default function InventoryPage() {
                   <td>
                     <div className="action-buttons">
                       {canEdit && (
-                        <button title="Edit Item" onClick={() => {
+                        <>
+                          <button title="Stock In (Add)" style={{ color: 'hsl(142, 76%, 55%)' }} onClick={() => {
+                            setStockItem(item);
+                            setStockInData({ amount: 0, costPerUnit: Number(item.costPerUnit) || 0 });
+                            setShowStockInModal(true);
+                          }}>➕</button>
+                          <button title="Stock Out (Remove)" style={{ color: 'hsl(0, 84%, 65%)' }} onClick={() => {
+                            setStockItem(item);
+                            setStockOutData({ amount: 0, staffName: '', reason: '' });
+                            setShowStockOutModal(true);
+                          }}>➖</button>
+                        </>
+                      )}
+                      {canEdit && (
+                        <button title="Edit Item Details" onClick={() => {
                           setEditItemId(item.id);
                           setNewItem({
                             name: item.name,
@@ -211,7 +267,7 @@ export default function InventoryPage() {
                             costPerUnit: Number(item.costPerUnit)
                           });
                           setShowAddModal(true);
-                        }}>✎</button>
+                        }}>✏️</button>
                       )}
                       <button title="Transfer Stock" onClick={() => { setTransferItem(item); setShowTransferModal(true); }}>⇄</button>
                       {isAdmin && (
@@ -226,10 +282,67 @@ export default function InventoryPage() {
         </table>
       </div>
 
+      {showStockInModal && stockItem && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Add Stock: {stockItem.name}</h3>
+            <form onSubmit={handleStockIn}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Quantity to add ({stockItem.unit})</label>
+                  <input required type="number" step="0.01" min="0.01" value={stockInData.amount} onChange={e => setStockInData({...stockInData, amount: Number(e.target.value)})} />
+                </div>
+                <div className="form-group">
+                  <label>Cost per Unit ($) - Optional</label>
+                  <input required type="number" step="0.01" min="0" value={stockInData.costPerUnit} onChange={e => setStockInData({...stockInData, costPerUnit: Number(e.target.value)})} />
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn-cancel" onClick={() => setShowStockInModal(false)}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ background: 'hsl(142, 76%, 45%)', color: 'white' }}>Save Stock In</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showStockOutModal && stockItem && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Stock Out: {stockItem.name}</h3>
+            <form onSubmit={handleStockOut}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Quantity to remove ({stockItem.unit})</label>
+                  <input required type="number" step="0.01" min="0.01" value={stockOutData.amount} onChange={e => setStockOutData({...stockOutData, amount: Number(e.target.value)})} />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Staff Approving</label>
+                  <input required type="text" placeholder="e.g. John Doe" value={stockOutData.staffName} onChange={e => setStockOutData({...stockOutData, staffName: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Reason (Optional)</label>
+                  <input type="text" placeholder="e.g. Expired, Broken" value={stockOutData.reason} onChange={e => setStockOutData({...stockOutData, reason: e.target.value})} />
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn-cancel" onClick={() => setShowStockOutModal(false)}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ background: 'hsl(0, 84%, 60%)', color: 'white' }}>Confirm Stock Out</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h3>{editItemId ? 'Edit' : 'Add'} Inventory Item</h3>
+            <h3>{editItemId ? 'Edit' : 'Add'} Item Catalog</h3>
+            <p style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', marginBottom: '16px' }}>
+              Note: Do not use this to add daily stock. Use the ➕ button on the table for that.
+            </p>
             <datalist id="inventory-names">
               {Array.from(new Set(items.map(i => i.name))).map(name => (
                 <option key={name} value={name} />
@@ -261,7 +374,7 @@ export default function InventoryPage() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Initial Stock</label>
+                  <label>Initial Stock (Leave 0 if unsure)</label>
                   <input type="number" step="0.01" value={newItem.stockLevel} onChange={e => setNewItem({...newItem, stockLevel: Number(e.target.value)})} />
                 </div>
                 <div className="form-group">
@@ -499,13 +612,7 @@ export default function InventoryPage() {
           gap: 12px;
           margin-top: 32px;
         }
-
-        @media (max-width: 768px) {
-          .inv-header { flex-direction: column; align-items: stretch; gap: 16px; }
-          .btn-primary { width: 100%; }
-        }
       `}</style>
     </div>
   );
 }
-
