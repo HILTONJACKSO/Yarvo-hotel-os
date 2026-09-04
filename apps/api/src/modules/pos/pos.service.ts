@@ -421,6 +421,18 @@ export class PosService {
 
     const appliedDiscount = data.discountAmount !== undefined ? data.discountAmount : Number(order.discountAmount || 0);
     const totalAmount = Math.max(0, subtotal - appliedDiscount); // Prices are tax-inclusive
+    
+    // Log discount if applied during checkout
+    if (appliedDiscount > 0 && order.discountAmount !== appliedDiscount) {
+      this.auditLogsService.logAction({
+        action: 'APPLY_DISCOUNT',
+        entity: 'PosOrder',
+        entityId: orderId,
+        oldValues: { discountAmount: Number(order.discountAmount || 0) },
+        newValues: { discountAmount: appliedDiscount },
+        userId: null
+      }).catch(console.error);
+    }
 
     // If billing to a room
     if (data.folioId || order.folioId) {
@@ -538,6 +550,15 @@ export class PosService {
     });
     
     if (!returnReq) throw new Error("Return request not found");
+    
+    this.auditLogsService.logAction({
+      action: approved ? 'APPROVE_RETURN' : 'REJECT_RETURN',
+      entity: 'PosReturn',
+      entityId: returnId,
+      oldValues: { status: returnReq.status },
+      newValues: { status: approved ? 'RETURNED' : 'REJECTED' },
+      userId: userId
+    }).catch(console.error);
 
     if (!approved) {
       // Reject
