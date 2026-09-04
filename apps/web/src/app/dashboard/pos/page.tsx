@@ -432,12 +432,21 @@ export default function PosPage() {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : orderDestinationType === 'ROOM' ? (
             <div className="room-selector">
               <select className="form-select w-full" value={selectedFolioId || ''} onChange={e => setSelectedFolioId(e.target.value)}>
                 <option value="" disabled>Select a Checked-In Guest</option>
                 {inHouseGuests.map(r => (
                   <option key={r.id} value={r.folio.id}>Room {r.room?.number || 'N/A'} - {r.guest.firstName} {r.guest.lastName}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="room-selector">
+              <select className="form-select w-full" value={selectedGuestId || ''} onChange={e => setSelectedGuestId(e.target.value)}>
+                <option value="" disabled>Select a Walk-in Guest</option>
+                {guests.map(g => (
+                  <option key={g.id} value={g.id}>{g.firstName} {g.lastName} {g.companyName ? `(${g.companyName})` : ''}</option>
                 ))}
               </select>
             </div>
