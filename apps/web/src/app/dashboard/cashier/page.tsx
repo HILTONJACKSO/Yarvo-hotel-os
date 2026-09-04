@@ -45,14 +45,23 @@ export default function CashierPage() {
   const [payments, setPayments] = useState<Array<{method: string; amount: number}>>([]);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('PAYMENT_CASH');
+  const [discountValue, setDiscountValue] = useState('');
+  const [discountType, setDiscountType] = useState<'PERCENT' | 'FLAT'>('PERCENT');
 
   useEffect(() => {
     if (selectedOrder) {
       setPayments([]);
-      setPaymentAmount(selectedOrder.totalAmount);
+        setDiscountValue('');
+        setDiscountType('PERCENT');
+        setPaymentAmount(selectedOrder.totalAmount);
       setPaymentMethod('PAYMENT_CASH');
     }
   }, [selectedOrder]);
+
+  const calculatedDiscount = selectedOrder 
+    ? (discountType === 'PERCENT' ? (Number(selectedOrder.totalAmount) * (Number(discountValue || 0) / 100)) : Number(discountValue || 0))
+    : 0;
+  const finalTotal = selectedOrder ? Math.max(0, Number(selectedOrder.totalAmount) - calculatedDiscount) : 0;
 
   const handleAddPayment = () => {
     if (!selectedOrder) return;
@@ -62,7 +71,7 @@ export default function CashierPage() {
       return;
     }
     const currentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
-    const orderTotal = Number(selectedOrder.totalAmount);
+    const orderTotal = finalTotal;
     if (currentTotal + amt > orderTotal + 0.01) {
       showToast('Payment amount exceeds remaining balance', 'error');
       return;
@@ -140,6 +149,7 @@ export default function CashierPage() {
     ` : '';
 
     const orderTotal = Number(selectedOrder.totalAmount);
+    const finalTotal = Math.max(0, orderTotal - calculatedDiscount);
     // Assuming 10% GST included in the price for display purposes
     const subtotal = orderTotal / 1.10;
     const gst = orderTotal - subtotal;
@@ -191,7 +201,8 @@ export default function CashierPage() {
           
           <div class="summary-row"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
           <div class="summary-row"><span>GST (10%)</span><span>$${gst.toFixed(2)}</span></div>
-          <div class="totals"><span>TOTAL</span><span>$${orderTotal.toFixed(2)}</span></div>
+          ${calculatedDiscount > 0 ? `<div class="summary-row" style="color: #dc2626;"><span>Discount</span><span>-$${calculatedDiscount.toFixed(2)}</span></div>` : ''}
+          <div class="totals"><span>TOTAL</span><span>$${finalTotal.toFixed(2)}</span></div>
           
           ${signatureBlock}
 
@@ -247,6 +258,7 @@ export default function CashierPage() {
     
     const currentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     const orderTotal = Number(selectedOrder.totalAmount);
+    const finalTotal = Math.max(0, orderTotal - calculatedDiscount);
     
     // Allow small floating point variance
     if (Math.abs(orderTotal - currentTotal) > 0.01) {
@@ -255,8 +267,7 @@ export default function CashierPage() {
     }
 
     setIsProcessing(true);
-    try {
-      const body = { payments };
+    try {      const body = { payments, discountAmount: calculatedDiscount };
 
       const res = await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/checkout`, {
         method: 'POST',
@@ -335,13 +346,55 @@ export default function CashierPage() {
                     <span className="price">{isReturned ? '-' : ''}${(Number(item.menuItem.price) * item.quantity).toFixed(2)}</span>
                   </div>
                 )})}
-              <div className="receipt-total">
-                <span>Total Amount</span>
-                <span>${Number(selectedOrder.totalAmount).toFixed(2)}</span>
-              </div>
+              <div className="receipt-total" style={{ borderBottom: calculatedDiscount > 0 ? 'none' : '', paddingBottom: calculatedDiscount > 0 ? '4px' : '' }}>
+                  <span>Subtotal</span>
+                  <span>${Number(selectedOrder.totalAmount).toFixed(2)}</span>
+                </div>
+                {calculatedDiscount > 0 && (
+                  <div className="receipt-total" style={{ borderTop: 'none', paddingTop: '4px', marginTop: 0, color: 'hsl(142, 76%, 45%)' }}>
+                    <span>Discount</span>
+                    <span>-${calculatedDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="receipt-total" style={{ borderTop: calculatedDiscount > 0 ? 'none' : '' }}>
+                  <span>Total Amount</span>
+                  <span>${finalTotal.toFixed(2)}</span>
+                </div>
             </div>
 
-            <div className="payment-entry-section">
+            <div className="discount-entry" style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '8px', color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem' }}>Discount</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    value={discountValue} 
+                    onChange={e => {
+                        setDiscountValue(e.target.value);
+                        const curDiscount = discountType === 'PERCENT' ? (Number(selectedOrder.totalAmount) * (Number(e.target.value || 0) / 100)) : Number(e.target.value || 0);
+                        setPaymentAmount(Math.max(0, Number(selectedOrder.totalAmount) - curDiscount - payments.reduce((s, p) => s + p.amount, 0)).toFixed(2));
+                    }} 
+                    style={{ width: '100%', padding: '10px', background: 'hsl(222, 35%, 10%)', border: '1px solid hsl(217, 20%, 20%)', color: 'white', borderRadius: '6px' }}
+                  />
+                </div>
+                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '8px', color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem' }}>Type</label>
+                  <select 
+                    value={discountType} 
+                    onChange={e => {
+                        const newType = e.target.value as 'PERCENT' | 'FLAT';
+                        setDiscountType(newType);
+                        const curDiscount = newType === 'PERCENT' ? (Number(selectedOrder.totalAmount) * (Number(discountValue || 0) / 100)) : Number(discountValue || 0);
+                        setPaymentAmount(Math.max(0, Number(selectedOrder.totalAmount) - curDiscount - payments.reduce((s, p) => s + p.amount, 0)).toFixed(2));
+                    }}
+                    style={{ width: '100%', padding: '10px', background: 'hsl(222, 35%, 10%)', border: '1px solid hsl(217, 20%, 20%)', color: 'white', borderRadius: '6px' }}
+                  >
+                    <option value="PERCENT">%</option>
+                    <option value="FLAT">$</option>
+                  </select>
+                </div>
+              </div>
+              <div className="payment-entry-section">
               {payments.length > 0 && (
                 <div className="payments-list" style={{ marginBottom: '16px' }}>
                   <h4 style={{ color: 'white', fontSize: '0.875rem', marginBottom: '8px', marginTop: 0 }}>Payments Added</h4>
@@ -357,13 +410,13 @@ export default function CashierPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid hsl(217, 20%, 25%)' }}>
                     <span style={{ color: 'white', fontWeight: 600 }}>Remaining Balance:</span>
                     <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 700 }}>
-                      ${Math.max(0, Number(selectedOrder.totalAmount) - payments.reduce((sum, p) => sum + p.amount, 0)).toFixed(2)}
+                      ${Math.max(0, finalTotal - payments.reduce((sum, p) => sum + p.amount, 0)).toFixed(2)}
                     </span>
                   </div>
                 </div>
               )}
 
-              {payments.reduce((sum, p) => sum + p.amount, 0) < Number(selectedOrder.totalAmount) && (
+              {payments.reduce((sum, p) => sum + p.amount, 0) < finalTotal && (
                 <div className="payment-entry-form" style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '24px' }}>
                   <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
                     <label style={{ display: 'block', marginBottom: '8px', color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem' }}>Amount ($)</label>
@@ -372,7 +425,7 @@ export default function CashierPage() {
                       step="0.01" 
                       value={paymentAmount} 
                       onChange={e => setPaymentAmount(e.target.value)} 
-                      max={Math.max(0, Number(selectedOrder.totalAmount) - payments.reduce((sum, p) => sum + p.amount, 0))}
+                      max={Math.max(0, finalTotal - payments.reduce((sum, p) => sum + p.amount, 0))}
                       style={{ width: '100%', padding: '10px', background: 'hsl(222, 35%, 10%)', border: '1px solid hsl(217, 20%, 20%)', color: 'white', borderRadius: '6px' }}
                     />
                   </div>
@@ -404,7 +457,7 @@ export default function CashierPage() {
               </button>
               <button 
                 className="btn-pay" 
-                disabled={isProcessing || payments.reduce((sum, p) => sum + p.amount, 0) < Number(selectedOrder.totalAmount) - 0.01} 
+                disabled={isProcessing || payments.reduce((sum, p) => sum + p.amount, 0) < finalTotal - 0.01} 
                 onClick={() => handleCheckout(selectedOrder.id)}
               >
                 {isProcessing ? 'Processing...' : 'Complete Payment'}
