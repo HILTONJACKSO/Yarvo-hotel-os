@@ -1,45 +1,38 @@
 import React, { useState, useEffect } from 'react';
+import { EditPayslipModal } from './EditPayslipModal';
+import { PayslipPrint } from './PayslipPrint';
+import { PayrollSummaryPrint } from './PayrollSummaryPrint';
 
-type User = {
-  id: string;
-  firstName: string;
-  lastName: string;
-};
-
-type Payslip = {
-  id: string;
-  userId: string;
-  user?: User;
-  periodStart: string;
-  periodEnd: string;
-  totalHours: string;
-  basePay: string;
-  overtimePay: string;
-  deductions: string;
-  netPay: string;
-  status: string;
-};
-
-export function PayrollTab({ staff }: { staff: User[] }) {
-  const [payslips, setPayslips] = useState<Payslip[]>([]);
+export function PayrollTab({ staff }: { staff: any[] }) {
+  const [payslips, setPayslips] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  
+  const [periodStart, setPeriodStart] = useState(
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
+  );
+  const [periodEnd, setPeriodEnd] = useState(
+    new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+  );
+  
+  const [editingPayslip, setEditingPayslip] = useState<any | null>(null);
+  
+  const [printingPayslip, setPrintingPayslip] = useState<any>(null);
 
-  // New Payslip State
-  const [userId, setUserId] = useState('');
-  const [periodStart, setPeriodStart] = useState('');
-  const [periodEnd, setPeriodEnd] = useState('');
-  const [basePay, setBasePay] = useState('');
-  const [overtimePay, setOvertimePay] = useState('');
-  const [taxRate, setTaxRate] = useState('');
-
-  const fetchPayslips = async () => {
+  const fetchPayroll = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/staff/payroll');
-      if (res.ok) {
-        const json = await res.json();
+      const [psRes, sumRes] = await Promise.all([
+        fetch(`/api/v1/staff/payroll?periodStart=${periodStart}&periodEnd=${periodEnd}`),
+        fetch(`/api/v1/staff/payroll/summary?periodStart=${periodStart}&periodEnd=${periodEnd}`)
+      ]);
+      
+      if (psRes.ok) {
+        const json = await psRes.json();
         setPayslips(json.data || []);
+      }
+      if (sumRes.ok) {
+        setSummary(await sumRes.json());
       }
     } catch (err) {
       console.error(err);
@@ -49,31 +42,24 @@ export function PayrollTab({ staff }: { staff: User[] }) {
   };
 
   useEffect(() => {
-    fetchPayslips();
-  }, []);
+    fetchPayroll();
+  }, [periodStart, periodEnd]);
 
-  const handleGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/v1/staff/payroll', {
+  const handleGenerateAll = async () => {
+    if (!confirm('Generate draft payslips for all staff for this period?')) return;
+    
+    // Auto-generate for everyone who doesn't have one
+    const existingUserIds = new Set(payslips.map(ps => ps.userId));
+    const missingStaff = staff.filter(s => !existingUserIds.has(s.id));
+    
+    for (const s of missingStaff) {
+      await fetch('/api/v1/staff/payroll', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          periodStart,
-          periodEnd,
-          basePay: Number(basePay),
-          overtimePay: Number(overtimePay),
-          taxRate: Number(taxRate)
-        })
+        body: JSON.stringify({ userId: s.id, periodStart, periodEnd })
       });
-      if (res.ok) {
-        setIsGenerating(false);
-        fetchPayslips();
-      }
-    } catch (err) {
-      console.error(err);
     }
+    fetchPayroll();
   };
 
   const handleStatusUpdate = async (id: string, status: string) => {
@@ -83,90 +69,82 @@ export function PayrollTab({ staff }: { staff: User[] }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
-      if (res.ok) fetchPayslips();
+      if (res.ok) fetchPayroll();
     } catch (err) {
       console.error(err);
     }
   };
 
+  const triggerPrint = (payslip: any) => {
+    setPrintingPayslip(payslip);
+    setTimeout(() => {
+      window.print();
+      setPrintingPayslip(null);
+    }, 100);
+  };
+
+  const handlePrintSummary = () => {
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
+
   return (
-    <div className="payroll-container">
-      <div className="payroll-header">
-        <h3>Payslips</h3>
-        <button className="btn-primary" onClick={() => setIsGenerating(!isGenerating)}>
-          {isGenerating ? 'Cancel' : '+ Generate Payslip'}
-        </button>
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-between items-center bg-[#0f121b] p-4 rounded-lg border border-[#1a1f2e] no-print">
+        <div className="flex gap-4 items-center">
+          <h3 className="font-bold">Payroll Period</h3>
+          <input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} className="bg-[#141824] border border-[#1a1f2e] p-2 rounded text-sm outline-none" />
+          <span className="text-gray-500">to</span>
+          <input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} className="bg-[#141824] border border-[#1a1f2e] p-2 rounded text-sm outline-none" />
+        </div>
+        <div className="flex gap-2">
+          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium" onClick={handleGenerateAll}>
+            Auto-Generate Drafts
+          </button>
+          <button className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded text-sm font-medium" onClick={handlePrintSummary} disabled={!summary}>
+            Print Summary (A4)
+          </button>
+        </div>
       </div>
 
-      {isGenerating && (
-        <form className="generate-form" onSubmit={handleGenerate}>
-          <select value={userId} onChange={e => setUserId(e.target.value)} required className="form-input">
-            <option value="">Select Staff</option>
-            {staff.map(s => (
-              <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>
-            ))}
-          </select>
-          <div className="form-group">
-            <label>Start Date</label>
-            <input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} required className="form-input" />
-          </div>
-          <div className="form-group">
-            <label>End Date</label>
-            <input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} required className="form-input" />
-          </div>
-          <div className="form-group">
-            <label>Base Pay ($)</label>
-            <input type="number" placeholder="Base Pay" value={basePay} onChange={e => setBasePay(e.target.value)} required className="form-input" />
-          </div>
-          <div className="form-group">
-            <label>Overtime ($)</label>
-            <input type="number" placeholder="Overtime" value={overtimePay} onChange={e => setOvertimePay(e.target.value)} className="form-input" />
-          </div>
-          <div className="form-group">
-            <label>Tax (%)</label>
-            <input type="number" placeholder="Tax %" value={taxRate} onChange={e => setTaxRate(e.target.value)} className="form-input" />
-          </div>
-          <button type="submit" className="btn-primary" style={{ marginBottom: '4px' }}>Generate</button>
-        </form>
-      )}
-
       {loading ? (
-        <div className="loading-state">Loading payroll...</div>
+        <div className="p-8 text-center text-gray-400 no-print">Loading payroll data...</div>
       ) : (
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
+        <div className="overflow-x-auto rounded-lg border border-[#1a1f2e] bg-[#0f121b] no-print">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-[#141824] border-b border-[#1a1f2e] text-gray-400">
               <tr>
-                <th>Staff</th>
-                <th>Period</th>
-                <th>Base Pay</th>
-                <th>Overtime</th>
-                <th>Tax Deducted</th>
-                <th>Net Pay</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th className="p-3 font-medium">Staff</th>
+                <th className="p-3 font-medium">Gross Salary</th>
+                <th className="p-3 font-medium">Deductions</th>
+                <th className="p-3 font-medium">Net Pay</th>
+                <th className="p-3 font-medium">Attendance</th>
+                <th className="p-3 font-medium">Status</th>
+                <th className="p-3 font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[#1a1f2e]">
               {payslips.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="empty-state">No payslips generated yet.</td>
-                </tr>
+                <tr><td colSpan={7} className="p-8 text-center text-gray-500">No payslips for this period. Click Auto-Generate Drafts.</td></tr>
               ) : (
                 payslips.map(ps => (
-                  <tr key={ps.id}>
-                    <td>{ps.user ? `${ps.user.firstName} ${ps.user.lastName}` : 'Unknown'}</td>
-                    <td>{new Date(ps.periodStart).toLocaleDateString()} - {new Date(ps.periodEnd).toLocaleDateString()}</td>
-                    <td>${ps.basePay}</td>
-                    <td>${ps.overtimePay}</td>
-                    <td className="text-danger">-${ps.deductions}</td>
-                    <td className="font-medium text-success">${ps.netPay}</td>
-                    <td>
-                      <span className={`status-badge ${ps.status.toLowerCase()}`}>{ps.status}</span>
+                  <tr key={ps.id} className="hover:bg-[#141824]/50">
+                    <td className="p-3 font-medium">{ps.user?.firstName} {ps.user?.lastName}</td>
+                    <td className="p-3">${Number(ps.grossSalary || 0).toFixed(2)}</td>
+                    <td className="p-3 text-red-400">-${Number(ps.deductions || 0).toFixed(2)}</td>
+                    <td className="p-3 text-green-400 font-bold">${Number(ps.netPay || 0).toFixed(2)}</td>
+                    <td className="p-3">{Number(ps.attendancePercent || 0).toFixed(0)}% ({ps.workedDays}/{ps.targetDays} days)</td>
+                    <td className="p-3">
+                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${ps.status === 'PAID' ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-gray-400'}`}>
+                        {ps.status}
+                      </span>
                     </td>
-                    <td>
+                    <td className="p-3 flex gap-2">
+                      <button onClick={() => setEditingPayslip(ps)} className="text-blue-400 hover:text-blue-300">Edit</button>
+                      <button onClick={() => triggerPrint(ps)} className="text-gray-400 hover:text-white">Print</button>
                       {ps.status !== 'PAID' && (
-                        <button className="action-btn" onClick={() => handleStatusUpdate(ps.id, 'PAID')}>Mark Paid</button>
+                        <button onClick={() => handleStatusUpdate(ps.id, 'PAID')} className="text-green-400 hover:text-green-300">Mark Paid</button>
                       )}
                     </td>
                   </tr>
@@ -177,21 +155,32 @@ export function PayrollTab({ staff }: { staff: User[] }) {
         </div>
       )}
 
+      {editingPayslip && (
+        <div className="no-print">
+          <EditPayslipModal 
+            payslip={editingPayslip} 
+            onClose={() => setEditingPayslip(null)} 
+            onSaved={() => { setEditingPayslip(null); fetchPayroll(); }} 
+          />
+        </div>
+      )}
+
+      {/* Hidden Print Containers */}
+      <div className="print-only">
+        {printingPayslip && <PayslipPrint payslip={printingPayslip} />}
+        {!printingPayslip && summary && <PayrollSummaryPrint summary={summary} periodStart={periodStart} />}
+      </div>
       <style>{`
-        .payroll-container { display: flex; flex-direction: column; gap: 16px; }
-        .payroll-header { display: flex; justify-content: space-between; align-items: center; }
-        .generate-form { display: flex; gap: 12px; padding: 16px; background: hsl(222, 35%, 7%); border: 1px solid hsl(217, 20%, 18%); border-radius: 8px; flex-wrap: wrap; align-items: flex-end; }
-        .form-group { display: flex; flex-direction: column; gap: 4px; }
-        .form-group label { font-size: 0.75rem; color: hsl(215, 20%, 65%); }
-        .form-input { padding: 8px 12px; border-radius: 6px; border: 1px solid hsl(217, 20%, 18%); background: hsl(220, 30%, 5%); color: hsl(210, 40%, 96%); }
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; }
-        .status-badge.draft { background: hsl(215, 20%, 25%); color: hsl(210, 40%, 96%); }
-        .status-badge.approved { background: hsl(217, 91%, 60%, 0.15); color: hsl(217, 91%, 60%); }
-        .status-badge.paid { background: hsl(142, 76%, 36%, 0.15); color: hsl(142, 76%, 55%); }
-        .text-danger { color: hsl(0, 84%, 60%); }
-        .text-success { color: hsl(142, 76%, 55%); }
+        @media screen {
+          .print-only { display: none !important; }
+        }
+        @media print {
+          body * { visibility: hidden; }
+          .print-only, .print-only * { visibility: visible; }
+          .print-only { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+        }
       `}</style>
     </div>
   );
 }
-
