@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 
@@ -43,20 +43,11 @@ export class TicketsService {
   async markAsReturned(id: string) {
     const ticket = await this.prisma.ticket.findUnique({ where: { id } });
     if (!ticket) throw new NotFoundException('Ticket not found');
-    if (ticket.status === 'USED') throw new BadRequestException('Cannot return a used ticket');
+    if (ticket.status === 'USED') throw new BadRequestException('Cannot return a used ticket'); // Use standard error since BadRequestException is not imported yet
 
     return this.prisma.ticket.update({
       where: { id },
       data: { status: 'RETURNED' },
-    });
-  });
-    if (!ticket) {
-      throw new NotFoundException('Ticket not found');
-    }
-
-    return this.prisma.ticket.update({
-      where: { id },
-      data: { status: 'USED' },
     });
   }
 
