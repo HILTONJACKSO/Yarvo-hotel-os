@@ -992,6 +992,35 @@ model Payslip {
   totalHours   Decimal  @default(0) @db.Decimal(10, 2)
   basePay      Decimal  @default(0) @db.Decimal(10, 2)
   overtimePay  Decimal  @default(0) @db.Decimal(10, 2)
+
+    // Earnings
+    rateLd       Decimal  @default(199.86) @db.Decimal(10, 2)
+    bonus        Decimal  @default(0) @db.Decimal(10, 2)
+    grossSalary  Decimal  @default(0) @db.Decimal(10, 2)
+
+    // Deductions
+    advance      Decimal  @default(0) @db.Decimal(10, 2)
+    penalty      Decimal  @default(0) @db.Decimal(10, 2)
+    loanPayback  Decimal  @default(0) @db.Decimal(10, 2)
+    unionDues    Decimal  @default(0) @db.Decimal(10, 2)
+    nasscorp     Decimal  @default(0) @db.Decimal(10, 2)
+    withholdingTax Decimal @default(0) @db.Decimal(10, 2)
+
+    // Attendance
+    targetDays   Int      @default(25)
+    workedDays   Int      @default(0)
+    holidayWorkedDays Int @default(0)
+    leaveDays    Int      @default(0)
+    sickNoJustifyDays Int @default(0)
+    sickJustifyDays Int   @default(0)
+    bereavedDays Int      @default(0)
+    maternityPaternityDays Int @default(0)
+    excusePaidDays Int    @default(0)
+    excuseNoPayDays Int   @default(0)
+    absentDays   Int      @default(0)
+    attendancePercent Decimal @default(0) @db.Decimal(5, 2)
+    extraDays    Int      @default(0)
+
   deductions   Decimal  @default(0) @db.Decimal(10, 2)
   netPay       Decimal  @default(0) @db.Decimal(10, 2)
   
