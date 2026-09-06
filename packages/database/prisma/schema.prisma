@@ -32,6 +32,7 @@ model Property {
   city        String   @db.VarChar(100)
   country     String   @db.VarChar(100) @default("Liberia")
   phone       String?  @db.VarChar(50)
+    whatsapp    String?  @db.VarChar(50)
   email       String?  @db.VarChar(255)
   website     String?  @db.VarChar(255)
   taxId       String?  @db.VarChar(100)
@@ -274,6 +275,7 @@ model Company {
   contactName String?  @db.VarChar(100)
   email       String?  @db.VarChar(255)
   phone       String?  @db.VarChar(50)
+    whatsapp    String?  @db.VarChar(50)
   address     String?  @db.Text
   taxId       String?  @db.VarChar(100)
   
@@ -300,6 +302,7 @@ model Guest {
   lastName    String   @db.VarChar(100)
   email       String?  @unique @db.VarChar(255)
   phone       String?  @db.VarChar(50)
+    whatsapp    String?  @db.VarChar(50)
   
   address     String?  @db.Text
   city        String?  @db.VarChar(100)
@@ -386,6 +389,7 @@ model Reservation {
   
   checkInDate      DateTime          @db.Date
   checkOutDate     DateTime          @db.Date
+    estimatedArrivalTime String?   @db.VarChar(50)
   
   adultsCount      Int               @default(1)
   childrenCount    Int               @default(0)
