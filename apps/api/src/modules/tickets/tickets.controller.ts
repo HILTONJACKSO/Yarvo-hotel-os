@@ -24,6 +24,12 @@ export class TicketsController {
     return { data };
   }
 
+  @Get('stats/daily')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'CASHIER', 'TICKETING_STAFF')
+  async getDailyStats() {
+    return this.ticketsService.getDailyStats();
+  }
+
     @Patch(':id/use')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'CASHIER', 'TICKETING_STAFF')
   async markAsUsed(@Param('id') id: string) {

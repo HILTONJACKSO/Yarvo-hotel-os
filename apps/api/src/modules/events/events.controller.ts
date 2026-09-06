@@ -1,3 +1,4 @@
+import { Roles } from '../../common/decorators/roles.decorator';
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventSpaceDto, UpdateEventSpaceDto, CreateEventBookingDto, UpdateEventBookingDto } from './dto/event.dto';
@@ -59,5 +60,12 @@ export class EventsController {
   deleteBooking(@Param('id') id: string) {
     return this.eventsService.deleteBooking(id);
   }
+
+  @Get('stats/daily')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'CASHIER', 'EVENTS_STAFF')
+  async getDailyStats() {
+    return this.eventsService.getDailyStats();
+  }
+
 }
 

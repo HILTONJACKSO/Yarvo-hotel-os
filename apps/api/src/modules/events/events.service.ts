@@ -95,5 +95,22 @@ export class EventsService {
       where: { id },
     });
   }
+
+  async getDailyStats() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const bookings = await this.prisma.eventBooking.findMany({
+      where: {
+        createdAt: { gte: today },
+      }
+    });
+
+    const totalOrders = bookings.length;
+    const totalRevenue = bookings.reduce((sum, b) => sum + Number(b.totalAmount), 0);
+    
+    return { totalOrders, totalRevenue };
+  }
+
 }
 

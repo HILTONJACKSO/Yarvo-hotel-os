@@ -33,6 +33,8 @@ type EventBooking = {
 };
 
 export default function EventsPage() {
+  const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
+
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'calendar' | 'bookings' | 'spaces'>('calendar');
   
@@ -45,6 +47,8 @@ export default function EventsPage() {
   }, []);
 
   const fetchData = async () => {
+    fetch(`${API_URL}/api/v1/events/stats/daily`, { credentials: 'include' }).then(res => res.json()).then(data => setStats(data)).catch(console.error);
+
     setLoading(true);
     try {
       const [spacesRes, bookingsRes] = await Promise.all([
@@ -66,6 +70,17 @@ export default function EventsPage() {
 
   return (
     <div className="page-container">
+      <div className="stats-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+        <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
+          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>Events Booked Today</h3>
+          <p style={{ color: 'white', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>{stats?.totalOrders || 0}</p>
+        </div>
+        <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
+          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>Events Revenue Generated</h3>
+          <p style={{ color: 'hsl(43,96%,56%)', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>${(stats?.totalRevenue || 0).toFixed(2)}</p>
+        </div>
+      </div>
+
       <div className="page-header">
         <h1 className="page-title">Event Management</h1>
         <p className="page-description">Manage event spaces, conference rooms, and bookings.</p>

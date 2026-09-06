@@ -5,6 +5,8 @@ import { Ticket, Waves, Umbrella, Search, CheckCircle, Plus, Settings, Trash2, M
 import { useAuth } from '@/lib/auth-provider';
 
 export default function TicketsPage() {
+  const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
+
   const { user } = useAuth();
   const [tickets, setTickets] = useState<any[]>([]);
   const [tiers, setTiers] = useState<any[]>([]);
@@ -24,6 +26,8 @@ export default function TicketsPage() {
   const [discountType, setDiscountType] = useState<'PERCENT' | 'FLAT'>('PERCENT');
 
   const fetchTicketsAndTiers = async () => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets/stats/daily`, { credentials: 'include' }).then(res => res.json()).then(data => setStats(data)).catch(console.error);
+
     setIsLoading(true);
     try {
       const [ticketsRes, tiersRes] = await Promise.all([
@@ -276,6 +280,17 @@ export default function TicketsPage() {
 
   return (
     <div className="p-6 h-screen flex flex-col overflow-hidden">
+      <div className="stats-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+        <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
+          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>Tickets Sold Today</h3>
+          <p style={{ color: 'white', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>{stats?.totalOrders || 0}</p>
+        </div>
+        <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
+          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>Tickets Revenue Generated</h3>
+          <p style={{ color: 'hsl(43,96%,56%)', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>${(stats?.totalRevenue || 0).toFixed(2)}</p>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center mb-6 shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
