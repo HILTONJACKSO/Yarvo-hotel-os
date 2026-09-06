@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AddGuestModal } from '@/components/guests/AddGuestModal';
 import { EditGuestModal } from '@/components/guests/EditGuestModal';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/auth-provider';
 
 type Guest = {
   id: string;
