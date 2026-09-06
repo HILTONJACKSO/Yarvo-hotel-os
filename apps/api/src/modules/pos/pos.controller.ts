@@ -82,6 +82,11 @@ export class PosController {
     return this.posService.getDailyDepartmentStats('DRINK');
   }
 
+  @Get('stats/waitstaff')
+  getWaitstaffStats(@CurrentUser() user: any) {
+    return this.posService.getDailyWaitstaffStats(user.id);
+  }
+
   @Get('orders')
   getActiveOrders() {
     return this.posService.getActiveOrders();

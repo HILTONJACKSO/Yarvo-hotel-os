@@ -24,7 +24,7 @@ import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
 
 type ChartData = { date: string; revenue: number; };
-type FbMetrics = { todayFbRevenue: number; weekFbRevenue: number; monthFbRevenue: number; };
+type FbMetrics = { todayFbRevenue: number; todayFbIndex: number; weekFbRevenue: number; weekFbIndex: number; monthFbRevenue: number; monthFbIndex: number; };
 type TopItem = { id: string; name: string; quantity: number; revenue: number; };
 type PaymentMethodData = { method: string; revenue: number; };
 type TicketMetrics = { adultTickets: number; kidTickets: number; poolTickets: number; totalRevenue: number; validCount: number; usedCount: number; chart: { month: string; adults: number; kids: number; pool: number; revenue: number; }[]; };

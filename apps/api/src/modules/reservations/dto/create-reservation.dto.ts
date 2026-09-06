@@ -33,6 +33,32 @@ export class CreateReservationDto {
   @IsString()
   @IsOptional()
   guestPhone?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  guestWhatsapp?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  guestAddress?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  guestCity?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  guestCountry?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  estimatedArrivalTime?: string;
+
   @ApiProperty()
   @IsUUID()
   roomTypeId!: string;

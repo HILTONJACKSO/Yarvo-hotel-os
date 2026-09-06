@@ -19,6 +19,11 @@ const schema = z.object({
   checkOutDate: z.string().min(1, 'Check-out date is required'),
   adultsCount: z.number().min(1, 'At least 1 adult is required'),
   childrenCount: z.number().min(0),
+  guestWhatsapp: z.string().optional(),
+  guestAddress: z.string().optional(),
+  guestCity: z.string().optional(),
+  guestCountry: z.string().optional(),
+  estimatedArrivalTime: z.string().optional(),
   companyId: z.string().optional(),
   specialRequests: z.string().optional(),
 }).superRefine((data, ctx) => {
@@ -29,6 +34,13 @@ const schema = z.object({
     if (!data.guestLastName?.trim()) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Last name is required", path: ["guestLastName"] });
     }
+    if (!data.guestEmail?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Email is required", path: ["guestEmail"] });
+    }
+    if (!data.guestPhone?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Telephone number is required", path: ["guestPhone"] });
+    }
+
   } else {
     if (!data.guestId?.trim()) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Please select a guest", path: ["guestId"] });
@@ -54,6 +66,7 @@ export function NewReservationModal({ isOpen, onClose, onSuccess }: Props) {
   const [companies, setCompanies] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [createdReservation, setCreatedReservation] = useState<any>(null);
 
   const {
     register,
@@ -131,16 +144,43 @@ export function NewReservationModal({ isOpen, onClose, onSuccess }: Props) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Failed to create reservation');
       
+      setCreatedReservation(json.data || json);
       onSuccess();
-      onClose();
     } catch (err: any) {
       setSubmitError(err.message);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="New Reservation">
-      {loadingData ? (
+    
+      <Modal isOpen={isOpen} onClose={() => { setCreatedReservation(null); onClose(); }} title="Reservation Status">
+        {createdReservation ? (
+          <div className="reservation-success-state" style={{ padding: '24px', textAlign: 'center' }}>
+            <div style={{ width: '64px', height: '64px', background: 'hsl(142, 70%, 45%)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <h2 style={{ color: 'white', marginBottom: '8px' }}>Reservation Confirmed</h2>
+            <p style={{ color: 'hsl(215, 20%, 65%)', marginBottom: '24px' }}>The reservation has been successfully created.</p>
+            
+            <div style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)', textAlign: 'left', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid hsl(217, 20%, 20%)' }}>
+                <span style={{ color: 'hsl(215, 20%, 65%)' }}>Reservation ID</span>
+                <strong style={{ color: 'white', letterSpacing: '1px' }}>{createdReservation.confirmationCode}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'hsl(215, 20%, 65%)' }}>Date Created</span>
+                <strong style={{ color: 'white' }}>{new Date(createdReservation.createdAt).toLocaleDateString()} {new Date(createdReservation.createdAt).toLocaleTimeString()}</strong>
+              </div>
+            </div>
+            
+            <button type="button" className="btn-primary" style={{ width: '100%' }} onClick={() => { setCreatedReservation(null); onClose(); }}>
+              Close
+            </button>
+          </div>
+        ) : loadingData ? (
+
         <div className="loading-state">
           <Loader2 className="spinner" size={24} />
           <span>Loading guest list...</span>
@@ -211,7 +251,7 @@ export function NewReservationModal({ isOpen, onClose, onSuccess }: Props) {
           </div>
           
           <div className="form-group">
-            <label>Corporate Account (Optional)</label>
+            <label>Company (Optional)</label>
             <select {...register('companyId')}>
               <option value="">-- No Company --</option>
               {companies.filter(c => c.isActive).map((c) => (

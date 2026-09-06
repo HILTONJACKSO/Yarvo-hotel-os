@@ -23,8 +23,13 @@ export default function WaitstaffPage() {
   const [items, setItems] = useState<PosOrderItem[]>([]);
   const [servedItems, setServedItems] = useState<PosOrderItem[]>([]);
   const [printItem, setPrintItem] = useState<PosOrderItem | null>(null);
+  const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
 
   const fetchItems = () => {
+    fetch(`${API_URL}/api/v1/pos/stats/waitstaff`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(console.error);
     fetch(`${API_URL}/api/v1/pos/ready-items`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => setItems(data.data || data))
@@ -107,6 +112,18 @@ export default function WaitstaffPage() {
 
   return (
     <div className="waitstaff-layout">
+
+      <div className="stats-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+        <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
+          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>My Orders Today</h3>
+          <p style={{ color: 'white', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>{stats?.totalOrders || 0}</p>
+        </div>
+        <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
+          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>My Revenue Generated</h3>
+          <p style={{ color: 'hsl(43,96%,56%)', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>${(stats?.totalRevenue || 0).toFixed(2)}</p>
+        </div>
+      </div>
+
       <h2>Waitstaff Delivery Queue</h2>
       <p className="subtitle">Items ready to be delivered to tables.</p>
       

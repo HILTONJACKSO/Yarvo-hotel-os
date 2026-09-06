@@ -20,6 +20,30 @@ export class TicketsService {
     });
   }
 
+  
+  async getDailyStats() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tickets = await this.prisma.ticket.findMany({
+      where: {
+        createdAt: { gte: today },
+        status: { in: ['USED', 'ISSUED'] },
+      }
+    });
+
+    const totalTickets = tickets.reduce((sum, t) => sum + t.adultCount + t.childCount, 0);
+    const totalRevenue = tickets.reduce((sum, t) => sum + Number(t.totalAmount), 0);
+    
+    const adultsCount = tickets.reduce((sum, t) => sum + t.adultCount, 0);
+    const childrenCount = tickets.reduce((sum, t) => sum + t.childCount, 0);
+    
+    // Pool vs Entry stats can be deduced if we differentiate ticket types, 
+    // but the request is for total ticket revenue and counts.
+    
+    return { totalOrders: totalTickets, totalRevenue, adultsCount, childrenCount };
+  }
+
   async findAll() {
     return this.prisma.ticket.findMany({
       orderBy: { createdAt: 'desc' },

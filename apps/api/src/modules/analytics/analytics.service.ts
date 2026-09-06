@@ -144,6 +144,7 @@ export class AnalyticsService {
     
     const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
 
+    
     const getFbRevenueForPeriod = async (startDate: Date) => {
       const result = await this.prisma.posOrder.aggregate({
         _sum: { totalAmount: true },
@@ -157,11 +158,39 @@ export class AnalyticsService {
       return result._sum.totalAmount?.toNumber() || 0;
     };
 
-    return {
-      todayFbRevenue: await getFbRevenueForPeriod(startOfToday),
-      weekFbRevenue: await getFbRevenueForPeriod(startOfWeek),
-      monthFbRevenue: await getFbRevenueForPeriod(startOfMonth),
+    const getFbDeductionsForPeriod = async (startDate: Date) => {
+      const result = await this.prisma.expense.aggregate({
+        _sum: { amount: true },
+        where: {
+          date: { gte: startDate },
+          OR: [
+            { category: 'SUPPLIES' },
+            { description: { contains: 'food', mode: 'insensitive' } },
+            { description: { contains: 'beverage', mode: 'insensitive' } },
+            { description: { contains: 'kitchen', mode: 'insensitive' } },
+            { description: { contains: 'bar', mode: 'insensitive' } }
+          ]
+        }
+      });
+      return result._sum.amount?.toNumber() || 0;
     };
+
+    const todayRev = await getFbRevenueForPeriod(startOfToday);
+    const todayDed = await getFbDeductionsForPeriod(startOfToday);
+    const weekRev = await getFbRevenueForPeriod(startOfWeek);
+    const weekDed = await getFbDeductionsForPeriod(startOfWeek);
+    const monthRev = await getFbRevenueForPeriod(startOfMonth);
+    const monthDed = await getFbDeductionsForPeriod(startOfMonth);
+
+    return {
+      todayFbRevenue: todayRev,
+      todayFbIndex: Math.max(0, (todayRev - todayDed) / 4),
+      weekFbRevenue: weekRev,
+      weekFbIndex: Math.max(0, (weekRev - weekDed) / 4),
+      monthFbRevenue: monthRev,
+      monthFbIndex: Math.max(0, (monthRev - monthDed) / 4),
+    };
+
   }
 
   async getFbRevenueChart() {

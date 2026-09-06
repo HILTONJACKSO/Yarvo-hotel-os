@@ -35,6 +35,11 @@ export class ReservationsService {
           lastName: createReservationDto.guestLastName,
           email: createReservationDto.guestEmail,
           phone: createReservationDto.guestPhone,
+          whatsapp: createReservationDto.guestWhatsapp,
+          address: createReservationDto.guestAddress,
+          city: createReservationDto.guestCity,
+          country: createReservationDto.guestCountry,
+          phone: createReservationDto.guestPhone,
         }
       });
       finalGuestId = newGuest.id;
@@ -46,6 +51,7 @@ export class ReservationsService {
       data: {
         guestId: finalGuestId,
         companyId: createReservationDto.companyId,
+          estimatedArrivalTime: createReservationDto.estimatedArrivalTime,
         roomTypeId: createReservationDto.roomTypeId,
         roomId: createReservationDto.roomId,
         adultsCount: createReservationDto.adultsCount,
