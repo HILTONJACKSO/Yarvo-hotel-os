@@ -83,8 +83,8 @@ export class PosController {
   }
 
   @Get('stats/waitstaff')
-  getWaitstaffStats(@CurrentUser() user: any) {
-    return this.posService.getDailyWaitstaffStats(user.id);
+  getWaitstaffStats(@Req() req: any) {
+    return this.posService.getDailyWaitstaffStats(req.user.id);
   }
 
   @Get('orders')

@@ -39,8 +39,7 @@ export class ReservationsService {
           address: createReservationDto.guestAddress,
           city: createReservationDto.guestCity,
           country: createReservationDto.guestCountry,
-          phone: createReservationDto.guestPhone,
-        }
+          }
       });
       finalGuestId = newGuest.id;
     }

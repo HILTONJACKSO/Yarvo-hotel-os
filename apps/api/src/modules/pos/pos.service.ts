@@ -189,6 +189,28 @@ export class PosService {
     return { totalOrders, totalRevenue };
   }
 
+  
+  async getDailyWaitstaffStats(userId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const items = await this.prisma.posOrderItem.findMany({
+      where: {
+        createdAt: { gte: today },
+        order: { userId },
+        status: { in: ['SERVED', 'PREPARING', 'READY'] },
+      },
+      include: {
+        menuItem: true,
+      }
+    });
+
+    const totalOrders = items.length;
+    const totalRevenue = items.reduce((sum, item) => sum + (Number(item.menuItem.price) * item.quantity), 0);
+
+    return { totalOrders, totalRevenue };
+  }
+
   async getActiveOrders() {
     return this.prisma.posOrder.findMany({
       where: { 
