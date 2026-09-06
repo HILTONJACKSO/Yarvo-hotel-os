@@ -396,8 +396,7 @@ export default function CashierPage() {
                   </select>
                 </div>
               </div>
-              {canSettle ? (<>
-              <div className="payment-entry-section">
+              {canSettle ? (<div className="payment-entry-section">
               {payments.length > 0 && (
                 <div className="payments-list" style={{ marginBottom: '16px' }}>
                   <h4 style={{ color: 'white', fontSize: '0.875rem', marginBottom: '8px', marginTop: 0 }}>Payments Added</h4>
@@ -451,6 +450,7 @@ export default function CashierPage() {
               )}
             </div>
 
+            ) : (<div style={{ marginTop: "24px", padding: "16px", background: "rgba(255, 0, 0, 0.1)", color: "#ff6b6b", borderRadius: "8px", border: "1px solid #ff6b6b" }}><strong>Access Denied:</strong> Front Desk staff are not authorized to settle Restaurant or Bar bills. Please contact a Cashier or Manager.</div>)}
             <div className="payment-actions">
               <button className="btn-secondary" onClick={() => handlePrintReceipt()}>
                 Print Receipt

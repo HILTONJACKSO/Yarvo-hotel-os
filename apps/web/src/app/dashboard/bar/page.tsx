@@ -27,6 +27,7 @@ export default function BarPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [confirmingReturnId, setConfirmingReturnId] = useState<string | null>(null);
   const [kitchenNote, setKitchenNote] = useState('');
+  const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
 
   const fetchOrders = () => {
         fetch(`${API_URL}/api/v1/pos/stats/bar`, { credentials: 'include' })

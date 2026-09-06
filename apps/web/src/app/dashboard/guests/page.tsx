@@ -25,6 +25,8 @@ type PaginatedResponse = {
   };
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 export default function GuestsPage() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [meta, setMeta] = useState<PaginatedResponse['meta'] | null>(null);
