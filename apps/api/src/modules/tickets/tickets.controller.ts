@@ -38,3 +38,4 @@ export class TicketsController {
     return { message: 'Ticket returned successfully', data };
   }
 
+}

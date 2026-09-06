@@ -435,7 +435,7 @@ export class AnalyticsService {
       include: { space: true }
     });
 
-    const totalRevenue = bookings.reduce((acc, b) => acc + Number(b.totalPrice), 0);
+    const totalRevenue = bookings.reduce((acc, b) => acc + Number(b.totalAmount), 0);
     const confirmedCount = bookings.filter(b => b.status === 'CONFIRMED').length;
     
     return {
@@ -446,8 +446,8 @@ export class AnalyticsService {
         id: b.id,
         eventType: b.eventType,
         status: b.status,
-        date: b.startDate,
-        revenue: b.totalPrice
+        date: b.startTime,
+        revenue: b.totalAmount
       }))
     };
   }
