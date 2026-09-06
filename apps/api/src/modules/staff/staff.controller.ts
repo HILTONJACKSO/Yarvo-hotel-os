@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { StaffService } from './staff.service';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @Controller('staff')
 export class StaffController {
@@ -64,8 +65,14 @@ export class StaffController {
   // ─── PAYROLL ────────────────────────────────────────────────────────────────
 
   @Get('payroll')
-  getPayslips() {
-    return this.staffService.getPayslips();
+  getPayslips(@Query('periodStart') start?: string, @Query('periodEnd') end?: string) {
+    return this.staffService.getPayslips(start, end);
+  }
+
+  @Get('payroll/summary')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+  getPayrollSummary(@Query('periodStart') start: string, @Query('periodEnd') end: string) {
+    return this.staffService.getPayrollSummary(start, end);
   }
 
   @Get('payroll/stats')
@@ -81,6 +88,12 @@ export class StaffController {
   @Put('payroll/:id/status')
   updatePayslipStatus(@Param('id') id: string, @Body('status') status: string) {
     return this.staffService.updatePayslipStatus(id, status);
+  }
+
+  @Put('payroll/:id/details')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+  updatePayslip(@Param('id') id: string, @Body() data: any) {
+    return this.staffService.updatePayslip(id, data);
   }
 }
 
