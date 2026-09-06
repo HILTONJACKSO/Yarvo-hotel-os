@@ -72,6 +72,16 @@ export class PosController {
     return this.posService.deleteMenuItem(id);
   }
 
+  @Get('stats/kitchen')
+  getKitchenStats() {
+    return this.posService.getDailyDepartmentStats('FOOD');
+  }
+
+  @Get('stats/bar')
+  getBarStats() {
+    return this.posService.getDailyDepartmentStats('DRINK');
+  }
+
   @Get('orders')
   getActiveOrders() {
     return this.posService.getActiveOrders();

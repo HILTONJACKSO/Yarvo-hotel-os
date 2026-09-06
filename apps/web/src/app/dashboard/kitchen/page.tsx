@@ -27,8 +27,15 @@ export default function KitchenPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [confirmingReturnId, setConfirmingReturnId] = useState<string | null>(null);
   const [kitchenNote, setKitchenNote] = useState('');
+  const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
+
 
   const fetchOrders = () => {
+        fetch(`${API_URL}/api/v1/pos/stats/kitchen`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(console.error);
+
     fetch(`${API_URL}/api/v1/pos/orders`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => setOrders(data.data || data))

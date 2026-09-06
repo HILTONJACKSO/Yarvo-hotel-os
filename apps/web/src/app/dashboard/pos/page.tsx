@@ -275,6 +275,12 @@ export default function PosPage() {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({ menuItemId: c.item.id, quantity: c.quantity })
+        }).then(async res => {
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Failed to add item');
+          }
+          return res;
         })
       ));
 
@@ -284,8 +290,8 @@ export default function PosPage() {
       setSelectedFolioId(null);
       setOrderNotes('');
       setShowOrderNotes(false);
-    } catch (err) {
-      showToast('Failed to submit order', 'error', 'Error');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to submit order', 'error', 'Error');
     }
   };
 

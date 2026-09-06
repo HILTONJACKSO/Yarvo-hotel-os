@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { 
   LineChart, 
   Line, 
@@ -111,9 +113,30 @@ export default function ReportsPage() {
     fetchData(start, end);
   };
 
-  const handleExport = (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print' || format === 'pdf') {
+    const handleExport = async (format: 'pdf' | 'csv' | 'print') => {
+    if (format === 'print') {
       window.print();
+    } else if (format === 'pdf') {
+      const element = document.querySelector('.page-container') as HTMLElement;
+      if (!element) return;
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: '#0a0d14'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Kwalee-Report-${activeTab}-${new Date().toISOString().split('T')[0]}.pdf`);
     } else if (format === 'csv') {
       if (activeTab === 'HOTEL') {
         downloadCSV(hotelData, 'hotel-revenue-report');

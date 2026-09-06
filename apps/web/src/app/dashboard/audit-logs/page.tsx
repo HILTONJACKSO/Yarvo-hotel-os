@@ -30,6 +30,27 @@ export default function AuditLogsPage() {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'INVENTORY' | 'RETURNS_DISCOUNTS' | 'ALL'>('INVENTORY');
 
+  const renderReadableValues = (values: any) => {
+    if (!values) return <span className="text-[hsl(215,20%,65%)]">None</span>;
+    if (typeof values !== 'object') return <span>{String(values)}</span>;
+    
+    const ignoredKeys = ['id', 'createdAt', 'updatedAt', 'userId', 'businessId', 'spaceId', 'categoryId', 'roomId'];
+    
+    return (
+      <ul className="space-y-1 mt-1">
+        {Object.entries(values)
+          .filter(([key, val]) => !ignoredKeys.includes(key) && val !== null && val !== undefined && val !== '')
+          .map(([key, val]) => (
+            <li key={key} className="flex gap-2 text-sm border-b border-[hsl(217,20%,16%)] pb-1 last:border-0">
+              <span className="text-[hsl(215,20%,65%)] capitalize min-w-[120px]">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+              <span className="text-white font-medium">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+            </li>
+        ))}
+      </ul>
+    );
+  };
+
+
   useEffect(() => {
     fetchLogs();
   }, []);
@@ -126,15 +147,15 @@ export default function AuditLogsPage() {
                       <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div>
                           <h4 className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider mb-2">Old Values</h4>
-                          <pre className="bg-[hsl(224,39%,4%)] p-3 rounded-lg text-xs overflow-x-auto text-white">
-                            {JSON.stringify(log.oldValues, null, 2)}
-                          </pre>
+                          <div className="bg-[hsl(224,39%,4%)] p-3 rounded-lg text-xs overflow-x-auto text-white">
+                            {renderReadableValues(log.oldValues)}
+                          </div>
                         </div>
                         <div>
                           <h4 className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider mb-2">New Values</h4>
-                          <pre className="bg-[hsl(224,39%,4%)] p-3 rounded-lg text-xs overflow-x-auto text-white">
-                            {JSON.stringify(log.newValues, null, 2)}
-                          </pre>
+                          <div className="bg-[hsl(224,39%,4%)] p-3 rounded-lg text-xs overflow-x-auto text-white">
+                            {renderReadableValues(log.newValues)}
+                          </div>
                         </div>
                       </div>
                     </td>

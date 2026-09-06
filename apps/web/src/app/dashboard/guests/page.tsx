@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { AddGuestModal } from '@/components/guests/AddGuestModal';
+import { EditGuestModal } from '@/components/guests/EditGuestModal';
+import { useAuth } from '@/hooks/useAuth';
 
 type Guest = {
   id: string;
@@ -28,6 +30,13 @@ export default function GuestsPage() {
   const [meta, setMeta] = useState<PaginatedResponse['meta'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingGuest, setEditingGuest] = useState<any>(null);
+  const { user } = useAuth();
+  const isAdminOrCEO = user?.roles?.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r));
+  const isManager = user?.roles?.includes('MANAGER');
+  const canEdit = isAdminOrCEO || isManager;
+  const canDelete = isAdminOrCEO;
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchGuests = (searchQuery = '') => {
@@ -52,6 +61,21 @@ export default function GuestsPage() {
     fetchGuests();
   }, []);
 
+    const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this guest?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/v1/guests/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        fetchGuests(search);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     fetchGuests(search);
@@ -68,6 +92,13 @@ export default function GuestsPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => fetchGuests(search)}
+      />
+
+      <EditGuestModal 
+        isOpen={isEditModalOpen}
+        onClose={() => { setIsEditModalOpen(false); setEditingGuest(null); }}
+        onSuccess={() => { fetchGuests(search); setIsEditModalOpen(false); }}
+        guest={editingGuest}
       />
 
       <div className="filters-bar">
@@ -117,9 +148,27 @@ export default function GuestsPage() {
                     </td>
                     <td>{guest.nationality || '-'}</td>
                     <td>{new Date(guest.createdAt).toLocaleDateString()}</td>
-                    <td className="actions-cell">
-                      <button className="action-btn">View</button>
-                    </td>
+                      <td className="actions-cell">
+                        <button className="action-btn view">View</button>
+                        {canEdit && (
+                          <button 
+                            className="action-btn edit" 
+                            onClick={() => { setEditingGuest(guest); setIsEditModalOpen(true); }}
+                            style={{ marginLeft: '8px', color: 'hsl(215, 80%, 65%)', borderColor: 'hsl(215, 80%, 65%)' }}
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button 
+                            className="action-btn delete" 
+                            onClick={() => handleDelete(guest.id)}
+                            style={{ marginLeft: '8px', color: 'hsl(0, 84%, 60%)', borderColor: 'hsl(0, 84%, 60%)' }}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </td>
                   </tr>
                 ))
               )}

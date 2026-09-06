@@ -29,6 +29,11 @@ export default function BarPage() {
   const [kitchenNote, setKitchenNote] = useState('');
 
   const fetchOrders = () => {
+        fetch(`${API_URL}/api/v1/pos/stats/bar`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(console.error);
+
     fetch(`${API_URL}/api/v1/pos/orders`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => setOrders(data.data || data))

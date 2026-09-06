@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
@@ -166,6 +166,29 @@ export class PosService {
   }
 
   // ─── ORDERS ─────────────────────────────────────────────────────────────
+  async getDailyDepartmentStats(type: 'FOOD' | 'DRINK') {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const items = await this.prisma.posOrderItem.findMany({
+      where: {
+        createdAt: { gte: startOfDay },
+        menuItem: {
+          type: type === 'FOOD' ? 'FOOD' : { in: ['DRINK', 'BAR'] }
+        },
+        status: { notIn: ['CANCELLED', 'RETURNED'] }
+      },
+      include: {
+        menuItem: true
+      }
+    });
+
+    const totalOrders = items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalRevenue = items.reduce((sum, item) => sum + (Number(item.menuItem.price) * item.quantity), 0);
+
+    return { totalOrders, totalRevenue };
+  }
+
   async getActiveOrders() {
     return this.prisma.posOrder.findMany({
       where: { 
@@ -323,7 +346,7 @@ export class PosService {
       if (invItem) {
         const currentStock = Number((invItem as any)[deductField]) || 0;
         if (currentStock < deductionAmount) {
-          throw new Error(`Out of stock: ${invItem.name} only has ${currentStock} available in ${deductField.replace('stock', '')}. Cannot order ${data.quantity} units of ${menuItem?.name}.`);
+          throw new BadRequestException(`Out of stock: ${invItem.name} only has ${currentStock} available in ${deductField.replace('stock', '')}. Cannot order ${data.quantity} units of ${menuItem?.name}.`);
         }
       }
     }

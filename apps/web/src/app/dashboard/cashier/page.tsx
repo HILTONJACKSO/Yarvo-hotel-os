@@ -253,6 +253,8 @@ export default function CashierPage() {
     printViaIframe('RECEIPT');
   };
 
+  const canSettle = currentUser?.roles?.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER'].includes(r));
+
   const handleCheckout = async (orderId: string) => {
     if (isProcessing || !selectedOrder) return;
     
@@ -394,6 +396,7 @@ export default function CashierPage() {
                   </select>
                 </div>
               </div>
+              {canSettle ? (<>
               <div className="payment-entry-section">
               {payments.length > 0 && (
                 <div className="payments-list" style={{ marginBottom: '16px' }}>
