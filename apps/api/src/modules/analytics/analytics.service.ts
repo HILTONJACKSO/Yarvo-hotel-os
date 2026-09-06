@@ -393,6 +393,65 @@ export class AnalyticsService {
     return activityList.slice(0, 8);
   }
 
+    async getTicketsMetrics() {
+    const tickets = await this.prisma.ticket.findMany({
+      where: {
+        status: { not: 'RETURNED' }
+      }
+    });
+
+    const adultTickets = tickets.filter(t => t.type.toLowerCase().includes('adult')).length;
+    const kidTickets = tickets.filter(t => t.type.toLowerCase().includes('kid')).length;
+    const poolTickets = tickets.filter(t => t.type.toLowerCase().includes('pool')).length;
+
+    const totalRevenue = tickets.reduce((acc, t) => acc + Number(t.price), 0);
+    const validCount = tickets.filter(t => t.status === 'VALID').length;
+    const usedCount = tickets.filter(t => t.status === 'USED').length;
+
+    // Group by month
+    const monthlyData = tickets.reduce((acc: any, t) => {
+      const month = new Date(t.issueDate).toLocaleString('default', { month: 'short' });
+      if (!acc[month]) acc[month] = { month, adults: 0, kids: 0, pool: 0, revenue: 0 };
+      if (t.type.toLowerCase().includes('adult')) acc[month].adults += 1;
+      if (t.type.toLowerCase().includes('kid')) acc[month].kids += 1;
+      if (t.type.toLowerCase().includes('pool')) acc[month].pool += 1;
+      acc[month].revenue += Number(t.price);
+      return acc;
+    }, {});
+
+    return {
+      adultTickets,
+      kidTickets,
+      poolTickets,
+      totalRevenue,
+      validCount,
+      usedCount,
+      chart: Object.values(monthlyData)
+    };
+  }
+
+  async getEventsMetrics() {
+    const bookings = await this.prisma.eventBooking.findMany({
+      include: { space: true }
+    });
+
+    const totalRevenue = bookings.reduce((acc, b) => acc + Number(b.totalPrice), 0);
+    const confirmedCount = bookings.filter(b => b.status === 'CONFIRMED').length;
+    
+    return {
+      totalBookings: bookings.length,
+      confirmedCount,
+      totalRevenue,
+      bookings: bookings.map(b => ({
+        id: b.id,
+        eventType: b.eventType,
+        status: b.status,
+        date: b.startDate,
+        revenue: b.totalPrice
+      }))
+    };
+  }
+
   // --- Financial Reports ---
 
   async getProfitAndLoss() {

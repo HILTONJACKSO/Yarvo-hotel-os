@@ -25,6 +25,8 @@ type ChartData = { date: string; revenue: number; };
 type FbMetrics = { todayFbRevenue: number; weekFbRevenue: number; monthFbRevenue: number; };
 type TopItem = { id: string; name: string; quantity: number; revenue: number; };
 type PaymentMethodData = { method: string; revenue: number; };
+type TicketMetrics = { adultTickets: number; kidTickets: number; poolTickets: number; totalRevenue: number; validCount: number; usedCount: number; chart: { month: string; adults: number; kids: number; pool: number; revenue: number; }[]; };
+type EventMetrics = { totalBookings: number; confirmedCount: number; totalRevenue: number; bookings: any[]; };
 
 type HeatmapData = {
   dates: string[];
@@ -38,7 +40,7 @@ type HeatmapData = {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function ReportsPage() {
-  const [activeTab, setActiveTab] = useState<'HOTEL' | 'FB' | 'FINANCIAL'>('HOTEL');
+  const [activeTab, setActiveTab] = useState<'HOTEL' | 'FB' | 'FINANCIAL' | 'TICKETS' | 'EVENTS'>('HOTEL');
   
   // Hotel state
   const [hotelData, setHotelData] = useState<ChartData[]>([]);
@@ -51,6 +53,8 @@ export default function ReportsPage() {
 
   // Financial state
   const [paymentData, setPaymentData] = useState<PaymentMethodData[]>([]);
+  const [ticketMetrics, setTicketMetrics] = useState<TicketMetrics | null>(null);
+  const [eventMetrics, setEventMetrics] = useState<EventMetrics | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +87,14 @@ export default function ReportsPage() {
           const json = await res.json();
           if (!res.ok) throw new Error(json.message || 'Failed to fetch payment data');
           setPaymentData(json.data);
+        } else if (activeTab === 'TICKETS') {
+          const res = await fetch(`/api/v1/analytics/tickets-metrics${query}`, { credentials: 'include' });
+          const json = await res.json();
+          setTicketMetrics(json.data);
+        } else if (activeTab === 'EVENTS') {
+          const res = await fetch(`/api/v1/analytics/events-metrics${query}`, { credentials: 'include' });
+          const json = await res.json();
+          setEventMetrics(json.data);
         }
     } catch (err: any) {
       setError(err.message);
@@ -143,6 +155,18 @@ export default function ReportsPage() {
           onClick={() => setActiveTab('FINANCIAL')}
         >
           <Wallet size={18} /> Payments & Financials
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'TICKETS' ? 'active' : ''}`}
+          onClick={() => setActiveTab('TICKETS')}
+        >
+          <TrendingUp size={18} /> Tickets & Pool
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'EVENTS' ? 'active' : ''}`}
+          onClick={() => setActiveTab('EVENTS')}
+        >
+          <TrendingUp size={18} /> Events
         </button>
       </div>
 

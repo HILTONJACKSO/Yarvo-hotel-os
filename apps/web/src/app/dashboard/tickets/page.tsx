@@ -19,6 +19,9 @@ export default function TicketsPage() {
   // Cart for issuing multiple tickets
   const [cart, setCart] = useState<{ tier: any; quantity: number }[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('PAYMENT_CASH');
+  const [discountValue, setDiscountValue] = useState('');
+  const [discountType, setDiscountType] = useState<'PERCENT' | 'FLAT'>('PERCENT');
 
   const fetchTicketsAndTiers = async () => {
     setIsLoading(true);
@@ -51,6 +54,19 @@ export default function TicketsPage() {
   const handleMarkUsed = async (id: string) => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets/${id}/use`, {
+        method: 'PATCH',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        fetchTicketsAndTiers();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const handleMarkReturned = async (id: string) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets/${id}/return`, {
         method: 'PATCH',
         credentials: 'include'
       });
@@ -121,6 +137,8 @@ export default function TicketsPage() {
   };
 
   const cartTotal = cart.reduce((sum, item) => sum + (Number(item.tier.price) * item.quantity), 0);
+  const calculatedDiscount = discountType === 'PERCENT' ? (cartTotal * (Number(discountValue || 0) / 100)) : Number(discountValue || 0);
+  const finalTotal = Math.max(0, cartTotal - calculatedDiscount);
   const gstRate = 0.10;
   const subtotal = cartTotal / (1 + gstRate);
   const gst = cartTotal - subtotal;
@@ -154,8 +172,8 @@ export default function TicketsPage() {
           <title>Print Ticket Receipt</title>
           <style>
             body { font-family: 'Courier New', Courier, monospace; color: #000; max-width: 380px; margin: 0 auto; padding: 20px; }
-            .header-container { text-align: left; margin-bottom: 20px; }
-            .header-container img { max-width: 120px; margin-bottom: 10px; }
+            .header-container { text-align: center; margin-bottom: 20px; }
+            .header-container img { max-width: 120px; margin-bottom: 10px; display: block; margin: 0 auto; }
             .header-title { font-size: 20px; font-weight: bold; margin: 0 0 4px 0; }
             .header-info { font-size: 12px; margin: 0; line-height: 1.4; }
             
@@ -192,9 +210,10 @@ export default function TicketsPage() {
           
           <div class="divider"></div>
           
-          <div class="summary-row"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
-          <div class="summary-row"><span>GST (10%)</span><span>$${gst.toFixed(2)}</span></div>
-          <div class="totals"><span>TOTAL</span><span>$${cartTotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span>Subtotal</span><span>$${cartTotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span style="font-size: 11px; color: #555;">GST Included (10%)</span><span style="font-size: 11px; color: #555;">$${gst.toFixed(2)}</span></div>
+          ${calculatedDiscount > 0 ? `<div class="summary-row" style="color: #dc2626;"><span>Discount</span><span>-$${calculatedDiscount.toFixed(2)}</span></div>` : ''}
+          <div class="totals"><span>TOTAL</span><span>$${finalTotal.toFixed(2)}</span></div>
           
           <div class="footer">
             <p><strong>THANK YOU FOR CHOOSING KWAALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
@@ -231,10 +250,10 @@ export default function TicketsPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 type: item.tier.name,
-                price: Number(item.tier.price),
+                price: Number((Number(item.tier.price) * (cartTotal > 0 ? (cartTotal - calculatedDiscount) / cartTotal : 1)).toFixed(2)),
                 guestName: '',
                 guestPhone: '',
-                paymentMethod: 'CASH',
+                paymentMethod: paymentMethod.replace('PAYMENT_', ''),
                 validDate: validDateStr,
               }),
               credentials: 'include'
@@ -389,9 +408,52 @@ export default function TicketsPage() {
                     <span>GST (10%)</span>
                     <span>${gst.toFixed(2)}</span>
                   </div>
+                  {calculatedDiscount > 0 && (
+                    <div className="flex justify-between text-rose-400">
+                      <span>Discount</span>
+                      <span>-${calculatedDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-slate-100 font-bold text-lg pt-2 border-t border-slate-700">
                     <span>Total</span>
-                    <span className="text-emerald-400">${cartTotal.toFixed(2)}</span>
+                    <span className="text-emerald-400">${finalTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                  <div>
+                    <label className="block text-slate-400 mb-1">Discount</label>
+                    <div className="flex bg-slate-800 border border-slate-600 rounded-lg overflow-hidden">
+                      <input 
+                        type="number" 
+                        value={discountValue}
+                        onChange={e => setDiscountValue(e.target.value)}
+                        className="w-full bg-transparent p-2 text-slate-200 outline-none"
+                        placeholder="0"
+                        min="0"
+                      />
+                      <select 
+                        value={discountType}
+                        onChange={e => setDiscountType(e.target.value as any)}
+                        className="bg-slate-700 text-slate-200 p-2 border-l border-slate-600 outline-none"
+                      >
+                        <option value="PERCENT">%</option>
+                        <option value="FLAT">$</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1">Payment Method</label>
+                    <select 
+                      value={paymentMethod}
+                      onChange={e => setPaymentMethod(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-slate-200 outline-none h-[38px]"
+                    >
+                      <option value="PAYMENT_CASH">Cash</option>
+                      <option value="PAYMENT_CARD">Card</option>
+                      <option value="PAYMENT_MOBILE">Mobile Money</option>
+                      <option value="PAYMENT_BANK">Bank Transfer</option>
+                    </select>
                   </div>
                 </div>
 

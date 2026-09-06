@@ -24,34 +24,17 @@ export class TicketsController {
     return { data };
   }
 
-  @Patch(':id/use')
+    @Patch(':id/use')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'CASHIER', 'TICKETING_STAFF')
   async markAsUsed(@Param('id') id: string) {
     const data = await this.ticketsService.markAsUsed(id);
     return { message: 'Ticket marked as used', data };
   }
 
-  // --- Ticket Tiers ---
-
-  @Get('tiers')
+  @Patch(':id/return')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'CASHIER', 'TICKETING_STAFF')
-  async getTiers() {
-    const data = await this.ticketsService.getTiers();
-    return { data };
+  async markAsReturned(@Param('id') id: string) {
+    const data = await this.ticketsService.markAsReturned(id);
+    return { message: 'Ticket returned successfully', data };
   }
-
-  @Post('tiers')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
-  async createTier(@Body() body: { name: string; price: number }) {
-    const data = await this.ticketsService.createTier(body);
-    return { message: 'Ticket tier created successfully', data };
-  }
-
-  @Delete('tiers/:id')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
-  async deleteTier(@Param('id') id: string) {
-    const data = await this.ticketsService.deleteTier(id);
-    return { message: 'Ticket tier deleted', data };
-  }
-}
 

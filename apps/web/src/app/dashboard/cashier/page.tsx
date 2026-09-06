@@ -160,8 +160,8 @@ export default function CashierPage() {
           <title>Print ${mode}</title>
           <style>
             body { font-family: 'Courier New', Courier, monospace; color: #000; max-width: 380px; margin: 0 auto; padding: 20px; }
-            .header-container { text-align: left; margin-bottom: 20px; }
-            .header-container img { max-width: 120px; margin-bottom: 10px; }
+            .header-container { text-align: center; margin-bottom: 20px; }
+            .header-container img { max-width: 120px; margin-bottom: 10px; display: block; margin: 0 auto; }
             .header-title { font-size: 20px; font-weight: bold; margin: 0 0 4px 0; }
             .header-info { font-size: 12px; margin: 0; line-height: 1.4; }
             
@@ -199,8 +199,8 @@ export default function CashierPage() {
           
           <div class="divider"></div>
           
-          <div class="summary-row"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
-          <div class="summary-row"><span>GST (10%)</span><span>$${gst.toFixed(2)}</span></div>
+          <div class="summary-row"><span>Subtotal</span><span>$${orderTotal.toFixed(2)}</span></div>
+          <div class="summary-row"><span style="font-size: 11px; color: #555;">GST Included (10%)</span><span style="font-size: 11px; color: #555;">$${gst.toFixed(2)}</span></div>
           ${calculatedDiscount > 0 ? `<div class="summary-row" style="color: #dc2626;"><span>Discount</span><span>-$${calculatedDiscount.toFixed(2)}</span></div>` : ''}
           <div class="totals"><span>TOTAL</span><span>$${finalTotal.toFixed(2)}</span></div>
           

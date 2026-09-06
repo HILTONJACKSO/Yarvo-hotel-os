@@ -791,6 +791,7 @@ enum TicketStatus {
   VALID
   USED
   EXPIRED
+  RETURNED
 
   @@map("ticket_status")
 }

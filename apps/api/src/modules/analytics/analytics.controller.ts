@@ -69,6 +69,20 @@ export class AnalyticsController {
     return { data };
   }
 
+    @Get('tickets-metrics')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'FRONT_DESK')
+  async getTicketsMetrics() {
+    const data = await this.analyticsService.getTicketsMetrics();
+    return { data };
+  }
+
+  @Get('events-metrics')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
+  async getEventsMetrics() {
+    const data = await this.analyticsService.getEventsMetrics();
+    return { data };
+  }
+
   // --- Financial Reports ---
 
   @Get('reports/pnl')

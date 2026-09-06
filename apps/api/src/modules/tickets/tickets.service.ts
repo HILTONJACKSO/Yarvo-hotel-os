@@ -29,8 +29,27 @@ export class TicketsService {
     });
   }
 
-  async markAsUsed(id: string) {
+    async markAsUsed(id: string) {
     const ticket = await this.prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+    if (ticket.status !== 'VALID') throw new BadRequestException(`Cannot use a ticket that is ${ticket.status}`);
+
+    return this.prisma.ticket.update({
+      where: { id },
+      data: { status: 'USED' },
+    });
+  }
+
+  async markAsReturned(id: string) {
+    const ticket = await this.prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+    if (ticket.status === 'USED') throw new BadRequestException('Cannot return a used ticket');
+
+    return this.prisma.ticket.update({
+      where: { id },
+      data: { status: 'RETURNED' },
+    });
+  });
     if (!ticket) {
       throw new NotFoundException('Ticket not found');
     }

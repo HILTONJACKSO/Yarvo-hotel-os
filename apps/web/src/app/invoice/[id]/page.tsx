@@ -92,7 +92,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
             {config?.logoUrl ? (
               <img src={config.logoUrl} alt="Logo" className="invoice-logo" />
             ) : (
-              <h1 className="invoice-brand">Yarvo HMS</h1>
+              <img src="/kwalee-logo.png" alt="Logo" className="invoice-logo" style={{ maxWidth: '120px' }} />
             )}
           </div>
           <div className="invoice-hotel-info">
