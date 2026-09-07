@@ -24,6 +24,28 @@ export class TicketsController {
     return { data };
   }
 
+
+  @Get('tiers')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'CASHIER', 'TICKETING_STAFF')
+  async getTiers() {
+    const data = await this.ticketsService.getTiers();
+    return { data };
+  }
+
+  @Post('tiers')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+  async createTier(@Body() data: { name: string; price: number }) {
+    const tier = await this.ticketsService.createTier(data);
+    return { message: 'Ticket tier created', data: tier };
+  }
+
+  @Delete('tiers/:id')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
+  async deleteTier(@Param('id') id: string) {
+    const data = await this.ticketsService.deleteTier(id);
+    return { message: 'Ticket tier deleted', data };
+  }
+
   @Get('stats/daily')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'CASHIER', 'TICKETING_STAFF')
   async getDailyStats() {
