@@ -33,7 +33,7 @@ export default function KitchenPage() {
   const fetchOrders = () => {
         fetch(`${API_URL}/api/v1/pos/stats/kitchen`, { credentials: 'include' })
       .then(res => res.json())
-      .then(data => setStats(data))
+      .then(data => setStats(data?.data || data))
       .catch(console.error);
 
     fetch(`${API_URL}/api/v1/pos/orders`, { credentials: 'include' })

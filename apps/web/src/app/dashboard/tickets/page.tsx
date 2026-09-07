@@ -26,7 +26,7 @@ export default function TicketsPage() {
   const [discountType, setDiscountType] = useState<'PERCENT' | 'FLAT'>('PERCENT');
 
   const fetchTicketsAndTiers = async () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets/stats/daily`, { credentials: 'include' }).then(res => res.json()).then(data => setStats(data)).catch(console.error);
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets/stats/daily`, { credentials: 'include' }).then(res => res.json()).then(data => setStats(data?.data || data)).catch(console.error);
 
     setIsLoading(true);
     try {

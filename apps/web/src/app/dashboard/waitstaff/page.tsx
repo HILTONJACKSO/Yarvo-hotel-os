@@ -28,7 +28,7 @@ export default function WaitstaffPage() {
   const fetchItems = () => {
     fetch(`${API_URL}/api/v1/pos/stats/waitstaff`, { credentials: 'include' })
       .then(res => res.json())
-      .then(data => setStats(data))
+      .then(data => setStats(data?.data || data))
       .catch(console.error);
     fetch(`${API_URL}/api/v1/pos/ready-items`, { credentials: 'include' })
       .then(res => res.json())

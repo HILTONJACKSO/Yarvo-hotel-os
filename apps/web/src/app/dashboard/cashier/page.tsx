@@ -35,7 +35,7 @@ export default function CashierPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/v1/users/me`, { credentials: 'include' })
+    fetch(`${API_URL}/api/v1/auth/me`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => setCurrentUser(data.data || data))
       .catch(() => {});

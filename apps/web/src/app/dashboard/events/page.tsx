@@ -47,7 +47,7 @@ export default function EventsPage() {
   }, []);
 
   const fetchData = async () => {
-    fetch(`${API_URL}/api/v1/events/stats/daily`, { credentials: 'include' }).then(res => res.json()).then(data => setStats(data)).catch(console.error);
+    fetch(`${API_URL}/api/v1/events/stats/daily`, { credentials: 'include' }).then(res => res.json()).then(data => setStats(data?.data || data)).catch(console.error);
 
     setLoading(true);
     try {
