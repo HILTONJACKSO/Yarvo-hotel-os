@@ -179,12 +179,18 @@ export class PosService {
         status: { notIn: ['CANCELLED', 'RETURNED'] }
       },
       include: {
-        menuItem: true
+        menuItem: true,
+        order: true
       }
     });
 
     const totalOrders = items.reduce((sum, item) => sum + item.quantity, 0);
-    const totalRevenue = items.reduce((sum, item) => sum + (Number(item.menuItem.price) * item.quantity), 0);
+    const totalRevenue = items.reduce((sum, item) => {
+      if (item.order && item.order.status === 'PAID') {
+        return sum + (Number(item.menuItem.price) * item.quantity);
+      }
+      return sum;
+    }, 0);
 
     return { totalOrders, totalRevenue };
   }
@@ -202,11 +208,17 @@ export class PosService {
       },
       include: {
         menuItem: true,
+        order: true
       }
     });
 
     const totalOrders = items.length;
-    const totalRevenue = items.reduce((sum, item) => sum + (Number(item.menuItem.price) * item.quantity), 0);
+    const totalRevenue = items.reduce((sum, item) => {
+      if (item.order && item.order.status === 'PAID') {
+        return sum + (Number(item.menuItem.price) * item.quantity);
+      }
+      return sum;
+    }, 0);
 
     return { totalOrders, totalRevenue };
   }

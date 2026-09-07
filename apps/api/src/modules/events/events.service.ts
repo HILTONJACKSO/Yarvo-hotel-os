@@ -107,7 +107,7 @@ export class EventsService {
     });
 
     const totalOrders = bookings.length;
-    const totalRevenue = bookings.reduce((sum, b) => sum + Number(b.totalAmount), 0);
+    const totalRevenue = bookings.reduce((sum, b) => sum + Number(b.amountPaid), 0);
     
     return { totalOrders, totalRevenue };
   }
