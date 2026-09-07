@@ -5,7 +5,7 @@ import { Ticket, Waves, Umbrella, Search, CheckCircle, Plus, Settings, Trash2, M
 import { useAuth } from '@/lib/auth-provider';
 
 export default function TicketsPage() {
-  const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
+  const [stats, setStats] = useState<any>({ totalOrders: 0, totalRevenue: 0 });
 
   const { user } = useAuth();
   const [tickets, setTickets] = useState<any[]>([]);
@@ -280,7 +280,8 @@ export default function TicketsPage() {
 
   return (
     <div className="p-6 h-screen flex flex-col overflow-hidden">
-      <div className="stats-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+      {/* Overall Stats */}
+      <div className="stats-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '16px' }}>
         <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
           <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>Tickets Sold Today</h3>
           <p style={{ color: 'white', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>{stats?.totalOrders || 0}</p>
@@ -288,6 +289,35 @@ export default function TicketsPage() {
         <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
           <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>Tickets Revenue Generated</h3>
           <p style={{ color: 'hsl(43,96%,56%)', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>${(stats?.totalRevenue || 0).toFixed(2)}</p>
+        </div>
+      </div>
+
+      {/* Breakdown Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+        {/* Entry Breakdown */}
+        <div style={{ background: 'hsl(222, 35%, 15%)', padding: '16px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
+          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 12px 0', borderBottom: '1px solid hsl(217, 20%, 25%)', paddingBottom: '8px' }}>Entry Tickets Breakdown</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ color: 'white' }}>Adults: {stats?.breakdown?.entryAdults?.count || 0}</span>
+            <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 'bold' }}>${(stats?.breakdown?.entryAdults?.revenue || 0).toFixed(2)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: 'white' }}>Kids: {stats?.breakdown?.entryKids?.count || 0}</span>
+            <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 'bold' }}>${(stats?.breakdown?.entryKids?.revenue || 0).toFixed(2)}</span>
+          </div>
+        </div>
+        
+        {/* Pool Breakdown */}
+        <div style={{ background: 'hsl(222, 35%, 15%)', padding: '16px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
+          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 12px 0', borderBottom: '1px solid hsl(217, 20%, 25%)', paddingBottom: '8px' }}>Pool Tickets Breakdown</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ color: 'white' }}>Adults: {stats?.breakdown?.poolAdults?.count || 0}</span>
+            <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 'bold' }}>${(stats?.breakdown?.poolAdults?.revenue || 0).toFixed(2)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: 'white' }}>Kids: {stats?.breakdown?.poolKids?.count || 0}</span>
+            <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 'bold' }}>${(stats?.breakdown?.poolKids?.revenue || 0).toFixed(2)}</span>
+          </div>
         </div>
       </div>
 
