@@ -23,7 +23,6 @@ export default function BillingPage() {
   const [totalPendingPOS, setTotalPendingPOS] = useState(0);
 
   const fetchBills = async () => {
-    setLoading(true);
     try {
       // Fetch open folios
       const resFolios = await fetch("/api/v1/folios?status=OPEN");
