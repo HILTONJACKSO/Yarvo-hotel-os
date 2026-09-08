@@ -230,8 +230,8 @@ export default function CashierPage() {
 
   const handlePrintInvoice = async (orderId: string) => {
     if (!selectedOrder) return;
-    const isStaff = currentUser?.roles?.includes('WAITSTAFF') || currentUser?.roles?.includes('CASHIER') || currentUser?.roles?.includes('BAR') || currentUser?.roles?.includes('KITCHEN');
-    const isManager = currentUser?.roles?.includes('MANAGER');
+    const isStaff = currentUser?.roles?.some((r: any) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+    const isManager = currentUser?.roles?.some((r: any) => ['MANAGER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
     
     if (isStaff && selectedOrder.invoicePrintCount >= 1) {
       showToast('Staff can only print an invoice once. Please contact management.', 'error');
@@ -253,7 +253,7 @@ export default function CashierPage() {
     printViaIframe('RECEIPT');
   };
 
-  const canSettle = currentUser?.roles?.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER'].includes(r));
+  const canSettle = currentUser?.roles?.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
 
   const handleCheckout = async (orderId: string) => {
     if (isProcessing || !selectedOrder) return;

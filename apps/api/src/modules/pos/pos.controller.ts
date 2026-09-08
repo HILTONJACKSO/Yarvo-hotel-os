@@ -127,6 +127,12 @@ export class PosController {
     return this.posService.incrementInvoicePrint(id);
   }
 
+  @Delete('orders/:id')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
+  deleteOrder(@Param('id') id: string) {
+    return this.posService.deleteOrder(id);
+  }
+
   // --- Return Workflow ---
   @Post('order-items/:itemId/return-request')
   requestReturn(@Param('itemId') itemId: string, @Req() req: any) {

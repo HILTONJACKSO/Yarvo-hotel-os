@@ -559,6 +559,22 @@ export class PosService {
     });
   }
 
+  async deleteOrder(id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      // Return requested related to order items
+      const items = await tx.posOrderItem.findMany({ where: { orderId: id } });
+      for (const item of items) {
+        await tx.posReturnRequest.deleteMany({ where: { orderItemId: item.id } });
+      }
+      // Delete order items
+      await tx.posOrderItem.deleteMany({ where: { orderId: id } });
+      // Delete payments
+      await tx.posPayment.deleteMany({ where: { orderId: id } });
+      // Finally delete order
+      return tx.posOrder.delete({ where: { id } });
+    });
+  }
+
   // --- Return Workflow ---
 
   async requestReturn(itemId: string, userId: string) {
