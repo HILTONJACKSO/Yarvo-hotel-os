@@ -279,7 +279,7 @@ export default function TicketsPage() {
   };
 
   return (
-    <div className="p-6 h-screen flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-120px)] flex flex-col overflow-hidden">
       {/* Unified Stats Dashboard */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4 shrink-0">
         
@@ -323,34 +323,6 @@ export default function TicketsPage() {
 
       </div>
 
-      {/* Breakdown Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
-        {/* Entry Breakdown */}
-        <div style={{ background: 'hsl(222, 35%, 15%)', padding: '16px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
-          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 12px 0', borderBottom: '1px solid hsl(217, 20%, 25%)', paddingBottom: '8px' }}>Entry Tickets Breakdown</h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ color: 'white' }}>Adults: {stats?.breakdown?.entryAdults?.count || 0}</span>
-            <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 'bold' }}>${(stats?.breakdown?.entryAdults?.revenue || 0).toFixed(2)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'white' }}>Kids: {stats?.breakdown?.entryKids?.count || 0}</span>
-            <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 'bold' }}>${(stats?.breakdown?.entryKids?.revenue || 0).toFixed(2)}</span>
-          </div>
-        </div>
-        
-        {/* Pool Breakdown */}
-        <div style={{ background: 'hsl(222, 35%, 15%)', padding: '16px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
-          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 12px 0', borderBottom: '1px solid hsl(217, 20%, 25%)', paddingBottom: '8px' }}>Pool Tickets Breakdown</h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ color: 'white' }}>Adults: {stats?.breakdown?.poolAdults?.count || 0}</span>
-            <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 'bold' }}>${(stats?.breakdown?.poolAdults?.revenue || 0).toFixed(2)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'white' }}>Kids: {stats?.breakdown?.poolKids?.count || 0}</span>
-            <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 'bold' }}>${(stats?.breakdown?.poolKids?.revenue || 0).toFixed(2)}</span>
-          </div>
-        </div>
-      </div>
 
       <div className="flex justify-between items-center mb-6 shrink-0">
         <div>
