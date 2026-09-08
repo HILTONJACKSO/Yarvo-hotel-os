@@ -388,7 +388,7 @@ function SpacesTab({ spaces, refresh }: { spaces: EventSpace[], refresh: () => v
 
 function BookingModal({ booking, spaces, onClose, onSave }: any) {
   const { user } = useAuth();
-  const isAdminOrCEO = user?.role === 'ADMIN' || user?.role === 'CEO' || user?.role === 'SUPER_ADMIN';
+  const isAdminOrCEO = user?.roles?.includes('ADMIN') || user?.roles?.includes('CEO') || user?.roles?.includes('SUPER_ADMIN');
 
   const [spaceId, setSpaceId] = useState(booking?.spaceId || (spaces[0]?.id || ''));
   const [guestName, setGuestName] = useState(booking?.guestName || '');
