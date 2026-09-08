@@ -287,7 +287,10 @@ export default function BillingPage() {
                     <form onSubmit={handlePostPayment} className="flex-1 bg-slate-800 border border-slate-700 p-5 rounded-xl flex flex-col gap-3">
                       <h4 className="font-bold text-slate-200">Post Payment</h4>
                       <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none">
-                        <option value="PAYMENT_CARD">Credit Card</option><option value="PAYMENT_CASH">Cash</option>
+                        <option value="PAYMENT_CARD">Credit Card</option>
+                        <option value="PAYMENT_CASH">Cash</option>
+                        <option value="PAYMENT_MOBILE">Mobile Money</option>
+                        <option value="PAYMENT_BANK">Bank Transfer</option>
                       </select>
                       <input type="number" step="0.01" min="0.01" placeholder="Amount ($)" required value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none" />
                       <button type="submit" className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 p-2.5 rounded-lg font-bold transition-all">Add Payment</button>
@@ -342,11 +345,16 @@ export default function BillingPage() {
                 )}
                 {isCashierOrManager && (
                   <>
-                    <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="bg-slate-800 border border-slate-600 text-white px-4 py-3 rounded-xl outline-none">
-                      <option value="PAYMENT_CASH">Cash</option>
-                      <option value="PAYMENT_CARD">Credit Card</option>
-                      <option value="PAYMENT_MOBILE">Mobile Money</option>
-                    </select>
+                      <select 
+                        value={paymentMethod} 
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="bg-slate-800 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors"
+                      >
+                        <option value="PAYMENT_CASH">Cash</option>
+                        <option value="PAYMENT_CARD">Credit Card</option>
+                        <option value="PAYMENT_MOBILE">Mobile Money</option>
+                        <option value="PAYMENT_BANK">Bank Transfer</option>
+                      </select>
                     <button onClick={handleCheckoutPOS} className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2">
                       Checkout / Pay ${Number(selectedBill.totalAmount).toFixed(2)}
                     </button>

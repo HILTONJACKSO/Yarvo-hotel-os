@@ -1,0 +1,1 @@
+const { PrismaClient } = require('./node_modules/@prisma/client'); const prisma = new PrismaClient(); async function main() { const g = await prisma.guest.findMany({ where: { email: 'nakiekoffa49@gmail.com' } }); console.log(g); } main().finally(() => prisma['']());

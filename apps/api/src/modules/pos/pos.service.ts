@@ -223,6 +223,23 @@ export class PosService {
     return { totalOrders, totalRevenue };
   }
 
+  async getDailyCashierStats() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const payments = await this.prisma.posPayment.findMany({
+      where: {
+        createdAt: { gte: today },
+        order: { isNot: null }
+      }
+    });
+
+    const totalOrders = new Set(payments.map(p => p.orderId)).size;
+    const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+
+    return { totalOrders, totalRevenue };
+  }
+
   async getActiveOrders() {
     return this.prisma.posOrder.findMany({
       where: { 

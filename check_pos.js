@@ -1,0 +1,1 @@
+const { PrismaClient } = require('./packages/database/node_modules/@prisma/client'); const prisma = new PrismaClient(); async function main() { const count = await prisma.posOrder.count(); console.log('posOrder', count); } main().finally(() => prisma.());
