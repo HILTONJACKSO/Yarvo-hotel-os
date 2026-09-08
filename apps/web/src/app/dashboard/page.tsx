@@ -123,7 +123,7 @@ export default function DashboardPage() {
           <div className="section-header">
             <h3>Revenue (Last 7 Days)</h3>
           </div>
-          <div className="chart-container">
+          <div className="chart-container" style={{ height: '350px', width: '100%' }}>
             {loading ? (
               <div style={{ color: 'hsl(215, 20%, 65%)', padding: '40px', textAlign: 'center' }}>Loading chart...</div>
             ) : revenueData.length > 0 ? (
