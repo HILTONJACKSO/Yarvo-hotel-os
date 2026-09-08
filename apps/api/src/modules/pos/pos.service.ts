@@ -273,7 +273,7 @@ export class PosService {
 
   async getServedOrders() {
     return this.prisma.posOrder.findMany({
-      where: { status: 'SERVED' },
+      where: { status: { in: ['OPEN', 'SERVED'] } },
       include: {
         table: true,
         guest: true,

@@ -27,16 +27,18 @@ export default function BillingPage() {
     try {
       // Fetch open folios
       const resFolios = await fetch("/api/v1/folios?status=OPEN");
-      const jsonFolios = resFolios.ok ? await resFolios.json() : { data: [] };
+      if (!resFolios.ok) throw new Error("Failed to fetch folios");
+      const jsonFolios = await resFolios.json();
       const folios = (jsonFolios.data || []).map((f: any) => ({ ...f, type: "FOLIO" }));
 
       // Fetch POS served orders
       const resPos = await fetch("/api/v1/pos/served-orders");
-      const jsonPos = resPos.ok ? await resPos.json() : { data: [] };
+      if (!resPos.ok) throw new Error("Failed to fetch pos orders");
+      const jsonPos = await resPos.json();
       const allPos = jsonPos.data || [];
       
-      // Filter POS: only those invoiced (printed > 0)
-      const invoicedPos = allPos.filter((o: any) => o.invoicePrintCount > 0 && o.status === "SERVED");
+      // Filter POS: We now show all active OPEN and SERVED orders immediately
+      const invoicedPos = allPos.filter((o: any) => o.status === "SERVED" || o.status === "OPEN");
       const posOrders = invoicedPos.map((o: any) => ({ ...o, type: "POS_ORDER" }));
 
       // Calculate total pending POS
@@ -172,27 +174,30 @@ export default function BillingPage() {
     <div className="flex flex-col h-full gap-6 pb-10">
       {/* Top Bar Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 shrink-0">
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute -right-6 -top-6 text-slate-700/30"><Receipt size={100} /></div>
-          <h3 className="text-sm font-medium text-slate-400 mb-2 relative z-10">Pending F&B Billing</h3>
-          <p className="text-3xl font-bold text-cyan-400 relative z-10">${totalPendingPOS.toFixed(2)}</p>
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl p-6 shadow-lg relative overflow-hidden group hover:border-cyan-500/30 transition-all">
+          <div className="absolute -right-6 -top-6 text-cyan-500/10 group-hover:text-cyan-500/20 transition-all duration-500"><Receipt size={120} /></div>
+          <h3 className="text-sm font-semibold tracking-wide text-slate-400 mb-2 relative z-10 uppercase">Pending F&B Billing</h3>
+          <p className="text-4xl font-extrabold text-white relative z-10 tracking-tight">${totalPendingPOS.toFixed(2)}</p>
         </div>
       </div>
 
       <div className="flex flex-1 gap-6 min-h-0 items-start">
         {/* Sidebar: List of Bills */}
-        <div className="w-[320px] bg-slate-800 border border-slate-700 rounded-xl flex flex-col shrink-0 sticky top-[80px] max-h-[calc(100vh-100px)] overflow-hidden">
-          <div className="p-4 border-b border-slate-700 bg-slate-800/80">
-            <h3 className="text-lg font-bold text-slate-100">Active Bills</h3>
+        <div className="w-[320px] bg-slate-800/80 backdrop-blur-md border border-slate-700/60 shadow-xl rounded-2xl flex flex-col shrink-0 sticky top-[80px] max-h-[calc(100vh-100px)] overflow-hidden">
+          <div className="p-5 border-b border-slate-700/60 bg-slate-900/40">
+            <h3 className="text-lg font-bold text-slate-100 tracking-tight">Active Bills</h3>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar">
             {bills.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-8">No active bills found.</p>
+              <div className="flex flex-col items-center justify-center py-10 text-slate-500">
+                <Receipt size={32} className="mb-3 opacity-40" />
+                <p className="text-sm font-medium">No active bills found.</p>
+              </div>
             ) : (
               bills.map(b => (
                 <div 
                   key={b.id} 
-                  className={`bg-slate-900/50 border rounded-lg p-3 cursor-pointer transition-all hover:bg-slate-700 ${selectedBill?.id === b.id ? 'border-cyan-500 bg-cyan-500/10' : 'border-slate-700/50'}`}
+                  className={`bg-slate-900/60 border rounded-xl p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${selectedBill?.id === b.id ? 'border-cyan-500 bg-cyan-950/30 shadow-cyan-900/20' : 'border-slate-700/50 hover:border-slate-600'}`}
                   onClick={() => b.type === 'FOLIO' ? selectFolio(b.id) : setSelectedBill(b)}
                 >
                   {b.type === 'FOLIO' ? (
@@ -219,19 +224,25 @@ export default function BillingPage() {
         </div>
 
         {/* Main Area: Details & Actions */}
-        <div className="flex-1 bg-slate-800 border border-slate-700 rounded-xl flex flex-col overflow-hidden">
+        <div className="flex-1 bg-slate-800/80 backdrop-blur-md border border-slate-700/60 shadow-xl rounded-2xl flex flex-col overflow-hidden">
           {!selectedBill ? (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-20">
-              <Receipt size={64} className="mb-4 opacity-20" />
-              <p>Select a bill from the left to view details.</p>
+              <div className="bg-slate-800/50 p-6 rounded-full mb-6 border border-slate-700/50">
+                <Receipt size={48} className="opacity-40" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-300 mb-2">No Bill Selected</h3>
+              <p className="text-slate-500">Select an active bill from the left to view details and process payments.</p>
             </div>
           ) : selectedBill.type === 'FOLIO' ? (
             // FOLIO RENDER
             <>
-              <div className="p-6 border-b border-slate-700 bg-slate-800/80 flex justify-between items-center">
+              <div className="p-8 border-b border-slate-700/60 bg-gradient-to-r from-slate-900/40 to-slate-800/40 flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-100 mb-1">{selectedBill.reservation?.guest?.lastName} Folio</h2>
-                  <div className="text-slate-400 text-sm">Status: {selectedBill.status} | Room: {selectedBill.reservation?.room?.number}</div>
+                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 mb-3 uppercase tracking-wider">
+                    {selectedBill.status}
+                  </div>
+                  <h2 className="text-2xl font-extrabold text-white mb-1 tracking-tight">{selectedBill.reservation?.guest?.lastName} Folio</h2>
+                  <div className="text-slate-400 font-medium">Room {selectedBill.reservation?.room?.number || 'N/A'}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Total Balance Due</div>
@@ -302,14 +313,17 @@ export default function BillingPage() {
           ) : (
             // POS ORDER RENDER
             <>
-              <div className="p-6 border-b border-slate-700 bg-slate-800/80 flex justify-between items-center">
+              <div className="p-8 border-b border-slate-700/60 bg-gradient-to-r from-slate-900/40 to-slate-800/40 flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-100 mb-1">POS Order #{selectedBill.id.substring(0,8).toUpperCase()}</h2>
-                  <div className="text-slate-400 text-sm">Location: {selectedBill.table?.number ? `Table ${selectedBill.table.number}` : 'Walk-in'} | Printed: {selectedBill.invoicePrintCount} times</div>
+                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 mb-3 uppercase tracking-wider">
+                    {selectedBill.table?.number ? `Table ${selectedBill.table.number}` : 'Walk-in'}
+                  </div>
+                  <h2 className="text-2xl font-extrabold text-white mb-1 tracking-tight">POS Order #{selectedBill.id.substring(0,8).toUpperCase()}</h2>
+                  <div className="text-slate-400 font-medium">Printed: {selectedBill.invoicePrintCount} times</div>
                 </div>
                 <div className="text-right">
                   <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Total Balance Due</div>
-                  <div className="text-3xl font-bold text-rose-400">${Number(selectedBill.totalAmount).toFixed(2)}</div>
+                  <div className="text-4xl font-extrabold text-rose-400 tracking-tight">${Number(selectedBill.totalAmount).toFixed(2)}</div>
                 </div>
               </div>
               <div className="flex-1 p-6 overflow-y-auto">
