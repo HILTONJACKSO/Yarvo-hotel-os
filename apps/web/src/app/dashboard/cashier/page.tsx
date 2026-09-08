@@ -256,8 +256,25 @@ export default function CashierPage() {
     } catch(e) {}
   };
 
-  const handlePrintReceipt = () => {
+  const handlePrintReceipt = async (orderId: string) => {
+    if (!selectedOrder) return;
+    const isStaff = currentUser?.roles?.some((r: any) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+    const isManager = currentUser?.roles?.some((r: any) => ['MANAGER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+    
+    if (isStaff && selectedOrder.receiptPrintCount >= 1) {
+      showToast('Staff can only print a receipt once. Please contact management.', 'error');
+      return;
+    }
+    if (isManager && selectedOrder.receiptPrintCount >= 3) {
+      showToast('Manager can only print a receipt 3 times. Please contact CEO.', 'error');
+      return;
+    }
+    
     printViaIframe('RECEIPT');
+    try {
+      await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/increment-receipt-print`, { method: 'POST', credentials: 'include' });
+      fetchOrders();
+    } catch(e) {}
   };
 
   const canSettle = currentUser?.roles?.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
@@ -298,6 +315,16 @@ export default function CashierPage() {
       setIsProcessing(false);
     }
   };
+
+  if (currentUser?.roles?.some((r: any) => ['WAITSTAFF', 'STAFF_WAITER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r))) {
+    return (
+      <div className="cashier-layout">
+        <div style={{ marginTop: "24px", padding: "16px", background: "rgba(255, 0, 0, 0.1)", color: "#ff6b6b", borderRadius: "8px", border: "1px solid #ff6b6b" }}>
+          <strong>Access Denied:</strong> Waitstaff are not authorized to view the POS Cashier dashboard. Please contact management.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="cashier-layout">
@@ -483,9 +510,9 @@ export default function CashierPage() {
               )}
             </div>
 
-            ) : (<div style={{ marginTop: "24px", padding: "16px", background: "rgba(255, 0, 0, 0.1)", color: "#ff6b6b", borderRadius: "8px", border: "1px solid #ff6b6b" }}><strong>Access Denied:</strong> Front Desk staff are not authorized to settle Restaurant or Bar bills. Please contact a Cashier or Manager.</div>)}
+            ) : (<div style={{ marginTop: "24px", padding: "16px", background: "rgba(255, 0, 0, 0.1)", color: "#ff6b6b", borderRadius: "8px", border: "1px solid #ff6b6b" }}><strong>Access Denied:</strong> You are not authorized to settle Restaurant or Bar bills. Please contact a Cashier or Manager.</div>)}
             <div className="payment-actions">
-              <button className="btn-secondary" onClick={() => handlePrintReceipt()}>
+              <button className="btn-secondary" onClick={() => handlePrintReceipt(selectedOrder.id)}>
                 Print Receipt
               </button>
               <button className="btn-secondary" onClick={() => handlePrintInvoice(selectedOrder.id)}>

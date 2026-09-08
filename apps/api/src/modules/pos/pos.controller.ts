@@ -132,6 +132,11 @@ export class PosController {
     return this.posService.incrementInvoicePrint(id);
   }
 
+  @Post('orders/:id/increment-receipt-print')
+  incrementReceiptPrint(@Param('id') id: string) {
+    return this.posService.incrementReceiptPrint(id);
+  }
+
   @Delete('orders/:id')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
   deleteOrder(@Param('id') id: string) {

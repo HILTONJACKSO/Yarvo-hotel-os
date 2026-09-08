@@ -608,6 +608,7 @@ model PosOrder {
   discountAmount Decimal    @default(0) @db.Decimal(10, 2)
   notes       String?       @db.Text
   invoicePrintCount Int     @default(0)
+  receiptPrintCount Int     @default(0)
   
   createdAt       DateTime      @default(now()) @db.Timestamptz(6)
   updatedAt       DateTime      @updatedAt @db.Timestamptz(6)

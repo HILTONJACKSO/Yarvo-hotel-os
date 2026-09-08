@@ -68,7 +68,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: RotateCcw, label: 'Returns & Discounts', href: '/dashboard/returns', id: 'nav-returns', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk'] },
   { icon: Package, label: 'Inventory', href: '/dashboard/inventory', id: 'nav-inventory', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'cashier'] },
   { type: 'divider' },
-  { icon: Wallet, label: 'POS Cashier', href: '/dashboard/cashier', id: 'nav-cashier', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk', 'staff_waiter'] },
+  { icon: Wallet, label: 'POS Cashier', href: '/dashboard/cashier', id: 'nav-cashier', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk'] },
   { type: 'divider' },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings', id: 'nav-settings', allowedRoles: ['super_admin', 'admin', 'ceo'] },
 ];

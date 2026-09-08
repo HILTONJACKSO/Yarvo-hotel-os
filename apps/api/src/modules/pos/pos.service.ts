@@ -441,6 +441,13 @@ export class PosService {
     });
   }
 
+  async incrementReceiptPrint(orderId: string) {
+    return this.prisma.posOrder.update({
+      where: { id: orderId },
+      data: { receiptPrintCount: { increment: 1 } }
+    });
+  }
+
   async updateOrderItemStatus(itemId: string, status: string) {
     const item = await this.prisma.posOrderItem.update({
       where: { id: itemId },
