@@ -270,8 +270,8 @@ export default function CashierPage() {
     const finalTotal = Math.max(0, orderTotal - calculatedDiscount);
     
     // Allow small floating point variance
-    if (Math.abs(orderTotal - currentTotal) > 0.01) {
-      showToast(`Please settle the full amount of $${orderTotal.toFixed(2)}`, 'error');
+    if (Math.abs(finalTotal - currentTotal) > 0.01) {
+      showToast(`Please settle the full amount of $${finalTotal.toFixed(2)}`, 'error');
       return;
     }
 

@@ -186,7 +186,8 @@ export class PosService {
 
     const totalOrders = items.reduce((sum, item) => sum + item.quantity, 0);
     const totalRevenue = items.reduce((sum, item) => {
-      if (item.order && item.order.status === 'PAID') {
+      // Exclude cancelled orders
+      if (item.order && item.order.status !== 'CANCELLED') {
         return sum + (Number(item.menuItem.price) * item.quantity);
       }
       return sum;
@@ -204,7 +205,7 @@ export class PosService {
       where: {
         createdAt: { gte: today },
         order: { userId },
-        status: { in: ['SERVED', 'PREPARING', 'READY'] },
+        status: { notIn: ['CANCELLED', 'RETURNED'] },
       },
       include: {
         menuItem: true,
@@ -212,9 +213,9 @@ export class PosService {
       }
     });
 
-    const totalOrders = items.length;
+    const totalOrders = items.reduce((sum, item) => sum + item.quantity, 0);
     const totalRevenue = items.reduce((sum, item) => {
-      if (item.order && item.order.status === 'PAID') {
+      if (item.order && item.order.status !== 'CANCELLED') {
         return sum + (Number(item.menuItem.price) * item.quantity);
       }
       return sum;
