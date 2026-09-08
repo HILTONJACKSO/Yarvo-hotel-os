@@ -243,28 +243,51 @@ export default function TicketsPage() {
     setIsProcessing(true);
     
     try {
-      const promises = [];
       const validDateStr = new Date().toISOString().split('T')[0];
-
+      const targetTotal = cartTotal > 0 ? (cartTotal - calculatedDiscount) : 0;
+      let remainingAmount = targetTotal;
+      
+      const ticketPayloads: any[] = [];
       for (const item of cart) {
         for (let i = 0; i < item.quantity; i++) {
-          promises.push(
-            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                type: item.tier.name,
-                price: Number((Number(item.tier.price) * (cartTotal > 0 ? (cartTotal - calculatedDiscount) / cartTotal : 1)).toFixed(2)),
-                guestName: '',
-                guestPhone: '',
-                paymentMethod: paymentMethod.replace('PAYMENT_', ''),
-                validDate: validDateStr,
-              }),
-              credentials: 'include'
-            })
-          );
+          ticketPayloads.push({
+            type: item.tier.name,
+            originalPrice: Number(item.tier.price),
+            guestName: '',
+            guestPhone: '',
+            paymentMethod: paymentMethod.replace('PAYMENT_', ''),
+            validDate: validDateStr,
+          });
         }
       }
+
+      for (let i = 0; i < ticketPayloads.length; i++) {
+        const isLast = i === ticketPayloads.length - 1;
+        if (isLast) {
+          ticketPayloads[i].price = Number(Math.max(0, remainingAmount).toFixed(2));
+        } else {
+          const ratio = cartTotal > 0 ? (ticketPayloads[i].originalPrice / cartTotal) : 0;
+          const allocated = Number((targetTotal * ratio).toFixed(2));
+          ticketPayloads[i].price = allocated;
+          remainingAmount -= allocated;
+        }
+      }
+
+      const promises = ticketPayloads.map(payload => 
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/tickets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: payload.type,
+            price: payload.price,
+            guestName: payload.guestName,
+            guestPhone: payload.guestPhone,
+            paymentMethod: payload.paymentMethod,
+            validDate: payload.validDate
+          }),
+          credentials: 'include'
+        })
+      );
       
       await Promise.all(promises);
       printReceipt();
