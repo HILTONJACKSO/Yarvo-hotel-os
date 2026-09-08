@@ -279,7 +279,7 @@ export default function TicketsPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col overflow-hidden">
+    <div className="flex flex-col pb-10">
       {/* Unified Stats Dashboard */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4 shrink-0">
         
@@ -365,13 +365,13 @@ export default function TicketsPage() {
       </div>
 
       {activeTab === 'ISSUE' && (
-        <div className="flex-1 flex gap-6 min-h-0">
+        <div className="flex-1 flex gap-6 min-h-0 items-start">
           {/* Menu Items (Left) */}
           <div className="flex-1 bg-slate-800 border border-slate-700 rounded-xl overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-slate-700 bg-slate-800/80 sticky top-0">
+            <div className="p-4 border-b border-slate-700 bg-slate-800/80 sticky top-0 z-10">
               <h2 className="text-lg font-bold text-slate-100">Select Ticket Types</h2>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="p-4">
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                 {tiers.map(tier => (
                   <button
@@ -395,7 +395,7 @@ export default function TicketsPage() {
           </div>
 
           {/* Cart (Right) */}
-          <div className="w-[380px] bg-slate-800 border border-slate-700 rounded-xl flex flex-col shrink-0">
+          <div className="w-[380px] bg-slate-800 border border-slate-700 rounded-xl flex flex-col shrink-0 sticky top-[80px] max-h-[calc(100vh-100px)]">
             <div className="p-4 border-b border-slate-700 bg-slate-800/80 sticky top-0 flex justify-between items-center">
               <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
                 <ShoppingCart size={20} className="text-cyan-400" />
@@ -406,7 +406,8 @@ export default function TicketsPage() {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 min-h-0">
+            <div className="cart-scroll flex-1 overflow-y-auto p-4 min-h-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style>{`.cart-scroll::-webkit-scrollbar { display: none; }`}</style>
               {cart.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-500">
                   <ShoppingCart size={48} className="mb-4 opacity-20" />
