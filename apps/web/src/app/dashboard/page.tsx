@@ -296,6 +296,7 @@ export default function DashboardPage() {
           grid-template-columns: 2fr 1fr;
           gap: 24px;
           margin-top: 8px;
+          align-items: start;
         }
 
         .chart-section, .activity-section {

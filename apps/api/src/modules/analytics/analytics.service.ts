@@ -41,26 +41,20 @@ export class AnalyticsService {
       },
     });
 
-    // 4. Today's Collected Revenue (Sum of FolioLineItems that are PAYMENT and created today)
+    // 4. Today's Collected Revenue
     const revenueItems = await this.prisma.folioLineItem.aggregate({
       _sum: { amount: true },
-      where: {
-        type: 'PAYMENT',
-        createdAt: {
-          gte: startOfToday,
-          lte: endOfToday,
-        },
-      },
+      where: { type: 'PAYMENT', createdAt: { gte: startOfToday, lte: endOfToday } },
     });
 
     const ticketRevenueItems = await this.prisma.ticket.aggregate({
       _sum: { price: true },
-      where: {
-        issueDate: {
-          gte: startOfToday,
-          lte: endOfToday,
-        },
-      },
+      where: { issueDate: { gte: startOfToday, lte: endOfToday }, status: { in: ['VALID', 'USED'] } },
+    });
+
+    const posRevenueItems = await this.prisma.posPayment.aggregate({
+      _sum: { amount: true },
+      where: { createdAt: { gte: startOfToday, lte: endOfToday } },
     });
 
     // 5. Outstanding Revenue (Unpaid open folio balances + unpaid company balances)
@@ -73,7 +67,7 @@ export class AnalyticsService {
       _sum: { balance: true }
     });
 
-    const todaysRevenue = (revenueItems._sum.amount?.toNumber() || 0) + (ticketRevenueItems._sum.price?.toNumber() || 0);
+    const todaysRevenue = (revenueItems._sum.amount?.toNumber() || 0) + (ticketRevenueItems._sum.price?.toNumber() || 0) + (posRevenueItems._sum.amount?.toNumber() || 0);
     const outstandingRevenue = (openFolios._sum.balance?.toNumber() || 0) + (companyBalances._sum.balance?.toNumber() || 0);
 
     return {
@@ -92,16 +86,22 @@ export class AnalyticsService {
     // Last 7 days
     const startOfPeriod = new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000);
 
-    // Group by Date requires a raw query in Prisma or aggregating in memory.
-    // We will aggregate in memory since hotel transaction volume per 7 days is manageable.
+    // Folio payments
     const payments = await this.prisma.folioLineItem.findMany({
-      where: {
-        type: 'PAYMENT',
-        createdAt: {
-          gte: startOfPeriod,
-        },
-      },
+      where: { type: 'PAYMENT', createdAt: { gte: startOfPeriod } },
       select: { amount: true, createdAt: true },
+    });
+
+    // POS payments
+    const posPayments = await this.prisma.posPayment.findMany({
+      where: { createdAt: { gte: startOfPeriod } },
+      select: { amount: true, createdAt: true },
+    });
+
+    // Ticket sales
+    const tickets = await this.prisma.ticket.findMany({
+      where: { issueDate: { gte: startOfPeriod }, status: { in: ['VALID', 'USED'] } },
+      select: { price: true, issueDate: true },
     });
 
     // Map to a dictionary by local date string
@@ -117,9 +117,17 @@ export class AnalyticsService {
     // Accumulate amounts
     payments.forEach((payment) => {
       const dateStr = payment.createdAt.toISOString().split('T')[0];
-      if (dailyRevenue[dateStr] !== undefined) {
-        dailyRevenue[dateStr] += payment.amount.toNumber();
-      }
+      if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += payment.amount.toNumber();
+    });
+
+    posPayments.forEach((payment) => {
+      const dateStr = payment.createdAt.toISOString().split('T')[0];
+      if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += payment.amount.toNumber();
+    });
+
+    tickets.forEach((ticket) => {
+      const dateStr = ticket.issueDate.toISOString().split('T')[0];
+      if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += ticket.price.toNumber();
     });
 
     // Format for Recharts
