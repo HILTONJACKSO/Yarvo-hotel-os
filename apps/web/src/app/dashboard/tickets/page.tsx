@@ -406,7 +406,7 @@ export default function TicketsPage() {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 min-h-0">
               {cart.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-500">
                   <ShoppingCart size={48} className="mb-4 opacity-20" />
@@ -446,7 +446,7 @@ export default function TicketsPage() {
             </div>
 
             {cart.length > 0 && (
-              <div className="p-4 border-t border-slate-700 bg-slate-900/80">
+              <div className="p-4 border-t border-slate-700 bg-slate-900/80 shrink-0">
                 <div className="space-y-2 mb-4 text-sm">
                   <div className="flex justify-between text-slate-400">
                     <span>Subtotal</span>
