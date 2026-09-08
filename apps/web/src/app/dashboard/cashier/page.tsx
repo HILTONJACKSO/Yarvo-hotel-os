@@ -17,6 +17,7 @@ type PosOrder = {
   };
   guest?: { firstName: string; lastName: string; companyName?: string; phone?: string };
   invoicePrintCount: number;
+  receiptPrintCount: number;
   user?: { firstName: string; lastName: string };
   items: Array<{
     id: string;
