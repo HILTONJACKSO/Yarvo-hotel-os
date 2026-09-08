@@ -301,16 +301,32 @@ export default function CashierPage() {
 
   return (
     <div className="cashier-layout">
-      <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-        <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
-          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>Total Checked-Out Orders</h3>
-          <p style={{ color: 'white', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>{stats?.totalOrders || 0}</p>
+      <div className="welcome-banner" style={{ marginBottom: '28px' }}>
+        <div className="welcome-text">
+          <p className="welcome-greeting">Good day,</p>
+          <h2 className="welcome-name">{currentUser?.firstName || 'Cashier'} {currentUser?.lastName || ''}</h2>
+          <p className="welcome-sub">Here's what's happening at the POS today.</p>
         </div>
-        <div className="stat-card" style={{ background: 'hsl(222, 35%, 15%)', padding: '20px', borderRadius: '8px', border: '1px solid hsl(217, 20%, 25%)' }}>
-          <h3 style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem', margin: '0 0 8px 0' }}>Total Revenue Generated</h3>
-          <p style={{ color: 'hsl(43,96%,56%)', fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>${(stats?.totalRevenue || 0).toFixed(2)}</p>
+        <div className="welcome-badge">
+          <span className="role-chip">CASHIER</span>
         </div>
       </div>
+
+      <div className="coming-soon-grid" style={{ marginBottom: '28px' }}>
+        <div className="stat-card">
+          <div className="stat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="hsl(215, 20%, 55%)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+          <div className="stat-value">{stats?.totalOrders || 0}</div>
+          <div className="stat-title">Total Checked-Out Orders</div>
+          <div className="stat-desc">Completed orders today</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="hsl(215, 20%, 55%)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <div className="stat-value">${(stats?.totalRevenue || 0).toFixed(2)}</div>
+          <div className="stat-title">Total Revenue Generated</div>
+          <div className="stat-desc">Payments received today</div>
+        </div>
+      </div>
+
       <h2>POS Cashier</h2>
       <p className="subtitle">Process payments for tables that have been served.</p>
       

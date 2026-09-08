@@ -36,18 +36,25 @@ export default function FrontDeskPage() {
   const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
   const [activeCheckOutRes, setActiveCheckOutRes] = useState<Reservation | null>(null);
 
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [metrics, setMetrics] = useState<any>(null);
+
   const fetchFrontDeskData = async () => {
     setLoading(true);
     try {
       // In a real app, we'd filter arrivals/departures by TODAY's date.
       // For now, we filter purely by Status to demonstrate the workflow.
-      const [arrRes, inHouseRes] = await Promise.all([
+      const [arrRes, inHouseRes, authRes, metRes] = await Promise.all([
         fetch('/api/v1/reservations?status=CONFIRMED'),
         fetch('/api/v1/reservations?status=CHECKED_IN'),
+        fetch('/api/v1/auth/me', { credentials: 'include' }),
+        fetch('/api/v1/analytics/dashboard')
       ]);
 
       const arrData = await arrRes.json();
       const inHouseData = await inHouseRes.json();
+      const authData = await authRes.json();
+      const metData = await metRes.json();
 
       if (arrRes.ok && Array.isArray(arrData.data)) {
         setArrivals(arrData.data);
@@ -58,6 +65,10 @@ export default function FrontDeskPage() {
         // Simulate departures as anyone checked in (in a real app, this would be checked in + checkout date = today)
         setDepartures(inHouseData.data); 
       }
+
+      if (authRes.ok) setCurrentUser(authData.data || authData);
+      if (metRes.ok) setMetrics(metData.data);
+
     } catch (error) {
       console.error('Failed to fetch front desk data', error);
     } finally {
@@ -86,6 +97,32 @@ export default function FrontDeskPage() {
 
   return (
     <div className="page-container">
+      <div className="welcome-banner" style={{ marginBottom: '28px' }}>
+        <div className="welcome-text">
+          <p className="welcome-greeting">Good day,</p>
+          <h2 className="welcome-name">{currentUser?.firstName || 'Front Desk'} {currentUser?.lastName || ''}</h2>
+          <p className="welcome-sub">Here's what's happening at Yarvo today.</p>
+        </div>
+        <div className="welcome-badge">
+          <span className="role-chip">FRONT DESK</span>
+        </div>
+      </div>
+
+      <div className="coming-soon-grid" style={{ marginBottom: '28px' }}>
+        <div className="stat-card">
+          <div className="stat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="hsl(215, 20%, 55%)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></div>
+          <div className="stat-value">{loading ? '...' : (metrics?.occupancyRate || '0.0%')}</div>
+          <div className="stat-title">Occupancy Rate</div>
+          <div className="stat-desc">Live occupancy</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="hsl(215, 20%, 55%)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></div>
+          <div className="stat-value">{loading ? '...' : (metrics?.checkInsToday || 0)}</div>
+          <div className="stat-title">Check-Ins Today</div>
+          <div className="stat-desc">Scheduled arrivals</div>
+        </div>
+      </div>
+
       <div className="page-header">
         <h2>Front Desk Operations</h2>
       </div>

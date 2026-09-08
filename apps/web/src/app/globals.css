@@ -318,4 +318,98 @@ body {
     font-style: italic;
     color: #666;
   }
+}.dashboard-home {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1200px;
+}
+
+.welcome-banner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, hsl(222,35%,9%) 0%, hsl(224,39%,8%) 100%);
+  border: 1px solid hsl(217, 20%, 14%);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.welcome-banner::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, hsl(43,96%,56%,0.08), transparent 70%);
+  border-radius: 50%;
+}
+
+.welcome-greeting {
+  font-size: 0.875rem;
+  color: hsl(215, 20%, 55%);
+  margin: 0 0 4px;
+}
+.welcome-name {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: hsl(210, 40%, 96%);
+  margin: 0 0 6px;
+  letter-spacing: -0.025em;
+}
+.welcome-sub {
+  font-size: 0.875rem;
+  color: hsl(215, 20%, 50%);
+  margin: 0;
+}
+
+.role-chip {
+  display: inline-block;
+  padding: 6px 14px;
+  background: hsl(43,96%,56%,0.12);
+  border: 1px solid hsl(43,96%,56%,0.25);
+  border-radius: 20px;
+  color: hsl(43,96%,70%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.04em;
+}
+
+.coming-soon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  padding: 24px;
+  background: hsl(222, 35%, 8%);
+  border: 1px solid hsl(217, 20%, 14%);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.stat-card:hover {
+  border-color: hsl(217, 20%, 22%);
+  transform: translateY(-2px);
+}
+
+.stat-icon { font-size: 1.5rem; margin-bottom: 4px; }
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: hsl(210, 40%, 96%);
+  letter-spacing: -0.04em;
+}
+.stat-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(210, 40%, 80%);
+}
+.stat-desc {
+  font-size: 0.75rem;
+  color: hsl(215, 16%, 38%);
 }

@@ -57,18 +57,24 @@ export class AnalyticsService {
       where: { createdAt: { gte: startOfToday, lte: endOfToday } },
     });
 
-    // 5. Outstanding Revenue (Unpaid open folio balances + unpaid company balances)
+    // 5. Outstanding Revenue (Unpaid open folio balances + unpaid company balances + unpaid POS orders)
     const openFolios = await this.prisma.folio.aggregate({
       _sum: { balance: true },
       where: { status: 'OPEN' }
     });
     
     const companyBalances = await this.prisma.company.aggregate({
-      _sum: { balance: true }
+      _sum: { balance: true },
     });
 
+    const openPosOrders = await this.prisma.posOrder.aggregate({
+      _sum: { totalAmount: true, discountAmount: true },
+      where: { status: { in: ['OPEN', 'SERVED'] } }
+    });
+    const posOutstanding = (openPosOrders._sum.totalAmount?.toNumber() || 0) - (openPosOrders._sum.discountAmount?.toNumber() || 0);
+
     const todaysRevenue = (revenueItems._sum.amount?.toNumber() || 0) + (ticketRevenueItems._sum.price?.toNumber() || 0) + (posRevenueItems._sum.amount?.toNumber() || 0);
-    const outstandingRevenue = (openFolios._sum.balance?.toNumber() || 0) + (companyBalances._sum.balance?.toNumber() || 0);
+    const outstandingRevenue = (openFolios._sum.balance?.toNumber() || 0) + (companyBalances._sum.balance?.toNumber() || 0) + posOutstanding;
 
     return {
       occupancyRate,
