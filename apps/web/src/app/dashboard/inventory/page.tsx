@@ -407,6 +407,7 @@ export default function InventoryPage() {
                   <option value="DRINK">Drink</option>
                   <option value="HOUSEKEEPING">Housekeeping</option>
                   <option value="MAINTENANCE">Maintenance</option>
+                  <option value="BOUTIQUE">Boutique</option>
                 </select>
               </div>
               <div className="form-group">

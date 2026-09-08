@@ -24,6 +24,7 @@ export default function PosPage() {
   const [inventoryItems, setInventoryItems] = useState<{id: string, name: string, category: string}[]>([]);
   
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   
   const [orderDestinationType, setOrderDestinationType] = useState<'TABLE' | 'ROOM' | 'GUEST'>('TABLE');
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
@@ -351,7 +352,11 @@ export default function PosPage() {
     }
   };
 
-  const filteredItems = activeCategory === 'ALL' ? menuItems : menuItems.filter(item => item.categoryId === activeCategory);
+  const filteredItems = menuItems.filter(item => {
+    const matchesCategory = activeCategory === 'ALL' || item.categoryId === activeCategory;
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
   const cartTotal = cart.reduce((sum, c) => sum + (Number(c.item.price) * c.quantity), 0);
   let cartTaxes = 0;
   cart.forEach(c => {
@@ -463,10 +468,28 @@ export default function PosPage() {
           )}
         </div>
 
-        {/* Categories */}
-        <div className="section-header mt-4">
-          <h3>Menu</h3>
-          <div className="flex gap-2">
+          {/* Categories */}
+          <div className="section-header mt-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <h3>Menu</h3>
+              <input 
+                type="text" 
+                placeholder="Search items..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  background: 'hsl(220, 30%, 12%)',
+                  border: '1px solid hsl(217, 20%, 20%)',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  outline: 'none',
+                  fontSize: '0.9rem',
+                  minWidth: '200px'
+                }}
+              />
+            </div>
+            <div className="flex gap-2">
             {canEditPos && <button className="btn-secondary btn-sm" onClick={() => setShowAddCategory(true)}>+ Category</button>}
             {canEditPos && <button className="btn-secondary btn-sm" onClick={() => setShowAddMenuItem(true)}>+ Menu Item</button>}
           </div>
