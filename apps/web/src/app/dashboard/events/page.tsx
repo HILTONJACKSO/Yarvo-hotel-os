@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Clock, MapPin, Users, DollarSign, Search, Plus, CreditCard } from 'lucide-react';
+import { useAuth } from '@/lib/auth-provider';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -386,6 +387,9 @@ function SpacesTab({ spaces, refresh }: { spaces: EventSpace[], refresh: () => v
 // -----------------------------------------------------------------------------
 
 function BookingModal({ booking, spaces, onClose, onSave }: any) {
+  const { user } = useAuth();
+  const isAdminOrCEO = user?.role === 'ADMIN' || user?.role === 'CEO' || user?.role === 'SUPER_ADMIN';
+
   const [spaceId, setSpaceId] = useState(booking?.spaceId || (spaces[0]?.id || ''));
   const [guestName, setGuestName] = useState(booking?.guestName || '');
   const [guestPhone, setGuestPhone] = useState(booking?.guestPhone || '');
@@ -405,12 +409,39 @@ function BookingModal({ booking, spaces, onClose, onSave }: any) {
   const [totalAmount, setTotalAmount] = useState(Number(booking?.totalAmount || 0));
   const [amountPaid, setAmountPaid] = useState(Number(booking?.amountPaid || 0));
 
+  const handleDelete = async () => {
+    if (!booking) return;
+    if (!confirm('Are you sure you want to permanently delete this booking?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/v1/events/bookings/${booking.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        onSave();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert(`Failed to delete: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Error deleting booking');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Safely format ISO dates to include seconds + Z if they are local partials
+    let parsedStart = startTime;
+    let parsedEnd = endTime;
+    if (startTime.length === 16) parsedStart = new Date(startTime).toISOString();
+    if (endTime.length === 16) parsedEnd = new Date(endTime).toISOString();
+
     const payload = {
       spaceId, guestName, guestPhone, guestEmail, eventType,
       attendeesCount: Number(attendeesCount),
-      startTime, endTime, status,
+      startTime: parsedStart, endTime: parsedEnd, status,
       totalAmount: Number(totalAmount),
       amountPaid: Number(amountPaid)
     };
@@ -425,11 +456,16 @@ function BookingModal({ booking, spaces, onClose, onSave }: any) {
         body: JSON.stringify(payload),
         credentials: 'include'
       });
-      if (res.ok) onSave();
-      else alert('Failed to save booking');
-    } catch (err) {
+      if (res.ok) {
+        onSave();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMsg = errorData.message ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message) : 'Failed to save booking';
+        alert(`Failed: ${errorMsg}`);
+      }
+    } catch (err: any) {
       console.error(err);
-      alert('Error saving booking');
+      alert(`Error saving booking: ${err.message || 'Network error'}`);
     }
   };
 
@@ -494,10 +530,18 @@ function BookingModal({ booking, spaces, onClose, onSave }: any) {
               </div>
             </div>
           </div>
-          
-          <div className="modal-footer">
-            <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-primary">Save Booking</button>
+          <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              {booking && isAdminOrCEO && (
+                <button type="button" className="btn-danger" onClick={handleDelete} style={{ background: '#ef4444', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
+                  Delete Booking
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
+              <button type="submit" className="btn-primary">Save Booking</button>
+            </div>
           </div>
         </form>
       </div>
