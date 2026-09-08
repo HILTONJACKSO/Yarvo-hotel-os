@@ -13,6 +13,13 @@ export class GuestsService {
         where: { email: createGuestDto.email },
       });
       if (existing) {
+        if (!existing.isActive) {
+          // Reactivate soft-deleted guest
+          return this.prisma.guest.update({
+            where: { id: existing.id },
+            data: { ...createGuestDto, isActive: true },
+          });
+        }
         throw new ConflictException(`Guest with email ${createGuestDto.email} already exists`);
       }
     }
