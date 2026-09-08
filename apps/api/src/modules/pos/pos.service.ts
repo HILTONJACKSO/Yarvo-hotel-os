@@ -229,8 +229,7 @@ export class PosService {
 
     const payments = await this.prisma.posPayment.findMany({
       where: {
-        createdAt: { gte: today },
-        order: { isNot: null }
+        createdAt: { gte: today }
       }
     });
 
