@@ -151,25 +151,27 @@ export default function GuestsPage() {
                     <td>{guest.nationality || '-'}</td>
                     <td>{new Date(guest.createdAt).toLocaleDateString()}</td>
                       <td className="actions-cell">
-                        <button className="action-btn view">View</button>
-                        {canEdit && (
-                          <button 
-                            className="action-btn edit" 
-                            onClick={() => { setEditingGuest(guest); setIsEditModalOpen(true); }}
-                            style={{ marginLeft: '8px', color: 'hsl(215, 80%, 65%)', borderColor: 'hsl(215, 80%, 65%)' }}
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button 
-                            className="action-btn delete" 
-                            onClick={() => handleDelete(guest.id)}
-                            style={{ marginLeft: '8px', color: 'hsl(0, 84%, 60%)', borderColor: 'hsl(0, 84%, 60%)' }}
-                          >
-                            Delete
-                          </button>
-                        )}
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button className="action-btn view">View</button>
+                          {canEdit && (
+                            <button 
+                              className="action-btn edit" 
+                              onClick={() => { setEditingGuest(guest); setIsEditModalOpen(true); }}
+                              style={{ color: 'hsl(215, 80%, 65%)', borderColor: 'hsl(215, 80%, 65%)' }}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button 
+                              className="action-btn delete" 
+                              onClick={() => handleDelete(guest.id)}
+                              style={{ color: 'hsl(0, 84%, 60%)', borderColor: 'hsl(0, 84%, 60%)' }}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       </td>
                   </tr>
                 ))
@@ -211,7 +213,7 @@ export default function GuestsPage() {
         .contact-item { font-size: 0.8125rem; color: hsl(215, 20%, 65%); }
         .text-muted { color: hsl(215, 20%, 40%); font-style: italic; }
         
-        .actions-col { width: 100px; text-align: right; }
+        .actions-col { width: 250px; text-align: right; }
         .actions-cell { text-align: right; }
         .action-btn { background: transparent; border: 1px solid hsl(217, 20%, 18%); color: hsl(210, 40%, 92%); padding: 4px 12px; border-radius: 6px; cursor: pointer; }
         .action-btn:hover { background: hsl(217, 20%, 18%); }
