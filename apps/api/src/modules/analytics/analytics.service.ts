@@ -254,7 +254,7 @@ export class AnalyticsService {
     })).sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  async getFbTopItems() {
+  async getFbTopItems(start?: string, end?: string) {
     const topItems = await this.prisma.posOrderItem.groupBy({
       by: ['menuItemId'],
       _sum: { quantity: true },
@@ -276,7 +276,7 @@ export class AnalyticsService {
     return itemsWithDetails;
   }
 
-  async getRevenueByMethod() {
+  async getRevenueByMethod(start?: string, end?: string) {
     const folioPayments = await this.prisma.folioLineItem.groupBy({
       by: ['category'],
       _sum: { amount: true },
@@ -324,7 +324,7 @@ export class AnalyticsService {
     return chartData;
   }
 
-  async getOccupancyHeatmap() {
+  async getOccupancyHeatmap(start?: string, end?: string) {
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
     
@@ -398,7 +398,7 @@ export class AnalyticsService {
     return { dates, roomTypes: roomTypesData };
   }
 
-  async getRecentActivity() {
+  async getRecentActivity(start?: string, end?: string) {
     // Fetch last 5 reservations
     const reservations = await this.prisma.reservation.findMany({
       take: 5,
@@ -683,5 +683,6 @@ export class AnalyticsService {
     };
   }
 }
+
 
 
