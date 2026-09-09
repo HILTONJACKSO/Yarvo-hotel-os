@@ -285,6 +285,27 @@ export class PosService {
     });
   }
 
+  async recalculateOrderTotal(orderId: string) {
+    const order = await this.prisma.posOrder.findUnique({
+      where: { id: orderId },
+      include: { items: { include: { menuItem: true } } }
+    });
+    if (!order) return;
+
+    let subtotal = 0;
+    order.items.forEach(i => {
+      if (i.status !== 'RETURNED' && i.status !== 'RETURN_REQUESTED') {
+        subtotal += Number(i.menuItem.price) * i.quantity;
+      }
+    });
+
+    const finalTotal = Math.max(0, subtotal - Number(order.discountAmount || 0));
+    await this.prisma.posOrder.update({
+      where: { id: orderId },
+      data: { totalAmount: finalTotal }
+    });
+  }
+
   async createOrder(data: { tableId?: string; folioId?: string; guestId?: string; userId?: string; userRoles?: string[]; discountAmount?: number; notes?: string }) {
     // Check if an OPEN or SERVED order already exists for this destination to consolidate bills
     if (data.tableId) {
@@ -414,6 +435,9 @@ export class PosService {
       },
     });
 
+    // Recalculate total amount
+    await this.recalculateOrderTotal(orderId);
+
     // Revert the order back to OPEN if it was SERVED
     await this.prisma.posOrder.updateMany({
       where: { id: orderId, status: 'SERVED' },
@@ -477,12 +501,11 @@ export class PosService {
           calculatedTax += (itemTotal - itemBeforeTax);
         });
         
-        const finalTotal = Math.max(0, subtotal - Number(item.order.discountAmount || 0));
-        
         await this.prisma.posOrder.update({
-          where: { id: item.orderId },
-          data: { status: 'SERVED', totalAmount: finalTotal }
-        });
+            where: { id: item.orderId },
+            data: { status: 'SERVED' }
+          });
+          await this.recalculateOrderTotal(item.orderId);
       }
     }
 
@@ -707,17 +730,7 @@ export class PosService {
     // Recalculate total amount for the order if it hasn't been PAID
     const order = returnReq.orderItem.order;
     if (order.status !== 'PAID' && order.status !== 'BILLED_TO_ROOM') {
-      let newTotal = 0;
-      order.items.forEach(i => {
-        // Exclude the returned item when recalculating
-        if (i.id !== returnReq.orderItemId && i.status !== 'RETURNED') {
-          newTotal += Number(i.menuItem.price) * i.quantity;
-        }
-      });
-      await this.prisma.posOrder.update({
-        where: { id: order.id },
-        data: { totalAmount: newTotal }
-      });
+      await this.recalculateOrderTotal(order.id);
     }
 
     return updatedReturn;
