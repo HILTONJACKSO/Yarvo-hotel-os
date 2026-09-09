@@ -397,7 +397,8 @@ export class PosService {
       if (invItem) {
         const currentStock = Number((invItem as any)[deductField]) || 0;
         if (currentStock < deductionAmount) {
-          throw new BadRequestException(`Out of stock: ${invItem.name} only has ${currentStock} available in ${deductField.replace('stock', '')}. Cannot order ${data.quantity} units of ${menuItem?.name}.`);
+          const locKey = deductField === 'stockMain' ? 'Main' : deductField.replace('stock', '');
+          throw new BadRequestException(`Not enough stock in ${locKey} Storage to stock out ${data.quantity}. Current: ${currentStock}`);
         }
       }
     }
@@ -624,8 +625,16 @@ export class PosService {
     });
   }
 
-  async getReturnRequests() {
+  async getReturnRequests(start?: string, end?: string) {
+    const where: any = {};
+    if (start && end) {
+      where.createdAt = {
+        gte: new Date(start),
+        lte: new Date(new Date(end).setHours(23, 59, 59, 999))
+      };
+    }
     return this.prisma.posReturnRequest.findMany({
+      where,
       include: {
         orderItem: {
           include: {

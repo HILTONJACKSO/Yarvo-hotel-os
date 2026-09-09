@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { Moon, History, FileText, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
@@ -37,9 +39,30 @@ export default function NightAuditPage() {
     fetchHistory(start, end);
   };
 
-  const handleExport = (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print' || format === 'pdf') {
+  const handleExport = async (format: 'pdf' | 'csv' | 'print') => {
+    if (format === 'print') {
       window.print();
+    } else if (format === 'pdf') {
+      const element = document.querySelector('.page-container') as HTMLElement;
+      if (!element) return;
+      
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: '#0a0d14'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Report-${new Date().toISOString().split('T')[0]}.pdf`);
     } else if (format === 'csv') {
       downloadCSV(history.map(a => ({
         date: a.auditDate,
@@ -85,7 +108,7 @@ export default function NightAuditPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 page-container">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">

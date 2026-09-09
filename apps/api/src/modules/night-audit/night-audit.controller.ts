@@ -1,4 +1,4 @@
-import { Controller, Post, Get, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, UseGuards, Query } from '@nestjs/common';
 import { NightAuditService } from './night-audit.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -18,8 +18,8 @@ export class NightAuditController {
 
   @Get('history')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
-  async getHistory() {
-    const data = await this.nightAuditService.getHistory();
+  async getHistory(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.nightAuditService.getHistory(start, end);
     return { data };
   }
 }

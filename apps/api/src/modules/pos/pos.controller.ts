@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req, Query } from '@nestjs/common';
 import { PosService } from './pos.service';
 import { ApiTags, ApiCookieAuth } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -151,8 +151,8 @@ export class PosController {
 
   @Get('returns')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'KITCHEN', 'BAR', 'WAITSTAFF', 'CASHIER', 'FRONT_DESK')
-  getReturnRequests() {
-    return this.posService.getReturnRequests();
+  getReturnRequests(@Query('start') start?: string, @Query('end') end?: string) {
+    return this.posService.getReturnRequests(start, end);
   }
 
   @Post('returns/:returnId/confirm')

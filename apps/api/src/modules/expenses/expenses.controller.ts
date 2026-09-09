@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -19,8 +19,8 @@ export class ExpensesController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
-  async findAll() {
-    const data = await this.expensesService.findAll();
+  async findAll(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.expensesService.findAll(start, end);
     return { data };
   }
 

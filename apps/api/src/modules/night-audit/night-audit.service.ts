@@ -123,8 +123,16 @@ export class NightAuditService {
     }
   }
 
-  async getHistory() {
+  async getHistory(start?: string, end?: string) {
+    const where: any = {};
+    if (start && end) {
+      where.auditDate = {
+        gte: new Date(start),
+        lte: new Date(new Date(end).setHours(23, 59, 59, 999))
+      };
+    }
     return this.prisma.nightAudit.findMany({
+      where,
       orderBy: { auditDate: 'desc' },
       include: {
         user: { select: { firstName: true, lastName: true } }
