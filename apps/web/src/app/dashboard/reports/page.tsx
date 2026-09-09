@@ -24,11 +24,11 @@ import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
 
 type ChartData = { date: string; revenue: number; };
-type FbMetrics = { todayFbRevenue: number; todayFbIndex: number; weekFbRevenue: number; weekFbIndex: number; monthFbRevenue: number; monthFbIndex: number; };
+type FbMetrics = { todayFbRevenue: number; todayFbIndex: number; weekFbRevenue: number; weekFbIndex: number; monthFbRevenue: number; monthFbIndex: number; customRangeRevenue?: number; };
 type TopItem = { id: string; name: string; quantity: number; revenue: number; };
 type PaymentMethodData = { method: string; revenue: number; };
-type TicketMetrics = { adultTickets: number; kidTickets: number; poolTickets: number; totalRevenue: number; todayRevenue: number; weekRevenue: number; monthRevenue: number; validCount: number; usedCount: number; chart: { month: string; adults: number; kids: number; pool: number; revenue: number; }[]; };
-type EventMetrics = { totalBookings: number; confirmedCount: number; totalRevenue: number; todayRevenue: number; weekRevenue: number; monthRevenue: number; bookings: any[]; };
+type TicketMetrics = { adultTickets: number; kidTickets: number; poolTickets: number; totalRevenue: number; todayRevenue: number; weekRevenue: number; monthRevenue: number; customRangeRevenue?: number; validCount: number; usedCount: number; chart: { month: string; adults: number; kids: number; pool: number; revenue: number; }[]; };
+type EventMetrics = { totalBookings: number; confirmedCount: number; totalRevenue: number; todayRevenue: number; weekRevenue: number; monthRevenue: number; customRangeRevenue?: number; bookings: any[]; };
 
 type HeatmapData = {
   dates: string[];
@@ -333,7 +333,7 @@ export default function ReportsPage() {
               <span className="summary-label">This Month's Revenue</span>
               <span className="summary-val">${fbMetrics?.monthFbRevenue.toFixed(2) || '0.00'}</span>
             </div>
-            {startDate && endDate && fbMetrics?.customRangeRevenue != null && (
+            {fbMetrics?.customRangeRevenue != null && fbMetrics?.customRangeRevenue !== undefined && (
               <div className="summary-card" style={{ border: '1px solid hsl(43, 96%, 56%)' }}>
                 <span className="summary-label" style={{ color: 'hsl(43, 96%, 56%)' }}>Custom Range Revenue</span>
                 <span className="summary-val">${fbMetrics.customRangeRevenue.toFixed(2)}</span>
@@ -492,7 +492,7 @@ export default function ReportsPage() {
               <span className="summary-label">This Month's Revenue</span>
               <span className="summary-val">${(ticketMetrics?.monthRevenue ?? 0).toFixed(2)}</span>
             </div>
-            {startDate && endDate && ticketMetrics?.customRangeRevenue != null && (
+            {ticketMetrics?.customRangeRevenue != null && ticketMetrics?.customRangeRevenue !== undefined && (
               <div className="summary-card" style={{ border: '1px solid hsl(43, 96%, 56%)' }}>
                 <span className="summary-label" style={{ color: 'hsl(43, 96%, 56%)' }}>Custom Range Revenue</span>
                 <span className="summary-val">${ticketMetrics.customRangeRevenue.toFixed(2)}</span>
@@ -590,7 +590,7 @@ export default function ReportsPage() {
               <span className="summary-label">This Month's Revenue</span>
               <span className="summary-val">${(eventMetrics?.monthRevenue ?? 0).toFixed(2)}</span>
             </div>
-            {startDate && endDate && eventMetrics?.customRangeRevenue != null && (
+            {eventMetrics?.customRangeRevenue != null && eventMetrics?.customRangeRevenue !== undefined && (
               <div className="summary-card" style={{ border: '1px solid hsl(43, 96%, 56%)' }}>
                 <span className="summary-label" style={{ color: 'hsl(43, 96%, 56%)' }}>Custom Range Revenue</span>
                 <span className="summary-val">${eventMetrics.customRangeRevenue.toFixed(2)}</span>
