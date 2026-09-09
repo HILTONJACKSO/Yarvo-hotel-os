@@ -513,10 +513,10 @@ export default function CashierPage() {
 
             ) : (<div style={{ marginTop: "24px", padding: "16px", background: "rgba(255, 0, 0, 0.1)", color: "#ff6b6b", borderRadius: "8px", border: "1px solid #ff6b6b" }}><strong>Access Denied:</strong> You are not authorized to settle Restaurant or Bar bills. Please contact a Cashier or Manager.</div>)}
             <div className="payment-actions">
-              <button className="btn-secondary" onClick={() => handlePrintReceipt(selectedOrder.id)}>
+              <button className="btn-secondary" onClick={() => downloadReceiptPdf(selectedOrder.id, false)}>
                 Print Receipt
               </button>
-              <button className="btn-secondary" onClick={() => handlePrintInvoice(selectedOrder.id)}>
+              <button className="btn-secondary" onClick={() => downloadReceiptPdf(selectedOrder.id, true)}>
                 Print Invoice
               </button>
               <button 
