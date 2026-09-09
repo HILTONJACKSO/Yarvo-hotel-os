@@ -276,11 +276,82 @@ export default function CashierPage() {
       await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/increment-receipt-print`, { method: 'POST', credentials: 'include' });
       fetchOrders();
     } catch(e) {}
-  };
+    };
+  
+    const downloadReceiptPdf = async (orderId: string, isInvoice: boolean = false) => {
+      if (!selectedOrder) return;
+      
+      const isStaff = currentUser?.roles?.some((r: any) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+      const isManager = currentUser?.roles?.some((r: any) => ['MANAGER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+      
+      if (isInvoice) {
+        if (isStaff && selectedOrder.invoicePrintCount >= 1) {
+          showToast('Staff can only print an invoice once. Please contact management.', 'error');
+          return;
+        }
+        if (isManager && selectedOrder.invoicePrintCount >= 3) {
+          showToast('Manager can only print an invoice 3 times. Please contact CEO.', 'error');
+          return;
+        }
+      } else {
+        if (isStaff && selectedOrder.receiptPrintCount >= 1) {
+          showToast('Staff can only print a receipt once. Please contact management.', 'error');
+          return;
+        }
+        if (isManager && selectedOrder.receiptPrintCount >= 3) {
+          showToast('Manager can only print a receipt 3 times. Please contact CEO.', 'error');
+          return;
+        }
+      }
+  
+      try {
+        showToast('Generating PDF...', 'success');
+        const element = document.querySelector('.print-only-receipt') as HTMLElement;
+        if (!element) {
+          showToast('Receipt element not found', 'error');
+          return;
+        }
+  
+        const originalDisplay = element.style.display;
+        element.style.display = 'block';
+        element.style.position = 'absolute';
+        element.style.top = '-9999px';
+        
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          logging: false
+        });
+        
+        element.style.display = originalDisplay;
+        element.style.position = '';
+        element.style.top = '';
+  
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: [80, 297]
+        });
+        
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`${isInvoice ? 'Invoice' : 'Receipt'}_${selectedOrder.id.substring(0,8)}.pdf`);
+  
+        const endpoint = isInvoice ? 'increment-print' : 'increment-receipt-print';
+        await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/${endpoint}`, { method: 'POST', credentials: 'include' });
+        fetchOrders();
+      } catch (err) {
+        console.error('PDF generation error:', err);
+        showToast('Failed to generate PDF', 'error');
+      }
+    };
 
-  const canSettle = currentUser?.roles?.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
-
-  const handleCheckout = async (orderId: string) => {
+    const canSettle = currentUser?.roles?.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+  
+    const handleCheckout = async (orderId: string) => {
     if (isProcessing || !selectedOrder) return;
     
     const currentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
