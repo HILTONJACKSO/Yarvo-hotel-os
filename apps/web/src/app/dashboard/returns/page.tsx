@@ -49,27 +49,37 @@ export default function ReturnsPage() {
   };
 
   const handleExport = async (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print' || format === 'pdf') {
+    if (format === 'print') {
+      window.print();
+    } else if (format === 'pdf') {
       const element = document.querySelector('.returns-layout') as HTMLElement;
-      if (!element) return;
+      if (!element) {
+        showToast('Could not generate PDF', 'error');
+        return;
+      }
       
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        backgroundColor: '#0a0d14'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'p',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Returns-Report-${new Date().toISOString().split('T')[0]}.pdf`);
+      try {
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          backgroundColor: '#0a0d14'
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'p',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`Returns-Report-${new Date().toISOString().split('T')[0]}.pdf`);
+      } catch (err) {
+        console.error('PDF Error:', err);
+        showToast('Failed to generate PDF', 'error');
+      }
     } else if (format === 'csv') {
       downloadCSV(returns.map(r => ({
         date: r.createdAt,

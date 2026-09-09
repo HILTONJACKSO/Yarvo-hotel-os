@@ -336,12 +336,12 @@ export default function CashierPage() {
           format: [80, 297]
         });
         
+        const imgProps = pdf.getImageProperties(imgData);
         const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         pdf.save(`${isInvoice ? 'Invoice' : 'Receipt'}_${selectedOrder.id.substring(0,8)}.pdf`);
-  
         const endpoint = isInvoice ? 'increment-print' : 'increment-receipt-print';
         await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/${endpoint}`, { method: 'POST', credentials: 'include' });
         fetchOrders();

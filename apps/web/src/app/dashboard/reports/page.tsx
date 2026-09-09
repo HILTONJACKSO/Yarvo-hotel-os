@@ -114,27 +114,37 @@ export default function ReportsPage() {
   };
 
   const handleExport = async (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print' || format === 'pdf') {
+    if (format === 'print') {
+      window.print();
+    } else if (format === 'pdf') {
       const element = document.querySelector('.page-container') as HTMLElement;
-      if (!element) return;
+      if (!element) {
+        alert('Could not generate PDF: page container not found.');
+        return;
+      }
       
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        backgroundColor: '#0a0d14'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'p',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Kwalee-Report-${activeTab}-${new Date().toISOString().split('T')[0]}.pdf`);
+      try {
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          backgroundColor: '#0a0d14'
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'p',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`Kwalee-Report-${activeTab}-${new Date().toISOString().split('T')[0]}.pdf`);
+      } catch (err) {
+        console.error('PDF generation error:', err);
+        alert('Failed to generate PDF. Check console for details.');
+      }
     } else if (format === 'csv') {
       if (activeTab === 'HOTEL') {
         downloadCSV(hotelData, 'hotel-revenue-report');
@@ -323,6 +333,12 @@ export default function ReportsPage() {
               <span className="summary-label">This Month's Revenue</span>
               <span className="summary-val">${fbMetrics?.monthFbRevenue.toFixed(2) || '0.00'}</span>
             </div>
+            {startDate && endDate && fbMetrics?.customRangeRevenue != null && (
+              <div className="summary-card" style={{ border: '1px solid hsl(43, 96%, 56%)' }}>
+                <span className="summary-label" style={{ color: 'hsl(43, 96%, 56%)' }}>Custom Range Revenue</span>
+                <span className="summary-val">${fbMetrics.customRangeRevenue.toFixed(2)}</span>
+              </div>
+            )}
           </div>
 
           <div className="chart-grid">
@@ -476,6 +492,12 @@ export default function ReportsPage() {
               <span className="summary-label">This Month's Revenue</span>
               <span className="summary-val">${(ticketMetrics?.monthRevenue ?? 0).toFixed(2)}</span>
             </div>
+            {startDate && endDate && ticketMetrics?.customRangeRevenue != null && (
+              <div className="summary-card" style={{ border: '1px solid hsl(43, 96%, 56%)' }}>
+                <span className="summary-label" style={{ color: 'hsl(43, 96%, 56%)' }}>Custom Range Revenue</span>
+                <span className="summary-val">${ticketMetrics.customRangeRevenue.toFixed(2)}</span>
+              </div>
+            )}
           </div>
 
           <div className="chart-grid">
@@ -568,6 +590,12 @@ export default function ReportsPage() {
               <span className="summary-label">This Month's Revenue</span>
               <span className="summary-val">${(eventMetrics?.monthRevenue ?? 0).toFixed(2)}</span>
             </div>
+            {startDate && endDate && eventMetrics?.customRangeRevenue != null && (
+              <div className="summary-card" style={{ border: '1px solid hsl(43, 96%, 56%)' }}>
+                <span className="summary-label" style={{ color: 'hsl(43, 96%, 56%)' }}>Custom Range Revenue</span>
+                <span className="summary-val">${eventMetrics.customRangeRevenue.toFixed(2)}</span>
+              </div>
+            )}
           </div>
 
           <div className="chart-grid">
@@ -818,4 +846,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
 

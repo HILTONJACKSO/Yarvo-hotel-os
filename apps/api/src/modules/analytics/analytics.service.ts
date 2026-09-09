@@ -85,28 +85,32 @@ export class AnalyticsService {
     };
   }
 
-  async getRevenueChart() {
+  async getRevenueChart(start?: string, end?: string) {
     const now = new Date();
     const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
     
-    // Last 7 days
-    const startOfPeriod = new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000);
+    let startOfPeriod = new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000);
+    let endOfPeriod = now;
+    if (start && end) {
+      startOfPeriod = new Date(start);
+      endOfPeriod = new Date(new Date(end).setUTCHours(23, 59, 59, 999));
+    }
 
     // Folio payments
     const payments = await this.prisma.folioLineItem.findMany({
-      where: { type: 'PAYMENT', createdAt: { gte: startOfPeriod } },
+      where: { type: 'PAYMENT', createdAt: { gte: startOfPeriod, lte: endOfPeriod } },
       select: { amount: true, createdAt: true },
     });
 
     // POS payments
     const posPayments = await this.prisma.posPayment.findMany({
-      where: { createdAt: { gte: startOfPeriod } },
+      where: { createdAt: { gte: startOfPeriod, lte: endOfPeriod } },
       select: { amount: true, createdAt: true },
     });
 
     // Ticket sales
     const tickets = await this.prisma.ticket.findMany({
-      where: { issueDate: { gte: startOfPeriod }, status: { in: ['VALID', 'USED'] } },
+      where: { issueDate: { gte: startOfPeriod, lte: endOfPeriod }, status: { in: ['VALID', 'USED'] } },
       select: { price: true, issueDate: true },
     });
 
@@ -114,7 +118,7 @@ export class AnalyticsService {
     const dailyRevenue: Record<string, number> = {};
     
     // Initialize the last 7 days with 0
-    for (let i = 0; i < 7; i++) {
+    let days = 7; if (start && end) days = Math.ceil((endOfPeriod.getTime() - startOfPeriod.getTime()) / (1000 * 3600 * 24)); for (let i = 0; i < days; i++) {
       const d = new Date(startOfPeriod.getTime() + i * 24 * 60 * 60 * 1000);
       const dateStr = d.toISOString().split('T')[0];
       dailyRevenue[dateStr] = 0;
@@ -147,7 +151,7 @@ export class AnalyticsService {
 
   // --- F&B Analytics ---
 
-  async getFbMetrics() {
+  async getFbMetrics(start?: string, end?: string) {
     const now = new Date();
     const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
     
@@ -159,7 +163,9 @@ export class AnalyticsService {
     const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
 
     
-    const getFbRevenueForPeriod = async (startDate: Date) => {
+    const getFbRevenueForPeriod = async (startDate: Date, endDate?: Date) => {
+      const dateFilter: any = { gte: startDate };
+      if (endDate) dateFilter.lte = endDate;
       const result = await this.prisma.posOrder.aggregate({
         _sum: { totalAmount: true },
         where: {
@@ -169,7 +175,7 @@ export class AnalyticsService {
           ]
         }
       });
-      return result._sum.totalAmount?.toNumber() || 0;
+      return result._sum.totalAmount ? Number(result._sum.totalAmount) : 0;
     };
 
     const getFbDeductionsForPeriod = async (startDate: Date) => {
@@ -203,27 +209,33 @@ export class AnalyticsService {
       weekFbIndex: Math.max(0, (weekRev - weekDed) / 4),
       monthFbRevenue: monthRev,
       monthFbIndex: Math.max(0, (monthRev - monthDed) / 4),
+      customRangeRevenue: start && end ? await getFbRevenueForPeriod(new Date(start), new Date(new Date(end).setUTCHours(23, 59, 59, 999))) : null
     };
 
   }
 
-  async getFbRevenueChart() {
+  async getFbRevenueChart(start?: string, end?: string) {
     const now = new Date();
     const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-    const startOfPeriod = new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000);
+    let startOfPeriod = new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000);
+    let endOfPeriod = now;
+    if (start && end) {
+      startOfPeriod = new Date(start);
+      endOfPeriod = new Date(new Date(end).setUTCHours(23, 59, 59, 999));
+    }
 
     const orders = await this.prisma.posOrder.findMany({
       where: {
         OR: [
-          { status: 'PAID', updatedAt: { gte: startOfPeriod } },
-          { status: 'BILLED_TO_ROOM', folio: { status: 'CLOSED', updatedAt: { gte: startOfPeriod } } }
+          { status: 'PAID', updatedAt: { gte: startOfPeriod, lte: endOfPeriod } },
+          { status: 'BILLED_TO_ROOM', folio: { status: 'CLOSED', updatedAt: { gte: startOfPeriod, lte: endOfPeriod } } }
         ]
       },
       select: { totalAmount: true, updatedAt: true },
     });
 
     const dailyRevenue: Record<string, number> = {};
-    for (let i = 0; i < 7; i++) {
+    let days = 7; if (start && end) days = Math.ceil((endOfPeriod.getTime() - startOfPeriod.getTime()) / (1000 * 3600 * 24)); for (let i = 0; i < days; i++) {
       const d = new Date(startOfPeriod.getTime() + i * 24 * 60 * 60 * 1000);
       const dateStr = d.toISOString().split('T')[0];
       dailyRevenue[dateStr] = 0;
@@ -436,7 +448,7 @@ export class AnalyticsService {
     return activityList.slice(0, 8);
   }
 
-    async getTicketsMetrics() {
+    async getTicketsMetrics(start?: string, end?: string) {
     const now = new Date();
     const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const startOfWeek = new Date(startOfToday);
@@ -467,6 +479,18 @@ export class AnalyticsService {
       .filter(t => new Date(t.issueDate) >= startOfMonth)
       .reduce((acc, t) => acc + Number(t.price), 0);
 
+    let customRangeRevenue = null;
+    if (start && end) {
+      const startDate = new Date(start);
+      const endDate = new Date(new Date(end).setUTCHours(23, 59, 59, 999));
+      customRangeRevenue = tickets
+        .filter(t => {
+          const d = new Date(t.issueDate);
+          return d >= startDate && d <= endDate;
+        })
+        .reduce((acc, t) => acc + Number(t.price), 0);
+    }
+
     // Group by month
     const monthlyData = tickets.reduce((acc: any, t) => {
       const month = new Date(t.issueDate).toLocaleString('default', { month: 'short' });
@@ -486,13 +510,14 @@ export class AnalyticsService {
       todayRevenue,
       weekRevenue,
       monthRevenue,
+      customRangeRevenue,
       validCount,
       usedCount,
       chart: Object.values(monthlyData)
     };
   }
 
-  async getEventsMetrics() {
+  async getEventsMetrics(start?: string, end?: string) {
     const now = new Date();
     const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const startOfWeek = new Date(startOfToday);
@@ -515,8 +540,20 @@ export class AnalyticsService {
       .reduce((acc, b) => acc + Number(b.totalAmount), 0);
 
     const monthRevenue = bookings
-      .filter(b => new Date(b.startTime) >= startOfMonth)
-      .reduce((acc, b) => acc + Number(b.totalAmount), 0);
+      .filter((b: any) => new Date(b.startTime) >= startOfMonth)
+      .reduce((acc: number, b: any) => acc + Number(b.totalAmount), 0);
+
+    let customRangeRevenue = null;
+    if (start && end) {
+      const startDate = new Date(start);
+      const endDate = new Date(new Date(end).setUTCHours(23, 59, 59, 999));
+      customRangeRevenue = bookings
+        .filter((b: any) => {
+          const d = new Date(b.startTime);
+          return d >= startDate && d <= endDate;
+        })
+        .reduce((acc: number, b: any) => acc + Number(b.totalAmount), 0);
+    }
     
     return {
       totalBookings: bookings.length,
@@ -525,7 +562,8 @@ export class AnalyticsService {
       todayRevenue,
       weekRevenue,
       monthRevenue,
-      bookings: bookings.map(b => ({
+      customRangeRevenue,
+      bookings: bookings.map((b: any) => ({
         id: b.id,
         eventType: b.eventType,
         status: b.status,
@@ -645,4 +683,5 @@ export class AnalyticsService {
     };
   }
 }
+
 

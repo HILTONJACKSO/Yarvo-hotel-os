@@ -29,57 +29,57 @@ export class AnalyticsController {
 
   @Get('fb-metrics')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
-  async getFbMetrics() {
-    const data = await this.analyticsService.getFbMetrics();
+  async getFbMetrics(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getFbMetrics(start, end);
     return { data };
   }
 
   @Get('fb-chart')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
-  async getFbChart() {
-    const data = await this.analyticsService.getFbRevenueChart();
+  async getFbChart(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getFbRevenueChart(start, end);
     return { data };
   }
 
   @Get('fb-top-items')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
-  async getFbTopItems() {
-    const data = await this.analyticsService.getFbTopItems();
+  async getFbTopItems(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getFbTopItems(start, end);
     return { data };
   }
 
   @Get('revenue-by-method')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
-  async getRevenueByMethod() {
-    const data = await this.analyticsService.getRevenueByMethod();
+  async getRevenueByMethod(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getRevenueByMethod(start, end);
     return { data };
   }
 
   @Get('occupancy-heatmap')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
-  async getOccupancyHeatmap() {
-    const data = await this.analyticsService.getOccupancyHeatmap();
+  async getOccupancyHeatmap(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getOccupancyHeatmap(start, end);
     return { data };
   }
 
   @Get('recent-activity')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
-  async getRecentActivity() {
-    const data = await this.analyticsService.getRecentActivity();
+  async getRecentActivity(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getRecentActivity(start, end);
     return { data };
   }
 
-    @Get('tickets-metrics')
+  @Get('tickets-metrics')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'FRONT_DESK')
-  async getTicketsMetrics() {
-    const data = await this.analyticsService.getTicketsMetrics();
+  async getTicketsMetrics(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getTicketsMetrics(start, end);
     return { data };
   }
 
   @Get('events-metrics')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
-  async getEventsMetrics() {
-    const data = await this.analyticsService.getEventsMetrics();
+  async getEventsMetrics(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getEventsMetrics(start, end);
     return { data };
   }
 
