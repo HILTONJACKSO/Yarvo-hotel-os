@@ -2,8 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { EditPayslipModal } from './EditPayslipModal';
 import { PayslipPrint } from './PayslipPrint';
 import { PayrollSummaryPrint } from './PayrollSummaryPrint';
+import { useAuth } from '@/lib/auth-provider';
 
 export function PayrollTab({ staff }: { staff: any[] }) {
+  const { user } = useAuth();
+  const isManagerOrAdmin = user?.roles?.some((r: any) => ["SUPER_ADMIN", "ADMIN", "CEO", "MANAGER"].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+
   const [payslips, setPayslips] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -99,9 +103,11 @@ export function PayrollTab({ staff }: { staff: any[] }) {
           <input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} className="bg-[#141824] border border-[#1a1f2e] p-2 rounded text-sm outline-none" />
         </div>
         <div className="flex gap-2">
-          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium" onClick={handleGenerateAll}>
-            Auto-Generate Drafts
-          </button>
+          {isManagerOrAdmin && (
+            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-medium" onClick={handleGenerateAll}>
+              Auto-Generate Drafts
+            </button>
+          )}
           <button className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded text-sm font-medium" onClick={handlePrintSummary} disabled={!summary}>
             Print Summary (A4)
           </button>
@@ -141,9 +147,11 @@ export function PayrollTab({ staff }: { staff: any[] }) {
                       </span>
                     </td>
                     <td className="p-3 flex gap-2">
-                      <button onClick={() => setEditingPayslip(ps)} className="text-blue-400 hover:text-blue-300">Edit</button>
+                      {isManagerOrAdmin && (
+                        <button onClick={() => setEditingPayslip(ps)} className="text-blue-400 hover:text-blue-300">Edit</button>
+                      )}
                       <button onClick={() => triggerPrint(ps)} className="text-gray-400 hover:text-white">Print</button>
-                      {ps.status !== 'PAID' && (
+                      {isManagerOrAdmin && ps.status !== 'PAID' && (
                         <button onClick={() => handleStatusUpdate(ps.id, 'PAID')} className="text-green-400 hover:text-green-300">Mark Paid</button>
                       )}
                     </td>

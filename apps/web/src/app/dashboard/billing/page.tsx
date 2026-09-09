@@ -166,6 +166,7 @@ export default function BillingPage() {
 
   const isAdmin = user?.roles?.some((r: any) => ["SUPER_ADMIN", "ADMIN", "CEO"].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
   const isCashierOrManager = user?.roles?.some((r: any) => ["CASHIER", "MANAGER", "SUPER_ADMIN", "ADMIN", "CEO"].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+  const isFrontDesk = user?.roles?.some((r: any) => ["FRONT_DESK"].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
 
   if (loading && bills.length === 0) return <div className="flex items-center justify-center h-full text-slate-400">Loading Billing...</div>;
 
@@ -293,7 +294,7 @@ export default function BillingPage() {
                     <input type="number" step="0.01" min="0.01" placeholder="Amount ($)" required value={chargeAmount} onChange={e => setChargeAmount(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none" />
                     <button type="submit" className="bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 p-2.5 rounded-lg font-bold transition-all">Add Charge</button>
                   </form>
-                  {isCashierOrManager && (
+                  { (isCashierOrManager || isFrontDesk) && (
                     <form onSubmit={handlePostPayment} className="flex-1 bg-slate-800 border border-slate-700 p-5 rounded-xl flex flex-col gap-3">
                       <h4 className="font-bold text-slate-200">Post Payment</h4>
                       <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none">

@@ -30,9 +30,17 @@ export default function AuditLogsPage() {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'INVENTORY' | 'RETURNS_DISCOUNTS' | 'ALL'>('INVENTORY');
 
+  const formatCode = (str: string | any) => {
+    if (typeof str !== 'string') return String(str);
+    if (/^[A-Z0-9_]+$/.test(str)) {
+      return str.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
+    }
+    return str;
+  };
+
   const renderReadableValues = (values: any) => {
     if (!values) return <span className="text-[hsl(215,20%,65%)]">None</span>;
-    if (typeof values !== 'object') return <span>{String(values)}</span>;
+    if (typeof values !== 'object') return <span>{formatCode(values)}</span>;
     
     const ignoredKeys = ['id', 'createdAt', 'updatedAt', 'userId', 'businessId', 'spaceId', 'categoryId', 'roomId'];
     
@@ -43,13 +51,12 @@ export default function AuditLogsPage() {
           .map(([key, val]) => (
             <li key={key} className="flex gap-2 text-sm border-b border-[hsl(217,20%,16%)] pb-1 last:border-0">
               <span className="text-[hsl(215,20%,65%)] capitalize min-w-[120px]">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
-              <span className="text-white font-medium">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+              <span className="text-white font-medium">{typeof val === 'object' ? JSON.stringify(val) : formatCode(val)}</span>
             </li>
         ))}
       </ul>
     );
   };
-
 
   useEffect(() => {
     fetchLogs();
@@ -121,14 +128,14 @@ export default function AuditLogsPage() {
                     {log?.user ? `${log.user.firstName} ${log.user.lastName}` : (log?.userId ? String(log.userId).substring(0, 8) + '...' : 'System')}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[hsl(220,30%,20%)] text-[hsl(210,40%,96%)]">
-                      {log.action}
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[hsl(220,30%,20%)] text-[hsl(210,40%,96%)] whitespace-nowrap">
+                      {formatCode(log.action)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-white">
-                    {log.entity}
+                    {formatCode(log.entity)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-[hsl(215,20%,65%)]" title={log?.entityId}>
+                  <td className="px-4 py-3 text-sm text-[hsl(215,20%,65%)] truncate max-w-[200px]" title={log?.entityId}>
                     {log.newValues?.name || log.oldValues?.name || log.newValues?.number || log.oldValues?.number || log.newValues?.title || log.oldValues?.title || (log?.entityId ? String(log.entityId).substring(0, 8) + '...' : '')}
                   </td>
                   <td className="px-4 py-3 text-right">
