@@ -150,21 +150,22 @@ export class PosController {
   }
 
   @Get('returns')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'KITCHEN', 'BAR', 'WAITSTAFF', 'CASHIER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'BAR', 'WAITSTAFF', 'CASHIER', 'FRONT_DESK')
   getReturnRequests(@Query('start') start?: string, @Query('end') end?: string) {
     return this.posService.getReturnRequests(start, end);
   }
 
   @Post('returns/:returnId/confirm')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'KITCHEN', 'BAR', 'CASHIER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'BAR', 'CASHIER', 'FRONT_DESK')
   confirmReturn(@Param('returnId') returnId: string, @Body('kitchenNote') kitchenNote: string, @Req() req: any) {
     return this.posService.confirmReturn(returnId, req.user.id, kitchenNote);
   }
 
   @Post('returns/:returnId/approve')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'CASHIER', 'FRONT_DESK')
   approveReturn(@Param('returnId') returnId: string, @Body('approved') approved: boolean, @Req() req: any) {
     return this.posService.approveReturn(returnId, req.user.id, approved);
   }
 }
+
 

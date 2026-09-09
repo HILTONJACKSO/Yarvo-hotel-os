@@ -437,10 +437,14 @@ export class AnalyticsService {
   }
 
     async getTicketsMetrics() {
+    const now = new Date();
+    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setUTCDate(startOfToday.getUTCDate() - startOfToday.getUTCDay());
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
     const tickets = await this.prisma.ticket.findMany({
-      where: {
-        status: { not: 'RETURNED' }
-      }
+      where: { status: { not: 'RETURNED' } }
     });
 
     const adultTickets = tickets.filter(t => t.type.toLowerCase().includes('adult')).length;
@@ -450,6 +454,18 @@ export class AnalyticsService {
     const totalRevenue = tickets.reduce((acc, t) => acc + Number(t.price), 0);
     const validCount = tickets.filter(t => t.status === 'VALID').length;
     const usedCount = tickets.filter(t => t.status === 'USED').length;
+
+    const todayRevenue = tickets
+      .filter(t => new Date(t.issueDate) >= startOfToday)
+      .reduce((acc, t) => acc + Number(t.price), 0);
+
+    const weekRevenue = tickets
+      .filter(t => new Date(t.issueDate) >= startOfWeek)
+      .reduce((acc, t) => acc + Number(t.price), 0);
+
+    const monthRevenue = tickets
+      .filter(t => new Date(t.issueDate) >= startOfMonth)
+      .reduce((acc, t) => acc + Number(t.price), 0);
 
     // Group by month
     const monthlyData = tickets.reduce((acc: any, t) => {
@@ -467,6 +483,9 @@ export class AnalyticsService {
       kidTickets,
       poolTickets,
       totalRevenue,
+      todayRevenue,
+      weekRevenue,
+      monthRevenue,
       validCount,
       usedCount,
       chart: Object.values(monthlyData)
@@ -474,17 +493,38 @@ export class AnalyticsService {
   }
 
   async getEventsMetrics() {
+    const now = new Date();
+    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setUTCDate(startOfToday.getUTCDate() - startOfToday.getUTCDay());
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
     const bookings = await this.prisma.eventBooking.findMany({
       include: { space: true }
     });
 
     const totalRevenue = bookings.reduce((acc, b) => acc + Number(b.totalAmount), 0);
     const confirmedCount = bookings.filter(b => b.status === 'CONFIRMED').length;
+
+    const todayRevenue = bookings
+      .filter(b => new Date(b.startTime) >= startOfToday)
+      .reduce((acc, b) => acc + Number(b.totalAmount), 0);
+
+    const weekRevenue = bookings
+      .filter(b => new Date(b.startTime) >= startOfWeek)
+      .reduce((acc, b) => acc + Number(b.totalAmount), 0);
+
+    const monthRevenue = bookings
+      .filter(b => new Date(b.startTime) >= startOfMonth)
+      .reduce((acc, b) => acc + Number(b.totalAmount), 0);
     
     return {
       totalBookings: bookings.length,
       confirmedCount,
       totalRevenue,
+      todayRevenue,
+      weekRevenue,
+      monthRevenue,
       bookings: bookings.map(b => ({
         id: b.id,
         eventType: b.eventType,

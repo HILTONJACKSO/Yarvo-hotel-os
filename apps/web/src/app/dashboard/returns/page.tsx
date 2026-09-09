@@ -49,10 +49,8 @@ export default function ReturnsPage() {
   };
 
   const handleExport = async (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print') {
-      window.print();
-    } else if (format === 'pdf') {
-      const element = document.querySelector('.page-container') as HTMLElement;
+    if (format === 'print' || format === 'pdf') {
+      const element = document.querySelector('.returns-layout') as HTMLElement;
       if (!element) return;
       
       const canvas = await html2canvas(element, {
@@ -71,7 +69,7 @@ export default function ReturnsPage() {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Report-${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.save(`Returns-Report-${new Date().toISOString().split('T')[0]}.pdf`);
     } else if (format === 'csv') {
       downloadCSV(returns.map(r => ({
         date: r.createdAt,

@@ -27,8 +27,8 @@ type ChartData = { date: string; revenue: number; };
 type FbMetrics = { todayFbRevenue: number; todayFbIndex: number; weekFbRevenue: number; weekFbIndex: number; monthFbRevenue: number; monthFbIndex: number; };
 type TopItem = { id: string; name: string; quantity: number; revenue: number; };
 type PaymentMethodData = { method: string; revenue: number; };
-type TicketMetrics = { adultTickets: number; kidTickets: number; poolTickets: number; totalRevenue: number; validCount: number; usedCount: number; chart: { month: string; adults: number; kids: number; pool: number; revenue: number; }[]; };
-type EventMetrics = { totalBookings: number; confirmedCount: number; totalRevenue: number; bookings: any[]; };
+type TicketMetrics = { adultTickets: number; kidTickets: number; poolTickets: number; totalRevenue: number; todayRevenue: number; weekRevenue: number; monthRevenue: number; validCount: number; usedCount: number; chart: { month: string; adults: number; kids: number; pool: number; revenue: number; }[]; };
+type EventMetrics = { totalBookings: number; confirmedCount: number; totalRevenue: number; todayRevenue: number; weekRevenue: number; monthRevenue: number; bookings: any[]; };
 
 type HeatmapData = {
   dates: string[];
@@ -113,10 +113,8 @@ export default function ReportsPage() {
     fetchData(start, end);
   };
 
-    const handleExport = async (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print') {
-      window.print();
-    } else if (format === 'pdf') {
+  const handleExport = async (format: 'pdf' | 'csv' | 'print') => {
+    if (format === 'print' || format === 'pdf') {
       const element = document.querySelector('.page-container') as HTMLElement;
       if (!element) return;
       
@@ -144,6 +142,10 @@ export default function ReportsPage() {
         downloadCSV(fbChart, 'fb-revenue-report');
       } else if (activeTab === 'FINANCIAL') {
         downloadCSV(paymentData, 'financial-revenue-report');
+      } else if (activeTab === 'TICKETS') {
+        downloadCSV(ticketMetrics?.chart || [], 'tickets-revenue-report');
+      } else if (activeTab === 'EVENTS') {
+        downloadCSV(eventMetrics?.bookings || [], 'events-revenue-report');
       }
     }
   };
@@ -455,6 +457,168 @@ export default function ReportsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'TICKETS' && (
+        <div className="fb-dashboard">
+          <div className="summary-cards">
+            <div className="summary-card">
+              <span className="summary-label">Today's Revenue</span>
+              <span className="summary-val">${(ticketMetrics?.todayRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">This Week's Revenue</span>
+              <span className="summary-val">${(ticketMetrics?.weekRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">This Month's Revenue</span>
+              <span className="summary-val">${(ticketMetrics?.monthRevenue ?? 0).toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="chart-grid">
+            <div className="chart-card">
+              <div className="chart-header">
+                <div>
+                  <h3 className="chart-title">Ticket Revenue by Month</h3>
+                  <p className="chart-subtitle">Monthly breakdown</p>
+                </div>
+                <div className="chart-stat">
+                  <span className="stat-label">Total Revenue</span>
+                  <span className="stat-val">${(ticketMetrics?.totalRevenue ?? 0).toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="chart-body">
+                {loading ? (
+                  <div className="chart-loading">Loading ticket data...</div>
+                ) : !ticketMetrics?.chart?.length ? (
+                  <div className="chart-loading">No ticket data available.</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={ticketMetrics.chart} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(217, 20%, 14%)" vertical={false} />
+                      <XAxis dataKey="month" stroke="hsl(215, 20%, 55%)" fontSize={12} />
+                      <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => `$${val}`} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'hsl(222, 35%, 10%)', borderColor: 'hsl(217, 20%, 20%)', borderRadius: '8px', color: 'hsl(210, 40%, 96%)' }}
+                        formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                      />
+                      <Bar dataKey="revenue" fill="hsl(43, 96%, 56%)" radius={[4,4,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            <div className="chart-card">
+              <div className="chart-header">
+                <h3 className="chart-title">Ticket Breakdown</h3>
+              </div>
+              <div className="top-items-list">
+                {loading && <div className="chart-loading">Loading...</div>}
+                {ticketMetrics && (
+                  <>
+                    <div className="top-item">
+                      <div className="item-rank">A</div>
+                      <div className="item-info"><div className="item-name">Adult Tickets</div><div className="item-sales">Total issued</div></div>
+                      <div className="item-rev">{ticketMetrics.adultTickets}</div>
+                    </div>
+                    <div className="top-item">
+                      <div className="item-rank">K</div>
+                      <div className="item-info"><div className="item-name">Kid Tickets</div><div className="item-sales">Total issued</div></div>
+                      <div className="item-rev">{ticketMetrics.kidTickets}</div>
+                    </div>
+                    <div className="top-item">
+                      <div className="item-rank">P</div>
+                      <div className="item-info"><div className="item-name">Pool Tickets</div><div className="item-sales">Total issued</div></div>
+                      <div className="item-rev">{ticketMetrics.poolTickets}</div>
+                    </div>
+                    <div className="top-item">
+                      <div className="item-rank">✓</div>
+                      <div className="item-info"><div className="item-name">Valid / Unused</div><div className="item-sales">Active tickets</div></div>
+                      <div className="item-rev">{ticketMetrics.validCount}</div>
+                    </div>
+                    <div className="top-item">
+                      <div className="item-rank">U</div>
+                      <div className="item-info"><div className="item-name">Used Tickets</div><div className="item-sales">Redeemed</div></div>
+                      <div className="item-rev">{ticketMetrics.usedCount}</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'EVENTS' && (
+        <div className="fb-dashboard">
+          <div className="summary-cards">
+            <div className="summary-card">
+              <span className="summary-label">Today's Revenue</span>
+              <span className="summary-val">${(eventMetrics?.todayRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">This Week's Revenue</span>
+              <span className="summary-val">${(eventMetrics?.weekRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">This Month's Revenue</span>
+              <span className="summary-val">${(eventMetrics?.monthRevenue ?? 0).toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="chart-grid">
+            <div className="chart-card">
+              <div className="chart-header">
+                <div>
+                  <h3 className="chart-title">Event Bookings</h3>
+                  <p className="chart-subtitle">All bookings overview</p>
+                </div>
+                <div className="chart-stat">
+                  <span className="stat-label">Total Revenue</span>
+                  <span className="stat-val">${(eventMetrics?.totalRevenue ?? 0).toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="top-items-list">
+                {loading && <div className="chart-loading">Loading events...</div>}
+                {!loading && !eventMetrics?.bookings?.length && <div className="chart-loading">No event bookings yet.</div>}
+                {eventMetrics?.bookings?.map((b: any) => (
+                  <div key={b.id} className="top-item">
+                    <div className="item-rank" style={{ fontSize: '0.7rem', padding: '2px 4px' }}>{b.status?.slice(0,3)}</div>
+                    <div className="item-info">
+                      <div className="item-name">{b.eventType || 'Event'}</div>
+                      <div className="item-sales">{new Date(b.date).toLocaleDateString()}</div>
+                    </div>
+                    <div className="item-rev">${Number(b.revenue).toFixed(2)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="chart-card">
+              <div className="chart-header">
+                <h3 className="chart-title">Events Summary</h3>
+              </div>
+              <div className="top-items-list">
+                {eventMetrics && (
+                  <>
+                    <div className="top-item">
+                      <div className="item-rank">#</div>
+                      <div className="item-info"><div className="item-name">Total Bookings</div><div className="item-sales">All time</div></div>
+                      <div className="item-rev">{eventMetrics.totalBookings}</div>
+                    </div>
+                    <div className="top-item">
+                      <div className="item-rank">✓</div>
+                      <div className="item-info"><div className="item-name">Confirmed</div><div className="item-sales">Confirmed bookings</div></div>
+                      <div className="item-rev">{eventMetrics.confirmedCount}</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
