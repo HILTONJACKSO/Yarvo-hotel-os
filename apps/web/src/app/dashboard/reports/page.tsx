@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 import { 
   LineChart, 
   Line, 
@@ -134,16 +134,24 @@ export default function ReportsPage() {
       }
       
       try {
-        const canvas = await html2canvas(element, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            backgroundColor: '#0a0d14'
+        const filter = (node: any) => {
+            return !node.classList?.contains('no-print');
+          };
+          
+          const scale = 2;
+          const imgData = await domtoimage.toPng(element, {
+            filter: filter,
+            bgcolor: '#0a0d14',
+            width: element.clientWidth * scale,
+            height: element.clientHeight * scale,
+            style: {
+              transform: 'scale('+scale+')',
+              transformOrigin: 'top left'
+            }
           });
           
-          const imgData = canvas.toDataURL('image/png', 1.0);
           const pdfWidth = 210;
-          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+          const pdfHeight = (element.clientHeight * pdfWidth) / element.clientWidth;
           
           const pdf = new jsPDF({
             orientation: pdfWidth > pdfHeight ? 'l' : 'p',
