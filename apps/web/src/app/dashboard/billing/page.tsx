@@ -21,6 +21,7 @@ export default function BillingPage() {
 
   // Top Bar Stats
   const [totalPendingPOS, setTotalPendingPOS] = useState(0);
+  const [totalPendingRooms, setTotalPendingRooms] = useState(0);
 
   const fetchBills = async () => {
     try {
@@ -43,6 +44,8 @@ export default function BillingPage() {
       // Calculate total pending POS
       const totalPosAmount = posOrders.reduce((sum: number, o: any) => sum + Number(o.totalAmount || 0), 0);
       setTotalPendingPOS(totalPosAmount);
+      const totalRoomsAmount = folios.reduce((sum: number, f: any) => sum + Number(f.balance || 0), 0);
+      setTotalPendingRooms(totalRoomsAmount);
 
       // Combine
       setBills([...folios, ...posOrders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
@@ -175,11 +178,16 @@ export default function BillingPage() {
       {/* Top Bar Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 shrink-0">
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl p-6 shadow-lg relative overflow-hidden group hover:border-cyan-500/30 transition-all">
-          <div className="absolute -right-6 -top-6 text-cyan-500/10 group-hover:text-cyan-500/20 transition-all duration-500"><Receipt size={120} /></div>
-          <h3 className="text-sm font-semibold tracking-wide text-slate-400 mb-2 relative z-10 uppercase">Pending F&B Billing</h3>
-          <p className="text-4xl font-extrabold text-white relative z-10 tracking-tight">${totalPendingPOS.toFixed(2)}</p>
+            <div className="absolute -right-6 -top-6 text-cyan-500/10 group-hover:text-cyan-500/20 transition-all duration-500"><Receipt size={120} /></div>
+            <h3 className="text-sm font-semibold tracking-wide text-slate-400 mb-2 relative z-10 uppercase">Pending Rooms Billing</h3>
+            <p className="text-4xl font-extrabold text-white relative z-10 tracking-tight">${totalPendingRooms.toFixed(2)}</p>
+          </div>
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl p-6 shadow-lg relative overflow-hidden group hover:border-cyan-500/30 transition-all">
+            <div className="absolute -right-6 -top-6 text-cyan-500/10 group-hover:text-cyan-500/20 transition-all duration-500"><Receipt size={120} /></div>
+            <h3 className="text-sm font-semibold tracking-wide text-slate-400 mb-2 relative z-10 uppercase">Pending F&B Billing</h3>
+            <p className="text-4xl font-extrabold text-white relative z-10 tracking-tight">${totalPendingPOS.toFixed(2)}</p>
+          </div>
         </div>
-      </div>
 
       <div className="flex flex-1 gap-6 min-h-0 items-start">
         {/* Sidebar: List of Bills */}

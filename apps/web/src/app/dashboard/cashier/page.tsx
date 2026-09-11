@@ -538,7 +538,7 @@ export default function CashierPage() {
       }
     };
 
-    const canSettle = currentUser?.roles?.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+    const canSettle = currentUser?.roles?.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'FRONT_DESK'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
   
     const handleCheckout = async (orderId: string) => {
     if (isProcessing || !selectedOrder) return;
