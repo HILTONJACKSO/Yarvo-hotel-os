@@ -1045,6 +1045,9 @@ export default function CashierPage() {
             margin: 0 !important;
             padding: 0 !important;
           }
+          .modern-receipt, .modern-receipt * {
+            color: #000 !important;
+          }
           .modern-receipt {
             position: fixed !important;
             top: 0 !important;
