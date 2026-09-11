@@ -285,6 +285,84 @@ export class PosService {
     });
   }
 
+    async transferItems(data: {
+    sourceOrderId: string;
+    targetTableId?: string;
+    targetOrderId?: string;
+    items: { id: string; quantity: number }[];
+  }) {
+    if (!data.targetTableId && !data.targetOrderId) {
+      throw new BadRequestException('Target table or order is required');
+    }
+
+    let targetOrderId = data.targetOrderId;
+
+    if (!targetOrderId && data.targetTableId) {
+      const activeOrder = await this.prisma.posOrder.findFirst({
+        where: {
+          tableId: data.targetTableId,
+          status: { in: ['OPEN', 'PREPARING', 'READY', 'SERVED'] }
+        }
+      });
+
+      if (activeOrder) {
+        targetOrderId = activeOrder.id;
+      } else {
+        const newOrder = await this.prisma.posOrder.create({
+          data: {
+            tableId: data.targetTableId,
+            status: 'OPEN',
+            totalAmount: 0
+          }
+        });
+        targetOrderId = newOrder.id;
+      }
+    }
+
+    if (!targetOrderId) throw new BadRequestException('Target order could not be determined');
+    if (targetOrderId === data.sourceOrderId) throw new BadRequestException('Cannot transfer to the same order');
+
+    for (const item of data.items) {
+      const orderItem = await this.prisma.posOrderItem.findUnique({
+        where: { id: item.id }
+      });
+      
+      if (!orderItem || orderItem.orderId !== data.sourceOrderId) continue;
+      
+      if (item.quantity >= orderItem.quantity) {
+        await this.prisma.posOrderItem.update({
+          where: { id: item.id },
+          data: { orderId: targetOrderId }
+        });
+      } else if (item.quantity > 0) {
+        await this.prisma.posOrderItem.update({
+          where: { id: item.id },
+          data: { quantity: orderItem.quantity - item.quantity }
+        });
+        
+        await this.prisma.posOrderItem.create({
+          data: {
+            orderId: targetOrderId,
+            menuItemId: orderItem.menuItemId,
+            quantity: item.quantity,
+            status: orderItem.status,
+            notes: orderItem.notes
+          }
+        });
+      }
+    }
+
+    await this.recalculateOrderTotal(data.sourceOrderId);
+    await this.recalculateOrderTotal(targetOrderId);
+    
+    const sourceItemsCount = await this.prisma.posOrderItem.count({ where: { orderId: data.sourceOrderId } });
+    if (sourceItemsCount === 0) {
+      await this.prisma.posOrder.delete({ where: { id: data.sourceOrderId } });
+    }
+
+    return { success: true };
+  }
+
   async recalculateOrderTotal(orderId: string) {
     const order = await this.prisma.posOrder.findUnique({
       where: { id: orderId },
@@ -743,4 +821,5 @@ export class PosService {
     return updatedReturn;
   }
 }
+
 

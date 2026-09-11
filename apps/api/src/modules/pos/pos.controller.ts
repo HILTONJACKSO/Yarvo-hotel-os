@@ -92,6 +92,16 @@ export class PosController {
     return this.posService.getDailyCashierStats();
   }
 
+    @Post('orders/transfer')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'WAITSTAFF')
+  transferItems(@Body() data: {
+    sourceOrderId: string;
+    targetTableId?: string;
+    targetOrderId?: string;
+    items: { id: string; quantity: number }[];
+  }) {
+    return this.posService.transferItems(data);
+  }
   @Get('orders')
   getActiveOrders() {
     return this.posService.getActiveOrders();
@@ -167,5 +177,6 @@ export class PosController {
     return this.posService.approveReturn(returnId, req.user.id, approved);
   }
 }
+
 
 
