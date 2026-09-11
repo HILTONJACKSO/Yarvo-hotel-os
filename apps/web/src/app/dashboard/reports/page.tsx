@@ -58,6 +58,7 @@ export default function ReportsPage() {
   const [ticketMetrics, setTicketMetrics] = useState<TicketMetrics | null>(null);
   const [eventMetrics, setEventMetrics] = useState<EventMetrics | null>(null);
 
+  const [dateRangeStr, setDateRangeStr] = useState<string>('Last 7 Days');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,6 +111,15 @@ export default function ReportsPage() {
   }, [activeTab]);
 
   const handleDateChange = (start: string, end: string) => {
+    if (start && end) {
+      if (start === end) {
+        setDateRangeStr(start);
+      } else {
+        setDateRangeStr(`${start} - ${end}`);
+      }
+    } else {
+      setDateRangeStr('Last 7 Days');
+    }
     fetchData(start, end);
   };
 
@@ -125,26 +135,28 @@ export default function ReportsPage() {
       
       try {
         const canvas = await html2canvas(element, {
-          scale: 2,
-          backgroundColor: '#0a0d14'
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-          orientation: 'p',
-          unit: 'mm',
-          format: 'a4'
-        });
-        
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`Kwalee-Report-${activeTab}-${new Date().toISOString().split('T')[0]}.pdf`);
-      } catch (err) {
-        console.error('PDF generation error:', err);
-        alert('Failed to generate PDF. Check console for details.');
-      }
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#0a0d14'
+          });
+          
+          const imgData = canvas.toDataURL('image/png', 1.0);
+          const pdfWidth = 210;
+          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+          
+          const pdf = new jsPDF({
+            orientation: pdfWidth > pdfHeight ? 'l' : 'p',
+            unit: 'mm',
+            format: [pdfWidth, pdfHeight]
+          });
+          
+          pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+          pdf.save(`Kwalee-Report-${activeTab}-${new Date().toISOString().split('T')[0]}.pdf`);
+        } catch (err: any) {
+          console.error('PDF generation error:', err);
+          alert(`Failed to generate PDF: ${err.message || 'Unknown error'}`);
+        }
     } else if (format === 'csv') {
       if (activeTab === 'HOTEL') {
         downloadCSV(hotelData, 'hotel-revenue-report');
@@ -218,7 +230,7 @@ export default function ReportsPage() {
             <div className="chart-header">
               <div>
                 <h3 className="chart-title">Room Revenue Trend</h3>
-                <p className="chart-subtitle">Last 7 Days</p>
+                <p className="chart-subtitle">{dateRangeStr}</p>
               </div>
               <div className="chart-stat">
                 <span className="stat-label">Total Period Revenue</span>
@@ -346,7 +358,7 @@ export default function ReportsPage() {
               <div className="chart-header">
                 <div>
                   <h3 className="chart-title">F&B Revenue Trend</h3>
-                  <p className="chart-subtitle">Last 7 Days</p>
+                  <p className="chart-subtitle">{dateRangeStr}</p>
                 </div>
                 <div className="chart-stat">
                   <span className="stat-label">7-Day Total</span>

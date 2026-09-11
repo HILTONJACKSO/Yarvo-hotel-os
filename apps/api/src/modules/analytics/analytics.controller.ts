@@ -22,8 +22,8 @@ export class AnalyticsController {
   @Get('revenue-chart')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
   @ApiOperation({ summary: 'Get revenue charting data for the last 7 days' })
-  async getRevenueChart() {
-    const data = await this.analyticsService.getRevenueChart();
+  async getRevenueChart(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getRevenueChart(start, end);
     return { data };
   }
 
