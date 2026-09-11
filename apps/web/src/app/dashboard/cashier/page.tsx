@@ -521,7 +521,7 @@ export default function CashierPage() {
   
       try {
         showToast('Generating PDF...', 'success');
-        const element = document.querySelector('.print-only-receipt') as HTMLElement;
+        const element = document.querySelector(isInvoice ? '#kwalee-invoice' : '#kwalee-receipt') as HTMLElement;
         if (!element) {
           showToast('Receipt element not found', 'error');
           return;
@@ -818,69 +818,115 @@ export default function CashierPage() {
               </button>
             </div>
 
-            {/* PRINT ONLY RECEIPT - MODERN 2026 DESIGN */}
-            <div className="print-only-receipt modern-receipt">
-              <div className="receipt-brand">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                </svg>
-                <h2>Yarvo</h2>
-                <p>RESTAURANT & BAR</p>
-              </div>
-              
-              <div className="receipt-divider"></div>
-              
-              <div className="receipt-meta">
-                <div className="meta-row">
-                  <span className="meta-label">ORDER ID</span>
-                  <span className="meta-value">#{selectedOrder.id.substring(0,8).toUpperCase()}</span>
+            {/* ORIGINAL KWAALEE BEACH RESORT RECEIPTS */}
+            <div className="print-only-container">
+              <div id="kwalee-receipt" className="kwalee-receipt">
+                <div className="header-container">
+                  <img src="/kwalee-logo.png" alt="Logo" style={{ maxWidth: '120px', marginBottom: '10px', display: 'block', margin: '0 auto' }} />
+                  <div className="header-title">KWAALEE BEACH RESORT</div>
+                  <div className="header-info">www.kwaleebeachresort.com</div>
+                  <div className="header-info">+231 774 340 843 / +231 881 774 350</div>
+                  <div className="header-info">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
                 </div>
-                <div className="meta-row">
-                  <span className="meta-label">TABLE / ROOM</span>
-                  <span className="meta-value">
-                    {selectedOrder.folio?.reservation?.room 
-                      ? `Room ${selectedOrder.folio.reservation.room.number}` 
-                      : selectedOrder.table?.number || 'Walk-in'}
-                  </span>
-                </div>
-                <div className="meta-row">
-                  <span className="meta-label">DATE</span>
-                  <span className="meta-value">{new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                </div>
-              </div>
-              
-              <div className="receipt-divider"></div>
-              
-              <div className="receipt-items">
-                  {selectedOrder.items.map((item) => {
-                    const isReturned = item.status === 'RETURNED';
-                    return (
-                    <div key={item.id} className={`modern-item ${isReturned ? 'text-rose-400' : ''}`}>
-                      <div className="item-main">
-                        <span className="item-qty">{item.quantity}x</span>
-                        <span className="item-name">{isReturned ? '(Returned) ' : ''}{item.menuItem.name}</span>
-                      </div>
-                      <span className="item-price">{isReturned ? '-' : ''}${(Number(item.menuItem.price) * item.quantity).toFixed(2)}</span>
+                
+                <div className="divider"></div>
+                <p className="sub">CUSTOMER RECEIPT</p>
+                
+                <div className="meta"><span>ORDER ID</span> <span>#{selectedOrder.id.substring(0,8).toUpperCase()}</span></div>
+                <div className="meta"><span>LOCATION</span> <span>{selectedOrder.folio?.reservation?.room ? `Room ${selectedOrder.folio.reservation.room.number}` : selectedOrder.table?.number || 'Walk-in'}</span></div>
+                <div className="meta"><span>DATE</span> <span>{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</span></div>
+                
+                <div className="divider"></div>
+                
+                {selectedOrder.items.map((item) => {
+                  const isReturned = item.status === 'RETURNED';
+                  const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
+                  const displayPrice = isReturned 
+                    ? `-$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`
+                    : `$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`;
+                  return (
+                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', color: isReturned ? '#dc2626' : '#000' }}>
+                      <div><span style={{ marginRight: '8px', color: '#000' }}>{item.quantity}x</span><span style={{ color: '#000' }}>{displayName}</span></div>
+                      <span style={{ color: '#000' }}>{displayPrice}</span>
                     </div>
-                  )})}
+                  );
+                })}
+                
+                <div className="divider"></div>
+                
+                <div className="summary-row"><span>Subtotal</span><span>${Number(selectedOrder.totalAmount).toFixed(2)}</span></div>
+                <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>${((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10)).toFixed(2)}</span></div>
+                {calculatedDiscount > 0 && <div className="summary-row" style={{ color: '#dc2626' }}><span>Discount</span><span>-${calculatedDiscount.toFixed(2)}</span></div>}
+                <div className="totals"><span>TOTAL</span><span>${finalTotal.toFixed(2)}</span></div>
+                
+                <div className="footer">
+                  <p><strong>THANK YOU FOR CHOOSING KWAALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
+                  <p>Served by: {selectedOrder.user ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName}` : 'Staff'}</p>
                 </div>
-              
-              <div className="receipt-divider"></div>
-              
-              <div className="receipt-totals">
-                <div className="total-row grand-total">
-                  <span>TOTAL</span>
-                  <span>${Number(selectedOrder.totalAmount).toFixed(2)}</span>
+                
+                <div className="footer-terms">
+                  <strong>PAYMENT TERMS & CONDITIONS:</strong><br/>
+                  Payment is due immediately upon receipt of this invoice unless otherwise agreed. All prices are subject to applicable charges. Any additional orders or services will be added to the final bill.
+                  <br/><br/>
+                  Thank you for choosing Kwalee Beach Restaurant.
                 </div>
               </div>
-              
-              <div className="receipt-footer-modern">
-                <svg className="qr-code" width="80" height="80" viewBox="0 0 100 100" fill="currentColor">
-                  <path d="M10 10h30v30H10V10zm10 10v10h10V20H20zm40-10h30v30H60V10zm10 10v10h10V20H70zM10 60h30v30H10V60zm10 10v10h10V70H20zm40-10h10v10H60V60zm20 0h10v10H80V60zm-20 20h10v10H60V80zm20 0h10v10H80V80z"></path>
-                </svg>
-                <p>Scan to leave a review</p>
-                <p className="thank-you">Thank you for choosing Yarvo</p>
+
+              <div id="kwalee-invoice" className="kwalee-receipt">
+                <div className="header-container">
+                  <img src="/kwalee-logo.png" alt="Logo" style={{ maxWidth: '120px', marginBottom: '10px', display: 'block', margin: '0 auto' }} />
+                  <div className="header-title">KWAALEE BEACH RESORT</div>
+                  <div className="header-info">www.kwaleebeachresort.com</div>
+                  <div className="header-info">+231 774 340 843 / +231 881 774 350</div>
+                  <div className="header-info">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
+                </div>
+                
+                <div className="divider"></div>
+                <p className="sub">CUSTOMER INVOICE</p>
+                
+                <div className="meta"><span>ORDER ID</span> <span>#{selectedOrder.id.substring(0,8).toUpperCase()}</span></div>
+                <div className="meta"><span>LOCATION</span> <span>{selectedOrder.folio?.reservation?.room ? `Room ${selectedOrder.folio.reservation.room.number}` : selectedOrder.table?.number || 'Walk-in'}</span></div>
+                <div className="meta"><span>DATE</span> <span>{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</span></div>
+                
+                <div className="divider"></div>
+                
+                {selectedOrder.items.map((item) => {
+                  const isReturned = item.status === 'RETURNED';
+                  const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
+                  const displayPrice = isReturned 
+                    ? `-$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`
+                    : `$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`;
+                  return (
+                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', color: isReturned ? '#dc2626' : '#000' }}>
+                      <div><span style={{ marginRight: '8px', color: '#000' }}>{item.quantity}x</span><span style={{ color: '#000' }}>{displayName}</span></div>
+                      <span style={{ color: '#000' }}>{displayPrice}</span>
+                    </div>
+                  );
+                })}
+                
+                <div className="divider"></div>
+                
+                <div className="summary-row"><span>Subtotal</span><span>${Number(selectedOrder.totalAmount).toFixed(2)}</span></div>
+                <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>${((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10)).toFixed(2)}</span></div>
+                {calculatedDiscount > 0 && <div className="summary-row" style={{ color: '#dc2626' }}><span>Discount</span><span>-${calculatedDiscount.toFixed(2)}</span></div>}
+                <div className="totals"><span>TOTAL</span><span>${finalTotal.toFixed(2)}</span></div>
+                
+                <div style={{ marginTop: '50px', textAlign: 'center' }}>
+                  <div style={{ borderTop: '1px solid #000', width: '200px', margin: '0 auto 8px auto' }}></div>
+                  <p style={{ fontSize: '12px', margin: 0, color: '#000' }}>Customer Signature</p>
+                </div>
+
+                <div className="footer">
+                  <p><strong>THANK YOU FOR CHOOSING KWAALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
+                  <p>Served by: {selectedOrder.user ? `${selectedOrder.user.firstName} ${selectedOrder.user.lastName}` : 'Staff'}</p>
+                </div>
+                
+                <div className="footer-terms">
+                  <strong>PAYMENT TERMS & CONDITIONS:</strong><br/>
+                  Payment is due immediately upon receipt of this invoice unless otherwise agreed. All prices are subject to applicable charges. Any additional orders or services will be added to the final bill.
+                  <br/><br/>
+                  Thank you for choosing Kwalee Beach Restaurant.
+                </div>
               </div>
             </div>
           </div>
@@ -1010,11 +1056,32 @@ export default function CashierPage() {
         .btn-secondary:hover { background: hsl(217, 20%, 18%); }
         .no-orders { color: hsl(215, 20%, 50%); font-size: 1.1rem; }
         
-        .print-only-receipt {
+        .print-only-container {
           display: none;
         }
-
-        @media print {
+        .kwalee-receipt {
+          font-family: 'Courier New', Courier, monospace; 
+          color: #000 !important; 
+          background: #fff !important;
+          max-width: 380px; 
+          margin: 0 auto; 
+          padding: 20px;
+        }
+        .kwalee-receipt .header-container { text-align: center; margin-bottom: 20px; }
+        .kwalee-receipt .header-title { font-size: 20px; font-weight: bold; margin: 0 0 4px 0; color: #000; }
+        .kwalee-receipt .header-info { font-size: 12px; margin: 0; line-height: 1.4; color: #000; }
+        .kwalee-receipt p.sub { text-align: center; font-size: 14px; font-weight: bold; margin: 20px 0; color: #000; }
+        .kwalee-receipt .divider { border-bottom: 1px dashed #000; margin: 12px 0; opacity: 0.4; }
+        .kwalee-receipt .meta { font-size: 12px; margin-bottom: 4px; display: flex; justify-content: space-between; color: #000; }
+        .kwalee-receipt .meta span:first-child { color: #666; }
+        .kwalee-receipt .summary-row { font-size: 14px; display: flex; justify-content: space-between; margin-top: 8px; color: #000; }
+        .kwalee-receipt .summary-row span { color: #000; }
+        .kwalee-receipt .totals { font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; margin-top: 12px; color: #000; }
+        .kwalee-receipt .totals span { color: #000; }
+        .kwalee-receipt .footer { text-align: center; font-size: 11px; margin-top: 40px; color: #333; line-height: 1.5; }
+        .kwalee-receipt .footer p { color: #000; }
+        .kwalee-receipt .footer-terms { text-align: left; font-size: 10px; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; color: #555; }
+                @media print {
           .cashier-layout > h2,
           .cashier-layout > p,
           .orders-list,
@@ -1033,7 +1100,7 @@ export default function CashierPage() {
             background: transparent !important;
           }
 
-          .print-only-receipt {
+          .print-only-container {
             display: block !important;
             position: fixed !important;
             left: 0 !important;
@@ -1048,103 +1115,7 @@ export default function CashierPage() {
           .modern-receipt, .modern-receipt * {
             color: #000 !important;
           }
-          .modern-receipt {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            margin: 0 auto !important;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            color: #000;
-            background: #fff;
-            max-width: 380px;
-            padding: 24px;
-            z-index: 9999;
-          }
-          
-          .receipt-brand {
-            text-align: center;
-            margin-bottom: 24px;
-          }
-          .receipt-brand svg { margin-bottom: 12px; }
-          .receipt-brand h2 { 
-            font-size: 20px; 
-            font-weight: 800; 
-            letter-spacing: 2px; 
-            margin: 0 0 4px 0; 
-          }
-          .receipt-brand p { 
-            font-size: 11px; 
-            font-weight: 500; 
-            letter-spacing: 1.5px; 
-            color: #555; 
-            margin: 0; 
-          }
-          
-          .receipt-divider {
-            border-bottom: 2px dashed #000;
-            margin: 16px 0;
-            opacity: 0.2;
-          }
-          
-          .receipt-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-          }
-          .meta-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-          }
-          .meta-label { color: #666; font-weight: 500; }
-          .meta-value { font-weight: 600; font-family: monospace; font-size: 13px; }
-          
-          .receipt-items {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-          }
-          .modern-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-          }
-          .item-main {
-            display: flex;
-            gap: 8px;
-            font-size: 13px;
-            font-weight: 600;
-          }
-          .item-qty { color: #666; font-weight: 500; }
-          .item-price { font-size: 13px; font-weight: 600; font-family: monospace; }
-          
-          .receipt-totals { margin-top: 8px; }
-          .total-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-          }
-          .grand-total {
-            font-size: 18px;
-            font-weight: 800;
-            margin-top: 8px;
-          }
-          
-          .receipt-footer-modern {
-            text-align: center;
-            margin-top: 32px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-          }
-          .qr-code { margin-bottom: 4px; }
-          .receipt-footer-modern p { margin: 0; font-size: 11px; font-weight: 500; color: #555; }
-          .receipt-footer-modern .thank-you { font-size: 14px; font-weight: 700; color: #000; margin-top: 4px; }
-        }
-      `}</style>
+          `}</style>
     </div>
   );
 }

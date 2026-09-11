@@ -1,1 +1,0 @@
-const { PrismaClient } = require('./node_modules/@prisma/client'); const prisma = new PrismaClient(); async function main() { const tickets = await prisma.ticket.findMany({ take: 5 }); console.log(tickets.map(t => typeof t.price)); } main().finally(()=>prisma.());
