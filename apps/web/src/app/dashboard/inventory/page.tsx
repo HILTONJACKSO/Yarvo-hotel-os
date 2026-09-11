@@ -16,6 +16,7 @@ type InventoryItem = {
   stockKitchen: string;
   stockBar: string;
   stockHousekeeping: string;
+  stockBoutique: string;
   minThreshold: string;
   costPerUnit: string;
 };
@@ -231,6 +232,7 @@ export default function InventoryPage() {
               <th>Kitchen</th>
               <th>Bar</th>
               <th>H.Keeping</th>
+                <th>Boutique</th>
               <th>Status</th>
               <th>Cost/Unit</th>
               <th>Actions</th>
@@ -257,6 +259,7 @@ export default function InventoryPage() {
                   <td>{Number(item.stockKitchen || 0).toFixed(2)}</td>
                   <td>{Number(item.stockBar || 0).toFixed(2)}</td>
                   <td>{Number(item.stockHousekeeping || 0).toFixed(2)}</td>
+                  <td>{Number(item.stockBoutique || 0).toFixed(2)}</td>
                   <td>
                     {isLow ? <span className="badge badge-error">Low Stock</span> : <span className="badge badge-success">OK</span>}
                   </td>
@@ -351,7 +354,8 @@ export default function InventoryPage() {
                     <option value="KITCHEN">Kitchen</option>
                     <option value="BAR">Bar</option>
                     <option value="HOUSEKEEPING">Housekeeping</option>
-                  </select>
+                      <option value="BOUTIQUE">Boutique</option>
+                    </select>
                 </div>
                 <div className="form-group">
                   <label>Quantity to remove ({stockItem.unit})</label>
@@ -450,7 +454,8 @@ export default function InventoryPage() {
                     <option value="KITCHEN">Kitchen</option>
                     <option value="BAR">Bar</option>
                     <option value="HOUSEKEEPING">Housekeeping</option>
-                  </select>
+                      <option value="BOUTIQUE">Boutique</option>
+                    </select>
                 </div>
                 <div className="form-group">
                   <label>To</label>
@@ -459,7 +464,8 @@ export default function InventoryPage() {
                     <option value="KITCHEN">Kitchen</option>
                     <option value="BAR">Bar</option>
                     <option value="HOUSEKEEPING">Housekeeping</option>
-                  </select>
+                      <option value="BOUTIQUE">Boutique</option>
+                    </select>
                 </div>
               </div>
               <div className="form-group">

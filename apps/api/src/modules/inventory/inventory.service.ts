@@ -165,7 +165,8 @@ export class InventoryService {
         'MAIN': 'stockMain',
         'BAR': 'stockBar',
         'KITCHEN': 'stockKitchen',
-        'HOUSEKEEPING': 'stockHousekeeping'
+        'HOUSEKEEPING': 'stockHousekeeping',
+        'BOUTIQUE': 'stockBoutique'
       };
       const locKey = data.location ? data.location.toUpperCase() : 'MAIN';
       const targetField = locMap[locKey] || 'stockMain';
@@ -204,7 +205,8 @@ export class InventoryService {
       'MAIN': 'stockMain',
       'KITCHEN': 'stockKitchen',
       'BAR': 'stockBar',
-      'HOUSEKEEPING': 'stockHousekeeping'
+      'HOUSEKEEPING': 'stockHousekeeping',
+        'BOUTIQUE': 'stockBoutique'
     };
 
     const fromField = fieldMap[data.from];
@@ -243,4 +245,5 @@ export class InventoryService {
     });
   }
 }
+
 

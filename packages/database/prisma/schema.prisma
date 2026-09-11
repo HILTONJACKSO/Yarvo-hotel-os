@@ -675,6 +675,7 @@ model InventoryItem {
   stockKitchen Decimal           @default(0) @db.Decimal(10, 2)
   stockBar     Decimal           @default(0) @db.Decimal(10, 2)
   stockHousekeeping Decimal      @default(0) @db.Decimal(10, 2)
+  stockBoutique    Decimal      @default(0) @db.Decimal(10, 2)
   minThreshold Decimal           @default(10) @db.Decimal(10, 2)
   costPerUnit  Decimal           @default(0) @db.Decimal(10, 2)
 
@@ -1035,3 +1036,4 @@ model Payslip {
   @@index([periodStart, periodEnd])
   @@map("payslips")
 }
+
