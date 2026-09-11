@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 import { useToast } from '@/components/ui/toast-provider';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -532,17 +532,20 @@ export default function CashierPage() {
         element.style.position = 'absolute';
         element.style.top = '-9999px';
         
-        const canvas = await html2canvas(element, {
-          scale: 2,
-          useCORS: true,
-          logging: false
-        });
-        
-        element.style.display = originalDisplay;
-        element.style.position = '';
-        element.style.top = '';
-  
-        const imgData = canvas.toDataURL('image/png');
+        const scale = 2;
+          const imgData = await domtoimage.toPng(element, {
+            bgcolor: '#ffffff',
+            width: element.clientWidth * scale,
+            height: element.clientHeight * scale,
+            style: {
+              transform: 'scale('+scale+')',
+              transformOrigin: 'top left'
+            }
+          });
+          
+          element.style.display = originalDisplay;
+          element.style.position = '';
+          element.style.top = '';
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',

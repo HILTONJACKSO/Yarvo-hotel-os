@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 import { useToast } from '@/components/ui/toast-provider';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
@@ -59,12 +59,18 @@ export default function ReturnsPage() {
       }
       
       try {
-        const canvas = await html2canvas(element, {
-          scale: 2,
-          backgroundColor: '#0a0d14'
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
+        const filter = (node: any) => { return !node.classList?.contains('no-print'); };
+          const scale = 2;
+          const imgData = await domtoimage.toPng(element, {
+            filter: filter,
+            bgcolor: '#0a0d14',
+            width: element.clientWidth * scale,
+            height: element.clientHeight * scale,
+            style: {
+              transform: 'scale('+scale+')',
+              transformOrigin: 'top left'
+            }
+          });
         const pdf = new jsPDF({
           orientation: 'p',
           unit: 'mm',
@@ -72,7 +78,7 @@ export default function ReturnsPage() {
         });
         
         const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        const pdfHeight = (element.clientHeight * pdfWidth) / element.clientWidth;
         
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         pdf.save(`Returns-Report-${new Date().toISOString().split('T')[0]}.pdf`);
