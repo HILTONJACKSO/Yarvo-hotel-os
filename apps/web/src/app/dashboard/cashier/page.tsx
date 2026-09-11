@@ -52,10 +52,16 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
   }, [isOpen]);
 
   const fetchOrders = () => {
-    fetch(`${API_URL}/api/v1/pos/orders`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setActiveOrders(data.data || data || []))
-      .catch(console.error);
+    Promise.all([
+      fetch(`${API_URL}/api/v1/pos/orders`, { credentials: 'include' }).then(r => r.json()),
+      fetch(`${API_URL}/api/v1/pos/served-orders`, { credentials: 'include' }).then(r => r.json())
+    ]).then(([active, served]) => {
+      const activeData = active.data || active || [];
+      const servedData = served.data || served || [];
+      const combined = [...activeData, ...servedData];
+      const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+      setActiveOrders(unique);
+    }).catch(console.error);
   };
 
   const fetchTables = () => {
