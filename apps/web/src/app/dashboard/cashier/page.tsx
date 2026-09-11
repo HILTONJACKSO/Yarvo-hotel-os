@@ -126,45 +126,65 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
         <h3 className="text-xl font-semibold text-white mb-4" style={{ color: 'hsl(43, 96%, 56%)' }}>Transfer Items</h3>
         
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Source Order</label>
-            <select 
-              className="w-full bg-[#1e293b] border border-[#334155] text-white rounded p-2"
-              value={targetTableId || targetOrderId}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val.startsWith('table_')) {
-                  setTargetTableId(val.replace('table_', ''));
-                  setTargetOrderId('');
-                } else if (val.startsWith('order_')) {
-                  setTargetOrderId(val.replace('order_', ''));
-                  setTargetTableId('');
-                } else {
-                  setTargetTableId('');
-                  setTargetOrderId('');
-                }
-              }}
-            >
-              <option value="">Select destination...</option>
-              <optgroup label="Tables">
-                {tables.map(t => (
-                  <option key={'table_' + t.id} value={'table_' + t.id}>
-                    Table {t.number}
+            <div>
+              <label className="block text-sm text-gray-400 mb-1 text-yellow-500 font-bold text-lg">From</label>
+              <label className="block text-xs text-gray-400 mb-1">Source Order / Table</label>
+              <select 
+                className="w-full bg-[#1e293b] border border-[#334155] text-white rounded p-3"
+                value={sourceOrderId}
+                onChange={(e) => {
+                  setSourceOrderId(e.target.value);
+                  setSelectedItems({});
+                }}
+              >
+                <option value="">Select source...</option>
+                {activeOrders.map(o => (
+                  <option key={o.id} value={o.id}>
+                    {o.table?.number ? 'Table ' + o.table.number : 'Walk-in - ' + o.id.substring(0, 6)} - $ {Number(o.totalAmount).toFixed(2)}
                   </option>
                 ))}
-              </optgroup>
-              <optgroup label="Active Walk-ins">
-                {activeOrders.filter(o => !o.tableId).map(o => (
-                  <option key={'order_' + o.id} value={'order_' + o.id}>
-                    Walk-in - {o.id.substring(0,6)}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1 text-yellow-500 font-bold text-lg">To</label>
+              <label className="block text-xs text-gray-400 mb-1">New Destination</label>
+              <select 
+                className="w-full bg-[#1e293b] border border-[#334155] text-white rounded p-3"
+                value={targetTableId ? 'table_' + targetTableId : targetOrderId ? 'order_' + targetOrderId : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val.startsWith('table_')) {
+                    setTargetTableId(val.replace('table_', ''));
+                    setTargetOrderId('');
+                  } else if (val.startsWith('order_')) {
+                    setTargetOrderId(val.replace('order_', ''));
+                    setTargetTableId('');
+                  } else {
+                    setTargetTableId('');
+                    setTargetOrderId('');
+                  }
+                }}
+              >
+                <option value="">Select destination...</option>
+                <optgroup label="Tables">
+                  {tables.map(t => (
+                    <option key={'table_' + t.id} value={'table_' + t.id} disabled={t.id === sourceOrder?.tableId}>
+                      Table {t.number}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Active Walk-ins">
+                  {activeOrders.filter(o => !o.tableId).map(o => (
+                    <option key={'order_' + o.id} value={'order_' + o.id} disabled={o.id === sourceOrderId}>
+                      Walk-in - {o.id.substring(0,6)}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
           </div>
-        </div>
 
-        {sourceOrder && (
+          {sourceOrder && (
           <div className="mb-6">
             <h4 className="text-sm font-medium text-gray-300 mb-2">Select Items to Transfer</h4>
             <div className="bg-[#1e293b] rounded p-2">
