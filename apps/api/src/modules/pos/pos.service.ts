@@ -738,7 +738,7 @@ export class PosService {
     if (start && end) {
       where.createdAt = {
         gte: new Date(start),
-        lte: new Date(new Date(end).setHours(23, 59, 59, 999))
+        lte: new Date(new Date(end).setUTCHours(23, 59, 59, 999))
       };
     }
     return this.prisma.posReturnRequest.findMany({
