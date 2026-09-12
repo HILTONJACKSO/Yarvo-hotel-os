@@ -599,7 +599,7 @@ export class PosService {
     if (!order) throw new NotFoundException('Order not found');
 
     // Enforce workflow: cashier can only settle SERVED orders (kitchen/bar done + waitstaff delivered)
-    if (order.status !== 'SERVED' && order.status !== 'OPEN') {
+    if (order.status !== 'SERVED') {
       throw new ForbiddenException(
         'Order cannot be settled yet. All items must be marked ready by the kitchen/bar, and delivered by the waitstaff first.'
       );
