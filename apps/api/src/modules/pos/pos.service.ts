@@ -245,7 +245,7 @@ export class PosService {
       where: { 
         OR: [
           { status: { notIn: ['PAID', 'BILLED_TO_ROOM', 'SERVED'] } },
-          { items: { some: { status: 'RETURN_REQUESTED' } } }
+          { items: { some: { status: { in: ['PENDING', 'RETURN_REQUESTED'] } } } }
         ]
       },
       include: {
@@ -273,7 +273,7 @@ export class PosService {
 
   async getServedOrders() {
     return this.prisma.posOrder.findMany({
-      where: { status: 'SERVED' },
+      where: { status: { in: ['OPEN', 'SERVED'] } },
       include: {
         table: true,
         guest: true,
@@ -599,7 +599,7 @@ export class PosService {
     if (!order) throw new NotFoundException('Order not found');
 
     // Enforce workflow: cashier can only settle SERVED orders (kitchen/bar done + waitstaff delivered)
-    if (order.status !== 'SERVED') {
+    if (order.status !== 'SERVED' && order.status !== 'OPEN') {
       throw new ForbiddenException(
         'Order cannot be settled yet. All items must be marked ready by the kitchen/bar, and delivered by the waitstaff first.'
       );
