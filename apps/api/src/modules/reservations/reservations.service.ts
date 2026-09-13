@@ -48,6 +48,7 @@ export class ReservationsService {
 
     const reservation = await this.prisma.reservation.create({
       data: {
+          status: "CONFIRMED",
         guestId: finalGuestId,
         companyId: createReservationDto.companyId,
           estimatedArrivalTime: createReservationDto.estimatedArrivalTime,
