@@ -15,6 +15,7 @@ const schema = z.object({
   guestEmail: z.string().optional(),
   guestPhone: z.string().optional(),
   roomTypeId: z.string().min(1, 'Please select a room type'),
+  roomId: z.string().optional(),
   checkInDate: z.string().min(1, 'Check-in date is required'),
   checkOutDate: z.string().min(1, 'Check-out date is required'),
   adultsCount: z.number().min(1, 'At least 1 adult is required'),
@@ -63,6 +64,7 @@ interface Props {
 export function NewReservationModal({ isOpen, onClose, onSuccess }: Props) {
   const [guests, setGuests] = useState<any[]>([]);
   const [roomTypes, setRoomTypes] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -88,10 +90,11 @@ export function NewReservationModal({ isOpen, onClose, onSuccess }: Props) {
     const fetchData = async () => {
       setLoadingData(true);
       try {
-        const [gRes, rtRes, compRes] = await Promise.all([
+        const [gRes, rtRes, compRes, roomRes] = await Promise.all([
           fetch('/api/v1/guests?limit=100'), // Quick hack: load first 100 guests for dropdown
           fetch('/api/v1/room-types'),
-          fetch('/api/v1/companies')
+          fetch('/api/v1/companies'),
+          fetch('/api/v1/rooms')
         ]);
         
         if (gRes.ok) {
@@ -105,6 +108,10 @@ export function NewReservationModal({ isOpen, onClose, onSuccess }: Props) {
         if (compRes.ok) {
           const compData = await compRes.json();
           setCompanies(compData.data || []);
+        }
+        if (roomRes && roomRes.ok) {
+          const roomData = await roomRes.json();
+          setRooms(roomData.data || []);
         }
       } catch (err) {
         console.error('Failed to load form data', err);

@@ -56,14 +56,19 @@ export default function FrontDeskPage() {
       const authData = await authRes.json();
       const metData = await metRes.json();
 
+      const todayStr = new Date().toISOString().split('T')[0];
+
       if (arrRes.ok && Array.isArray(arrData.data)) {
-        setArrivals(arrData.data);
+        // Only show arrivals that are scheduled for check-in today (or in the past and overdue)
+        const todaysArrivals = arrData.data.filter(r => r.checkInDate.split('T')[0] <= todayStr);
+        setArrivals(todaysArrivals);
       }
       
       if (inHouseRes.ok && Array.isArray(inHouseData.data)) {
         setInHouse(inHouseData.data);
-        // Simulate departures as anyone checked in (in a real app, this would be checked in + checkout date = today)
-        setDepartures(inHouseData.data); 
+        // Only show departures that are scheduled for check-out today (or overdue)
+        const todaysDepartures = inHouseData.data.filter(r => r.checkOutDate.split('T')[0] <= todayStr);
+        setDepartures(todaysDepartures); 
       }
 
       if (authRes.ok) setCurrentUser(authData.data || authData);
