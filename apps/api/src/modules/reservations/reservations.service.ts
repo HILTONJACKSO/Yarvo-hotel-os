@@ -85,7 +85,7 @@ export class ReservationsService {
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { checkInDate: 'asc' },
+        orderBy: { createdAt: 'desc' },
         include: {
           guest: true,
           roomType: true,

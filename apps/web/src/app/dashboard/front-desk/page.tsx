@@ -30,6 +30,7 @@ export default function FrontDeskPage() {
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
   const [activeReservationId, setActiveReservationId] = useState<string | null>(null);
   const [activeRoomTypeId, setActiveRoomTypeId] = useState<string | null>(null);
+  const [activePreAssignedRoomId, setActivePreAssignedRoomId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<{message: string, onConfirm: () => void} | null>(null);
 
   // Check-Out Modal State
@@ -85,9 +86,10 @@ export default function FrontDeskPage() {
     fetchFrontDeskData();
   }, []);
 
-  const handleCheckIn = (resId: string, roomTypeId: string) => {
-    setActiveReservationId(resId);
-    setActiveRoomTypeId(roomTypeId);
+  const handleCheckIn = (res: any) => {
+    setActiveReservationId(res.id);
+    setActiveRoomTypeId(res.roomType.id);
+    setActivePreAssignedRoomId(res.room ? res.room.id : null);
     setIsCheckInOpen(true);
   };
 
@@ -138,6 +140,7 @@ export default function FrontDeskPage() {
         onSuccess={fetchFrontDeskData}
         reservationId={activeReservationId}
         roomTypeId={activeRoomTypeId}
+          preAssignedRoomId={activePreAssignedRoomId}
       />
 
       <CheckOutModal 
@@ -172,11 +175,11 @@ export default function FrontDeskPage() {
                 {arrivals.map((res) => (
                   <div key={res.id} className="op-card">
                     <div className="op-details">
-                      <strong>{res.guest.lastName}, {res.guest.firstName}</strong>
+                      <strong>{res.guest.firstName} {res.guest.lastName}</strong>
                       <span className="text-muted">Conf: {res.confirmationCode}</span>
                       <span className="text-muted">Type: {res.roomType.name}</span>
                     </div>
-                    <button className="btn-success" onClick={() => handleCheckIn(res.id, res.roomType.id)}>Check In</button>
+                    <button className="btn-success" onClick={() => handleCheckIn(res)}>Check In</button>
                   </div>
                 ))}
               </div>
@@ -198,7 +201,7 @@ export default function FrontDeskPage() {
                 {inHouse.map((res) => (
                   <div key={res.id} className="op-card">
                     <div className="op-details">
-                      <strong>{res.guest.lastName}, {res.guest.firstName}</strong>
+                      <strong>{res.guest.firstName} {res.guest.lastName}</strong>
                       <span className="text-muted">Room: {res.room?.number || 'Unknown'}</span>
                     </div>
                     <button className="btn-secondary" onClick={() => router.push('/dashboard/billing')}>View Folio</button>
@@ -223,7 +226,7 @@ export default function FrontDeskPage() {
                 {departures.map((res) => (
                   <div key={res.id} className="op-card">
                     <div className="op-details">
-                      <strong>{res.guest.lastName}, {res.guest.firstName}</strong>
+                      <strong>{res.guest.firstName} {res.guest.lastName}</strong>
                       <span className="text-muted">Room: {res.room?.number || 'Unknown'}</span>
                     </div>
                     <button className="btn-danger" onClick={() => handleCheckOut(res)}>Check Out</button>

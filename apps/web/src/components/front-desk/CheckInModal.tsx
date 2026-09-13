@@ -19,9 +19,10 @@ interface Props {
   onSuccess: () => void;
   reservationId: string | null;
   roomTypeId: string | null;
+  preAssignedRoomId: string | null;
 }
 
-export function CheckInModal({ isOpen, onClose, onSuccess, reservationId, roomTypeId }: Props) {
+export function CheckInModal({ isOpen, onClose, onSuccess, reservationId, roomTypeId, preAssignedRoomId }: Props) {
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess, reservationId, roomTy
     reset,
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    defaultValues: { roomId: preAssignedRoomId || "" },
   });
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess, reservationId, roomTy
     };
 
     fetchRooms();
-    reset();
+    reset({ roomId: preAssignedRoomId || "" });
     setSubmitError(null);
   }, [isOpen, roomTypeId, reset]);
 
@@ -98,7 +100,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess, reservationId, roomTy
           )}
           
           <div className="info-box">
-            <p>Please select a clean room to assign to this reservation.</p>
+            <p>{preAssignedRoomId ? "A room was already assigned during booking. You can confirm or change it." : "Please select a clean room to assign to this reservation."}</p>
           </div>
 
           <div className="form-group">

@@ -160,7 +160,7 @@ export default function ReservationsPage() {
                       <tr key={res.id}>
                         <td className="font-mono">{res.confirmationCode}</td>
                         <td className="font-medium">
-                          {res.guest.lastName}, {res.guest.firstName}
+                          {res.guest.firstName} {res.guest.lastName}
                         </td>
                         <td>
                           <div className="dates-info">

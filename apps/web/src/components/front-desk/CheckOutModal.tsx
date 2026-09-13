@@ -120,7 +120,7 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
           <div className="folio-summary">
             <div className="fs-row">
               <span className="fs-label">Guest:</span>
-              <span className="fs-value">{reservation.guest.lastName}, {reservation.guest.firstName}</span>
+              <span className="fs-value">{reservation.guest.firstName} {reservation.guest.lastName}</span>
             </div>
             <div className="fs-row">
               <span className="fs-label">Room:</span>
@@ -218,7 +218,7 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
               <h3>Guest Folio</h3>
             </div>
             <div className="receipt-info">
-              <p><strong>Guest:</strong> {reservation.guest.lastName}, {reservation.guest.firstName}</p>
+              <p><strong>Guest:</strong> {reservation.guest.firstName} {reservation.guest.lastName}</p>
               <p><strong>Room:</strong> {reservation.room?.number}</p>
               <p><strong>Check-In:</strong> {new Date(reservation.checkInDate).toLocaleDateString()}</p>
               <p><strong>Check-Out:</strong> {new Date().toLocaleDateString()}</p>

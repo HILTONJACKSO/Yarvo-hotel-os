@@ -75,7 +75,7 @@ export function ManageReservationModal({ isOpen, onClose, onSuccess, reservation
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Manage Reservation: ${reservation.confirmationCode}`}>
       <div className="reservation-details">
-        <p><strong>Guest:</strong> {reservation.guest?.lastName}, {reservation.guest?.firstName}</p>
+        <p><strong>Guest:</strong> {reservation.guest?.firstName} {reservation.guest?.lastName}</p>
         <p><strong>Dates:</strong> {new Date(reservation.checkInDate).toLocaleDateString()} to {new Date(reservation.checkOutDate).toLocaleDateString()}</p>
         <p><strong>Current Status:</strong> {reservation.status}</p>
       </div>

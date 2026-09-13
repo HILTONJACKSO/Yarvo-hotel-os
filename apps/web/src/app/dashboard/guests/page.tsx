@@ -139,7 +139,7 @@ export default function GuestsPage() {
                 guests.map((guest) => (
                   <tr key={guest.id}>
                     <td className="font-medium">
-                      {guest.lastName}, {guest.firstName}
+                      {guest.firstName} {guest.lastName}
                     </td>
                     <td>
                       <div className="contact-info">

@@ -110,7 +110,7 @@ export default function StaffPage() {
                   staff.map((user) => (
                     <tr key={user.id}>
                       <td className="font-medium">
-                        {user.lastName}, {user.firstName}
+                        {user.firstName} {user.lastName}
                       </td>
                       <td>{user.email}</td>
                       <td>
