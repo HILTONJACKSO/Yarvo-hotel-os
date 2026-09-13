@@ -60,14 +60,14 @@ export default function FrontDeskPage() {
 
       if (arrRes.ok && Array.isArray(arrData.data)) {
         // Only show arrivals that are scheduled for check-in today (or in the past and overdue)
-        const todaysArrivals = arrData.data.filter(r => r.checkInDate.split('T')[0] <= todayStr);
+        const todaysArrivals = arrData.data.filter((r: any) => r.checkInDate.split('T')[0] <= todayStr);
         setArrivals(todaysArrivals);
       }
       
       if (inHouseRes.ok && Array.isArray(inHouseData.data)) {
         setInHouse(inHouseData.data);
         // Only show departures that are scheduled for check-out today (or overdue)
-        const todaysDepartures = inHouseData.data.filter(r => r.checkOutDate.split('T')[0] <= todayStr);
+        const todaysDepartures = inHouseData.data.filter((r: any) => r.checkOutDate.split('T')[0] <= todayStr);
         setDepartures(todaysDepartures); 
       }
 
