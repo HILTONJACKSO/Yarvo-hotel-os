@@ -23,7 +23,7 @@ export default function HomePage() {
           </svg>
         </div>
         <h1 className="text-4xl font-bold text-white tracking-tight">
-          Yarvo Hotel
+          Kwalee Hotel
         </h1>
         <p className="text-slate-400 mt-2 text-lg">
           Property Management System

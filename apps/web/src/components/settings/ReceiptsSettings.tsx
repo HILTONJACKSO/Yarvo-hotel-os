@@ -222,7 +222,7 @@ export default function ReceiptsSettings({ showToast }: { showToast: (msg: strin
               rows={3}
               value={currentConfig.header || ''} 
               onChange={e => handleChange('header', e.target.value)}
-              placeholder="e.g. Yarvo Hotel & Suites\n123 Ocean Drive, Monrovia\nPhone: +231 123 456"
+              placeholder="e.g. Kwalee Hotel & Suites\n123 Ocean Drive, Monrovia\nPhone: +231 123 456"
             />
           </div>
           

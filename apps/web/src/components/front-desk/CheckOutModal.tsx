@@ -213,7 +213,7 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
           {/* PRINT ONLY SECTION */}
           <div className="print-only-receipt">
             <div className="receipt-header">
-              <h2>Yarvo Hotel</h2>
+              <h2>Kwalee Hotel</h2>
               <p>Monrovia, Liberia</p>
               <h3>Guest Folio</h3>
             </div>
@@ -248,7 +248,7 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
               </tfoot>
             </table>
             <div className="receipt-footer">
-              <p>Thank you for choosing Yarvo Hotel!</p>
+              <p>Thank you for choosing Kwalee Hotel!</p>
             </div>
           </div>
 

@@ -148,7 +148,7 @@ export default function FinancialsPage() {
               <div className="max-w-4xl mx-auto space-y-6">
                 <div className="text-center mb-8">
                   <h2 className="text-2xl font-bold text-slate-100">Income Statement (P&L)</h2>
-                  <p className="text-slate-400">Yarvo Hotel</p>
+                  <p className="text-slate-400">Kwalee Hotel</p>
                 </div>
 
                 {/* Revenue */}
@@ -200,7 +200,7 @@ export default function FinancialsPage() {
               <div className="max-w-4xl mx-auto space-y-6">
                 <div className="text-center mb-8">
                   <h2 className="text-2xl font-bold text-slate-100">Balance Sheet</h2>
-                  <p className="text-slate-400">Yarvo Hotel</p>
+                  <p className="text-slate-400">Kwalee Hotel</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -261,7 +261,7 @@ export default function FinancialsPage() {
               <div className="max-w-4xl mx-auto space-y-6">
                 <div className="text-center mb-8">
                   <h2 className="text-2xl font-bold text-slate-100">Trial Balance</h2>
-                  <p className="text-slate-400">Yarvo Hotel</p>
+                  <p className="text-slate-400">Kwalee Hotel</p>
                 </div>
 
                 <table className="w-full text-left">

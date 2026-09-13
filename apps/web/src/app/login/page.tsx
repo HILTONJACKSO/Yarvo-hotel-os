@@ -59,9 +59,9 @@ export default function LoginPage() {
         <div className="login-brand-panel">
           <div className="brand-content">
             <div className="brand-logo" style={{ background: 'none', border: 'none' }}>
-              <img src="/logo.jpg" alt="Yarvo Logo" style={{ width: '100%', height: 'auto', objectFit: 'contain', borderRadius: '50%' }} />
+              <img src="/logo.jpg" alt="Kwalee Logo" style={{ width: '100%', height: 'auto', objectFit: 'contain', borderRadius: '50%' }} />
             </div>
-            <h1 className="brand-name">Yarvo</h1>
+            <h1 className="brand-name">KWALEE</h1>
             <p className="brand-tagline">Hotel Management System</p>
 
             <div className="brand-features">
@@ -100,7 +100,7 @@ export default function LoginPage() {
             <div className="form-header">
               <div className="form-logo-sm" style={{ background: 'none', border: 'none' }}><img src="/logo.jpg" alt="Logo" style={{ width: '48px', height: '48px', borderRadius: '50%' }} /></div>
               <h2 className="form-title">Welcome back</h2>
-              <p className="form-subtitle">Sign in to continue to Yarvo HMS</p>
+              <p className="form-subtitle">Sign in to continue to KWALEE HMS</p>
             </div>
 
             <form onSubmit={handleSubmit} className="login-form" id="login-form" noValidate>
@@ -129,7 +129,7 @@ export default function LoginPage() {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="admin@yarvo.com"
+                    placeholder="admin@kwalee.com"
                     className="field-input"
                   />
                 </div>

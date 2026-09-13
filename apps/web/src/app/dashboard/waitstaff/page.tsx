@@ -210,7 +210,7 @@ export default function WaitstaffPage() {
       {printItem && (
         <div className="print-only-receipt">
           <div className="receipt-header">
-            <h2>Yarvo Restaurant</h2>
+            <h2>Kwalee Restaurant</h2>
             <p>
               {printItem.order?.folio?.reservation?.room 
                 ? `Room ${printItem.order.folio.reservation.room.number}` 

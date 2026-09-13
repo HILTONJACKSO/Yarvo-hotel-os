@@ -16,11 +16,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Yarvo Hotel Management System',
-    template: '%s | Yarvo HMS',
+    default: 'Kwalee Hotel Management System',
+    template: '%s | Kwalee HMS',
   },
   description:
-    'Production-grade Property Management System for Yarvo Hotel, Liberia.',
+    'Production-grade Property Management System for Kwalee Hotel, Liberia.',
   robots: {
     index: false, // Internal system — do not index
     follow: false,

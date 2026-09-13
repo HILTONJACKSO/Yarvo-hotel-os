@@ -85,7 +85,7 @@ export default function DashboardPage() {
         <div className="welcome-text">
           <p className="welcome-greeting">Good {greeting || 'day'},</p>
           <h2 className="welcome-name">{user?.firstName} {user?.lastName}</h2>
-          <p className="welcome-sub">Here&apos;s what&apos;s happening at Yarvo today.</p>
+          <p className="welcome-sub">Here&apos;s what&apos;s happening at Kwalee today.</p>
         </div>
         <div className="welcome-badge">
           <span className="role-chip">{user?.roles?.[0]?.replace('_', ' ')}</span>

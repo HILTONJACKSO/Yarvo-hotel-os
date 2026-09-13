@@ -41,7 +41,7 @@ async function main() {
     throw new Error('SUPER_ADMIN role not found');
   }
 
-  const adminEmail = 'yarvo@gmail.com';
+  const adminEmail = 'kwalee@gmail.com';
   const rawPassword = 'YOSar@2026';
   
   // Hash the default password

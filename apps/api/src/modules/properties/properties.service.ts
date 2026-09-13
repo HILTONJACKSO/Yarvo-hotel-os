@@ -13,14 +13,14 @@ export class PropertiesService {
       // Auto-seed default property if none exists
       property = await this.prisma.property.create({
         data: {
-          name: 'Yarvo Hotel',
-          legalName: 'Yarvo Hotel & Suites LLC',
+          name: 'Kwalee Hotel',
+          legalName: 'Kwalee Hotel & Suites LLC',
           address: 'Tubman Blvd, Sinkor',
           city: 'Monrovia',
           country: 'Liberia',
           phone: '+231 777 123 456',
-          email: 'info@yarvo.com',
-          website: 'www.yarvo.com',
+          email: 'info@kwalee.com',
+          website: 'www.kwalee.com',
           taxId: 'LBR-12345678',
         }
       });

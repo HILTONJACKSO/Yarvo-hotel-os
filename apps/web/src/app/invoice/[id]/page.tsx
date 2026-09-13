@@ -100,7 +100,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
               <pre className="hotel-header-text">{config.header}</pre>
             ) : (
               <>
-                <h2>Yarvo Hotel & Suites</h2>
+                <h2>Kwalee Hotel & Suites</h2>
                 <p>123 Ocean Drive, Monrovia, Liberia</p>
               </>
             )}
@@ -189,7 +189,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
             {config?.footer ? (
               <pre className="footer-text">{config.footer}</pre>
             ) : (
-              <p>Thank you for choosing Yarvo Hotel!</p>
+              <p>Thank you for choosing Kwalee Hotel!</p>
             )}
           </div>
         </div>

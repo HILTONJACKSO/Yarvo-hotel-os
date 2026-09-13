@@ -87,15 +87,15 @@ async function bootstrap(): Promise<void> {
   const swaggerEnabled = config.get<string>('SWAGGER_ENABLED', 'false') === 'true';
   if (swaggerEnabled) {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle('Yarvo Hotel Management System API')
+      .setTitle('Kwalee Hotel Management System API')
       .setDescription(
-        'Production-grade Property Management System API for Yarvo Hotel, Liberia.',
+        'Production-grade Property Management System API for Kwalee Hotel, Liberia.',
       )
       .setVersion('1.0')
       .setContact(
-        'Yarvo Hotel',
-        'https://yarvo.com',
-        'info@yarvo.com',
+        'Kwalee Hotel',
+        'https://kwalee.com',
+        'info@kwalee.com',
       )
       .addBearerAuth(
         { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -121,7 +121,7 @@ async function bootstrap(): Promise<void> {
   await app.listen(port, '0.0.0.0');
 
   logger.log(
-    `🏨 Yarvo HMS API running on port ${port} [${nodeEnv}]`,
+    `🏨 Kwalee HMS API running on port ${port} [${nodeEnv}]`,
     'Bootstrap',
   );
   if (swaggerEnabled) {
