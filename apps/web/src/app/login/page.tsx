@@ -59,7 +59,7 @@ export default function LoginPage() {
         <div className="login-brand-panel">
           <div className="brand-content">
             <div className="brand-logo" style={{ background: 'none', border: 'none' }}>
-              <img src="/logo.jpg" alt="Yarvo Logo" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+              <img src="/logo.jpg" alt="Yarvo Logo" style={{ width: '100%', height: 'auto', objectFit: 'contain', borderRadius: '50%' }} />
             </div>
             <h1 className="brand-name">Yarvo</h1>
             <p className="brand-tagline">Hotel Management System</p>
@@ -98,13 +98,7 @@ export default function LoginPage() {
         <div className="login-form-panel">
           <div className="form-card">
             <div className="form-header">
-              <div className="form-logo-sm">
-                <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
-                  <rect width="48" height="48" rx="12" fill="hsl(43,96%,56%)" fillOpacity="0.15" />
-                  <path d="M24 8L38 16V32L24 40L10 32V16L24 8Z" stroke="hsl(43,96%,56%)" strokeWidth="2" fill="none" />
-                  <circle cx="24" cy="25" r="5" fill="hsl(43,96%,56%)" />
-                </svg>
-              </div>
+              <div className="form-logo-sm" style={{ background: 'none', border: 'none' }}><img src="/logo.jpg" alt="Logo" style={{ width: '48px', height: '48px', borderRadius: '50%' }} /></div>
               <h2 className="form-title">Welcome back</h2>
               <p className="form-subtitle">Sign in to continue to Yarvo HMS</p>
             </div>

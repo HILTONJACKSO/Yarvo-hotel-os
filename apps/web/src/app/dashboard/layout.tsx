@@ -148,7 +148,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <img src="/logo.jpg" alt="Yarvo Logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
+            <img src="/logo.jpg" alt="Yarvo Logo" style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '50%' }} />
             {sidebarOpen && <span className="sidebar-brand">Yarvo</span>}
           </div>
           <button
