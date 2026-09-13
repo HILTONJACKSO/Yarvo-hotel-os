@@ -13,6 +13,7 @@ import {
 import { ReservationsService } from './reservations.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationStatusDto } from './dto/update-reservation-status.dto';
+import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { CheckInDto } from './dto/check-in.dto';
 import { CheckOutDto } from './dto/check-out.dto';
 import { ApiTags, ApiOperation, ApiCookieAuth, ApiQuery } from '@nestjs/swagger';
@@ -51,6 +52,18 @@ export class ReservationsController {
   @ApiOperation({ summary: 'Get a specific reservation' })
   findOne(@Param('id') id: string) {
     return this.reservationsService.findOne(id);
+  }
+
+
+  @Patch(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
+  @ApiOperation({ summary: 'Update a reservation (dates, guests, etc.)' })
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateReservationDto,
+    @Req() req: any,
+  ) {
+    return this.reservationsService.update(id, updateDto, req.user?.id);
   }
 
   @Patch(':id/status')

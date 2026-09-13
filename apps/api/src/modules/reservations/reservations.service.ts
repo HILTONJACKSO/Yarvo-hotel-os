@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
+import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { UpdateReservationStatusDto } from './dto/update-reservation-status.dto';
 import { ReservationStatus } from '@prisma/client';
 import * as crypto from 'crypto';
@@ -123,6 +124,52 @@ export class ReservationsService {
     }
 
     return reservation;
+  }
+
+  async update(id: string, updateDto: UpdateReservationDto, userId?: string) {
+    const reservation = await this.findOne(id);
+    const {
+      guestId, guestFirstName, guestLastName, guestEmail, guestPhone, guestWhatsapp, guestAddress, guestCity, guestCountry,
+      ...reservationUpdateData
+    } : any = updateDto;
+
+    // Convert dates if present
+    if (reservationUpdateData.checkInDate) reservationUpdateData.checkInDate = new Date(reservationUpdateData.checkInDate);
+    if (reservationUpdateData.checkOutDate) reservationUpdateData.checkOutDate = new Date(reservationUpdateData.checkOutDate);
+
+    // If cancelled, record reason
+    if (reservationUpdateData.status === 'CANCELLED') {
+      reservationUpdateData.cancelledById = userId;
+    }
+
+    // Update guest if necessary (simple approach: update existing guest if details provided)
+    if (reservation.guestId && (guestFirstName || guestLastName || guestEmail || guestPhone)) {
+      const guestUpdate: any = {};
+      if (guestFirstName) guestUpdate.firstName = guestFirstName;
+      if (guestLastName) guestUpdate.lastName = guestLastName;
+      if (guestEmail) guestUpdate.email = guestEmail;
+      if (guestPhone) guestUpdate.phone = guestPhone;
+      if (guestWhatsapp) guestUpdate.whatsapp = guestWhatsapp;
+      if (guestAddress) guestUpdate.address = guestAddress;
+      if (guestCity) guestUpdate.city = guestCity;
+      if (guestCountry) guestUpdate.country = guestCountry;
+      
+      await this.prisma.guest.update({
+        where: { id: reservation.guestId },
+        data: guestUpdate,
+      });
+    }
+
+    const updatedRes = await this.prisma.reservation.update({
+      where: { id },
+      data: reservationUpdateData,
+      include: {
+        guest: true,
+        roomType: true,
+      }
+    });
+
+    return updatedRes;
   }
 
   async updateStatus(id: string, updateDto: UpdateReservationStatusDto, userId?: string) {

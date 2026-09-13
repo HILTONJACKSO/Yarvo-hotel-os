@@ -1,4 +1,6 @@
-'use client';
+import sys
+
+content = """'use client';
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -343,3 +345,7 @@ export function ManageReservationModal({ isOpen, onClose, onSuccess, reservation
     </Modal>
   );
 }
+"""
+
+with open("apps/web/src/components/reservations/ManageReservationModal.tsx", "w", encoding="utf-8") as f:
+    f.write(content)
