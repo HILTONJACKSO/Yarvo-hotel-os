@@ -453,19 +453,25 @@ export default function CashierPage() {
 
   const handlePrintInvoice = async (orderId: string) => {
     if (!selectedOrder) return;
-    const isStaff = currentUser?.roles?.some((r: any) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
-    const isManager = currentUser?.roles?.some((r: any) => ['MANAGER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+    const getRoles = (user: any) => user?.roles?.map((r: any) => (r.name || r).toUpperCase()) || [];
+    const roles = getRoles(currentUser);
+    const isAdmin = roles.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r));
+    const isManager = roles.includes('MANAGER');
+    const isStaff = roles.some((r: string) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN', 'POS_CASHIER'].includes(r));
     
-    if (isStaff && selectedOrder.invoicePrintCount >= 1) {
-      showToast('Staff can only print an invoice once. Please contact management.', 'error');
-      return;
-    }
-    if (isManager && selectedOrder.invoicePrintCount >= 3) {
-      showToast('Manager can only print an invoice 3 times. Please contact CEO.', 'error');
-      return;
+    if (!isAdmin) {
+      if (isManager && selectedOrder.invoicePrintCount >= 3) {
+        showToast('Manager can only print an invoice 3 times. Please contact CEO.', 'error');
+        return;
+      }
+      if (!isManager && isStaff && selectedOrder.invoicePrintCount >= 1) {
+        showToast('Staff can only print an invoice once. Please contact management.', 'error');
+        return;
+      }
     }
     
     printViaIframe('INVOICE');
+    setSelectedOrder(prev => prev ? { ...prev, invoicePrintCount: (prev.invoicePrintCount || 0) + 1 } : null);
     try {
       await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/increment-print`, { method: 'POST', credentials: 'include' });
       fetchOrders();
@@ -474,48 +480,59 @@ export default function CashierPage() {
 
   const handlePrintReceipt = async (orderId: string) => {
     if (!selectedOrder) return;
-    const isStaff = currentUser?.roles?.some((r: any) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
-    const isManager = currentUser?.roles?.some((r: any) => ['MANAGER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+    const getRoles = (user: any) => user?.roles?.map((r: any) => (r.name || r).toUpperCase()) || [];
+    const roles = getRoles(currentUser);
+    const isAdmin = roles.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r));
+    const isManager = roles.includes('MANAGER');
+    const isStaff = roles.some((r: string) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN', 'POS_CASHIER'].includes(r));
     
-    if (isStaff && selectedOrder.receiptPrintCount >= 1) {
-      showToast('Staff can only print a receipt once. Please contact management.', 'error');
-      return;
-    }
-    if (isManager && selectedOrder.receiptPrintCount >= 3) {
-      showToast('Manager can only print a receipt 3 times. Please contact CEO.', 'error');
-      return;
+    if (!isAdmin) {
+      if (isManager && selectedOrder.receiptPrintCount >= 3) {
+        showToast('Manager can only print a receipt 3 times. Please contact CEO.', 'error');
+        return;
+      }
+      if (!isManager && isStaff && selectedOrder.receiptPrintCount >= 1) {
+        showToast('Staff can only print a receipt once. Please contact management.', 'error');
+        return;
+      }
     }
     
     printViaIframe('RECEIPT');
+    setSelectedOrder(prev => prev ? { ...prev, receiptPrintCount: (prev.receiptPrintCount || 0) + 1 } : null);
     try {
       await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/increment-receipt-print`, { method: 'POST', credentials: 'include' });
       fetchOrders();
     } catch(e) {}
-    };
+  };
   
     const downloadReceiptPdf = async (orderId: string, isInvoice: boolean = false) => {
       if (!selectedOrder) return;
       
-      const isStaff = currentUser?.roles?.some((r: any) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
-      const isManager = currentUser?.roles?.some((r: any) => ['MANAGER'].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
+      const getRoles = (user: any) => user?.roles?.map((r: any) => (r.name || r).toUpperCase()) || [];
+      const roles = getRoles(currentUser);
+      const isAdmin = roles.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r));
+      const isManager = roles.includes('MANAGER');
+      const isStaff = roles.some((r: string) => ['WAITSTAFF', 'CASHIER', 'BAR', 'KITCHEN', 'POS_CASHIER'].includes(r));
       
-      if (isInvoice) {
-        if (isStaff && selectedOrder.invoicePrintCount >= 1) {
-          showToast('Staff can only print an invoice once. Please contact management.', 'error');
-          return;
-        }
-        if (isManager && selectedOrder.invoicePrintCount >= 3) {
-          showToast('Manager can only print an invoice 3 times. Please contact CEO.', 'error');
-          return;
-        }
-      } else {
-        if (isStaff && selectedOrder.receiptPrintCount >= 1) {
-          showToast('Staff can only print a receipt once. Please contact management.', 'error');
-          return;
-        }
-        if (isManager && selectedOrder.receiptPrintCount >= 3) {
-          showToast('Manager can only print a receipt 3 times. Please contact CEO.', 'error');
-          return;
+      if (!isAdmin) {
+        if (isInvoice) {
+          if (isManager && selectedOrder.invoicePrintCount >= 3) {
+            showToast('Manager can only print an invoice 3 times. Please contact CEO.', 'error');
+            return;
+          }
+          if (!isManager && isStaff && selectedOrder.invoicePrintCount >= 1) {
+            showToast('Staff can only print an invoice once. Please contact management.', 'error');
+            return;
+          }
+        } else {
+          if (isManager && selectedOrder.receiptPrintCount >= 3) {
+            showToast('Manager can only print a receipt 3 times. Please contact CEO.', 'error');
+            return;
+          }
+          if (!isManager && isStaff && selectedOrder.receiptPrintCount >= 1) {
+            showToast('Staff can only print a receipt once. Please contact management.', 'error');
+            return;
+          }
         }
       }
   
@@ -559,6 +576,7 @@ export default function CashierPage() {
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         pdf.save(`${isInvoice ? 'Invoice' : 'Receipt'}_${selectedOrder.id.substring(0,8)}.pdf`);
         const endpoint = isInvoice ? 'increment-print' : 'increment-receipt-print';
+        setSelectedOrder(prev => prev ? { ...prev, [isInvoice ? 'invoicePrintCount' : 'receiptPrintCount']: (prev[isInvoice ? 'invoicePrintCount' : 'receiptPrintCount'] || 0) + 1 } : null);
         await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/${endpoint}`, { method: 'POST', credentials: 'include' });
         fetchOrders();
       } catch (err) {
