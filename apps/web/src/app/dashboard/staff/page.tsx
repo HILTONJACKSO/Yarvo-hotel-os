@@ -7,7 +7,7 @@ import { ShiftsTab } from '@/components/staff/ShiftsTab';
 import { AttendanceTab } from '@/components/staff/AttendanceTab';
 import { PayrollTab } from '@/components/staff/PayrollTab';
 import { OverviewTab } from '@/components/staff/OverviewTab';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/auth-provider';
 
 type User = {
   id: string;
