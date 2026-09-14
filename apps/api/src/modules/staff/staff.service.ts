@@ -145,11 +145,14 @@ export class StaffService {
 
   // ─── PAYROLL ────────────────────────────────────────────────────────────────
 
-  async getPayslips(periodStart?: string, periodEnd?: string) {
+  async getPayslips(periodStart?: string, periodEnd?: string, userId?: string) {
     const where: any = {};
     if (periodStart && periodEnd) {
       where.periodStart = { gte: new Date(periodStart) };
       where.periodEnd = { lte: new Date(periodEnd) };
+    }
+    if (userId) {
+      where.userId = userId;
     }
     return this.prisma.payslip.findMany({
       where,
