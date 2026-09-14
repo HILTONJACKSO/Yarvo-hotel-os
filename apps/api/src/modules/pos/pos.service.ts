@@ -228,14 +228,17 @@ export class PosService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const payments = await this.prisma.posPayment.findMany({
+    // Get all orders settled today
+    const settledOrders = await this.prisma.posOrder.findMany({
       where: {
-        createdAt: { gte: today }
+        status: { in: ['PAID', 'BILLED_TO_ROOM'] },
+        updatedAt: { gte: today }
       }
     });
 
-    const totalOrders = new Set(payments.map(p => p.orderId)).size;
-    const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const totalOrders = settledOrders.length;
+    // Calculate total actual revenue strictly from what was paid or billed to room
+    const totalRevenue = settledOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
 
     return { totalOrders, totalRevenue };
   }
