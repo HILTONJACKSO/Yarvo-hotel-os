@@ -15,6 +15,7 @@ export default function PosPage() {
   const { user } = useAuth();
   const isAdmin = user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.()));
   const canEditPos = user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.()));
+  const canSettleOrders = user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'POS_CASHIER'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.()));
   const canSeeDiscount = user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'POS'].includes(role.toUpperCase()));
   const { showToast } = useToast();
   const [categories, setCategories] = useState<PosCategory[]>([]);
