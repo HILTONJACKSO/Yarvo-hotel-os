@@ -4,11 +4,13 @@ import { Calendar, Download, Printer, Filter } from 'lucide-react';
 interface ReportExportToolbarProps {
   onDateChange: (start: string, end: string) => void;
   onExport: (format: 'pdf' | 'csv' | 'print') => void;
+  initialStartDate?: string;
+  initialEndDate?: string;
 }
 
-export default function ReportExportToolbar({ onDateChange, onExport }: ReportExportToolbarProps) {
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+export default function ReportExportToolbar({ onDateChange, onExport, initialStartDate, initialEndDate }: ReportExportToolbarProps) {
+  const [startDate, setStartDate] = useState(initialStartDate || new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(initialEndDate || new Date().toISOString().split('T')[0]);
 
   const handleApply = () => {
     onDateChange(startDate, endDate);

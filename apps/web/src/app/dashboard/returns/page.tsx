@@ -29,14 +29,21 @@ export default function ReturnsPage() {
   const { showToast } = useToast();
   const [returns, setReturns] = useState<PosReturnRequest[]>([]);
 
-  const fetchReturns = useCallback((start?: string, end?: string) => {
-    let query = '';
-    if (start && end) query = `?start=${start}&end=${end}`;
+  const [dateRange, setDateRange] = useState(() => {
+    const end = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    const start = d.toISOString().split('T')[0];
+    return { start, end };
+  });
+
+  const fetchReturns = useCallback(() => {
+    const query = `?start=${dateRange.start}&end=${dateRange.end}`;
     fetch(`${API_URL}/api/v1/pos/returns${query}`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => setReturns(data.data || data))
       .catch(console.error);
-  }, []);
+  }, [dateRange.start, dateRange.end]);
 
   useEffect(() => {
     fetchReturns();
@@ -45,7 +52,7 @@ export default function ReturnsPage() {
   }, [fetchReturns]);
 
   const handleDateChange = (start: string, end: string) => {
-    fetchReturns(start, end);
+    setDateRange({ start, end });
   };
 
   const handleExport = async (format: 'pdf' | 'csv' | 'print') => {
@@ -124,7 +131,7 @@ export default function ReturnsPage() {
       </div>
 
       <div style={{ marginBottom: '24px' }}>
-        <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} />
+        <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} initialStartDate={dateRange.start} initialEndDate={dateRange.end} />
       </div>
 
       <div className="returns-grid">
