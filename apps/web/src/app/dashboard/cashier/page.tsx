@@ -9,6 +9,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 type PosOrder = {
   id: string;
   totalAmount: string;
+  discountAmount?: number | string;
   status: string;
   table?: { number: string };
   folio?: {
