@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req } from '@nestjs/common';
 import { StaffService } from './staff.service';
 import { Roles } from '../../common/decorators/roles.decorator';
 
@@ -48,8 +48,10 @@ export class StaffController {
   // ─── ATTENDANCE ─────────────────────────────────────────────────────────────
 
   @Get('attendance')
-  getAttendance(@Query('date') date?: string) {
-    return this.staffService.getAttendances(date);
+  getAttendance(@Query('date') date?: string, @Req() req?: any) {
+    const isManager = req?.user?.roles?.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER'].includes(r));
+    const filterUserId = isManager ? undefined : req?.user?.id;
+    return this.staffService.getAttendances(date, filterUserId);
   }
 
   @Post('attendance/clock-in')
@@ -65,8 +67,10 @@ export class StaffController {
   // ─── PAYROLL ────────────────────────────────────────────────────────────────
 
   @Get('payroll')
-  getPayslips(@Query('periodStart') start?: string, @Query('periodEnd') end?: string) {
-    return this.staffService.getPayslips(start, end);
+  getPayslips(@Query('periodStart') start?: string, @Query('periodEnd') end?: string, @Req() req?: any) {
+    const isManager = req?.user?.roles?.some((r: string) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER'].includes(r));
+    const filterUserId = isManager ? undefined : req?.user?.id;
+    return this.staffService.getPayslips(start, end, filterUserId);
   }
 
   @Get('payroll/summary')

@@ -100,9 +100,13 @@ export class StaffService {
 
   // ─── ATTENDANCE ─────────────────────────────────────────────────────────────
 
-  async getAttendances(date?: string) {
+  async getAttendances(date?: string, userId?: string) {
+    const where: any = {};
+    if (date) where.date = new Date(date);
+    if (userId) where.userId = userId;
+
     return this.prisma.attendance.findMany({
-      where: date ? { date: new Date(date) } : undefined,
+      where,
       include: {
         user: true,
         shift: true,

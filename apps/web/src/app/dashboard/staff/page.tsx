@@ -7,6 +7,7 @@ import { ShiftsTab } from '@/components/staff/ShiftsTab';
 import { AttendanceTab } from '@/components/staff/AttendanceTab';
 import { PayrollTab } from '@/components/staff/PayrollTab';
 import { OverviewTab } from '@/components/staff/OverviewTab';
+import { useAuth } from '@/hooks/useAuth';
 
 type User = {
   id: string;
@@ -18,6 +19,8 @@ type User = {
 };
 
 export default function StaffPage() {
+  const { user } = useAuth();
+  const isManager = user?.roles?.some((r: string) => ['super_admin', 'admin', 'ceo', 'manager'].includes(r));
   const [staff, setStaff] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -25,7 +28,7 @@ export default function StaffPage() {
   const [editingStaff, setEditingStaff] = useState<User | null>(null);
 
   type Tab = 'overview' | 'directory' | 'shifts' | 'attendance' | 'payroll';
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>(isManager ? 'overview' : 'attendance');
 
   const fetchStaff = async () => {
     setLoading(true);
@@ -59,7 +62,7 @@ export default function StaffPage() {
             <button className={activeTab === 'payroll' ? 'tab active' : 'tab'} onClick={() => setActiveTab('payroll')}>Payroll</button>
           </div>
         </div>
-        {activeTab === 'directory' && (
+        {isManager && activeTab === 'directory' && (
           <button className="btn-primary" onClick={() => setIsAddOpen(true)}>
             + Add Staff
           </button>
@@ -82,11 +85,11 @@ export default function StaffPage() {
         staff={editingStaff}
       />
 
-      {activeTab === 'overview' && (
+      {isManager && activeTab === 'overview' && (
         <OverviewTab />
       )}
 
-      {activeTab === 'directory' && (
+      {isManager && activeTab === 'directory' && (
         loading ? (
           <div className="loading-state">Loading staff directory...</div>
         ) : (
@@ -143,7 +146,7 @@ export default function StaffPage() {
         )
       )}
 
-      {activeTab === 'shifts' && (
+      {isManager && activeTab === 'shifts' && (
         <ShiftsTab staff={staff} />
       )}
 
