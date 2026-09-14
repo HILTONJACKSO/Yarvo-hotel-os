@@ -33,11 +33,17 @@ export default function AuditLogsPage() {
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   const [dateRange, setDateRange] = useState(() => {
-    const end = new Date().toISOString().split('T')[0];
     const d = new Date();
-    d.setDate(d.getDate() - 7);
-    const start = d.toISOString().split('T')[0];
-    return { start, end };
+    const day = d.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const start = new Date(d);
+    start.setDate(d.getDate() + diffToMonday);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { 
+      start: start.toISOString().split('T')[0], 
+      end: end.toISOString().split('T')[0] 
+    };
   });
 
   const handleDateChange = (start: string, end: string) => {

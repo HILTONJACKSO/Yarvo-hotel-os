@@ -15,13 +15,19 @@ export default function FinancialsPage() {
   const [tbData, setTbData] = useState<any>(null);
       const [isLoading, setIsLoading] = useState(true);
     
-    const [dateRange, setDateRange] = useState(() => {
-      const end = new Date().toISOString().split('T')[0];
-      const d = new Date();
-      d.setDate(d.getDate() - 7);
-      const start = d.toISOString().split('T')[0];
-      return { start, end };
-    });
+      const [dateRange, setDateRange] = useState(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const start = new Date(d);
+    start.setDate(d.getDate() + diffToMonday);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { 
+      start: start.toISOString().split('T')[0], 
+      end: end.toISOString().split('T')[0] 
+    };
+  });
 
   const fetchReports = useCallback(async (start?: string, end?: string) => {
     setIsLoading(true);

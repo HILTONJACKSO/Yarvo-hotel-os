@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Download, Printer, Filter } from 'lucide-react';
+import { Calendar, Download, Printer, Filter, CalendarDays, CalendarRange } from 'lucide-react';
 
 interface ReportExportToolbarProps {
   onDateChange: (start: string, end: string) => void;
@@ -12,9 +12,40 @@ export default function ReportExportToolbar({ onDateChange, onExport, initialSta
   const [startDate, setStartDate] = useState(initialStartDate || new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(initialEndDate || new Date().toISOString().split('T')[0]);
 
+
   const handleApply = () => {
     onDateChange(startDate, endDate);
   };
+
+  const setThisWeek = () => {
+    const d = new Date();
+    const day = d.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const start = new Date(d);
+    start.setDate(d.getDate() + diffToMonday);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    
+    const sStr = start.toISOString().split('T')[0];
+    const eStr = end.toISOString().split('T')[0];
+    setStartDate(sStr);
+    setEndDate(eStr);
+    onDateChange(sStr, eStr);
+  };
+
+  const setThisMonth = () => {
+    const d = new Date();
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    
+    // safe format
+    const sStr = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    const eStr = new Date(end.getTime() - end.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    setStartDate(sStr);
+    setEndDate(eStr);
+    onDateChange(sStr, eStr);
+  };
+
 
   return (
     <div className="no-print flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-800/80 p-4 rounded-xl border border-slate-700/50 mb-6 gap-4 shadow-lg shadow-slate-900/20">
@@ -42,6 +73,23 @@ export default function ReportExportToolbar({ onDateChange, onExport, initialSta
         >
           <Filter size={14} />
           Apply
+        </button>
+        <div className="w-px h-6 bg-slate-700 mx-1"></div>
+        <button 
+          onClick={setThisWeek}
+          className="bg-slate-700/50 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+          title="This Week (Mon - Sun)"
+        >
+          <CalendarDays size={14} />
+          This Week
+        </button>
+        <button 
+          onClick={setThisMonth}
+          className="bg-slate-700/50 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+          title="This Month (1st - End)"
+        >
+          <CalendarRange size={14} />
+          This Month
         </button>
       </div>
       
