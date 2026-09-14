@@ -30,7 +30,33 @@ export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+    const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
+  const [dateRange, setDateRange] = useState(() => {
+    const end = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    const start = d.toISOString().split('T')[0];
+    return { start, end };
+  });
+
+  const handleDateChange = (start: string, end: string) => {
+    setDateRange({ start, end });
+  };
+
+  const handleExport = (format: 'pdf' | 'csv' | 'print') => {
+    if (format === 'print') {
+      window.print();
+    } else if (format === 'csv') {
+      const csvData = Array.isArray(logs) ? logs.map(l => ({
+        date: new Date(l.createdAt).toLocaleString(),
+        user: l.user ? `${l.user.firstName} ${l.user.lastName}` : 'System',
+        action: l.action,
+        entity: l.entity,
+      })) : [];
+      downloadCSV(csvData, 'audit-logs');
+    }
+  };
   const [activeTab, setActiveTab] = useState<'INVENTORY' | 'RETURNS_DISCOUNTS' | 'ALL'>('INVENTORY');
 
   const formatCode = (str: string | any) => {
