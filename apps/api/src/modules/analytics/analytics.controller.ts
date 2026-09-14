@@ -88,24 +88,24 @@ export class AnalyticsController {
   @Get('reports/pnl')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get Profit & Loss statement' })
-  async getProfitAndLoss() {
-    const data = await this.analyticsService.getProfitAndLoss();
+  async getProfitAndLoss(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getProfitAndLoss(start, end);
     return { data };
   }
 
   @Get('reports/trial-balance')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get Trial Balance' })
-  async getTrialBalance() {
-    const data = await this.analyticsService.getTrialBalance();
+  async getTrialBalance(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getTrialBalance(start, end);
     return { data };
   }
 
   @Get('reports/balance-sheet')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
   @ApiOperation({ summary: 'Get Balance Sheet' })
-  async getBalanceSheet() {
-    const data = await this.analyticsService.getBalanceSheet();
+  async getBalanceSheet(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getBalanceSheet(start, end);
     return { data };
   }
 }

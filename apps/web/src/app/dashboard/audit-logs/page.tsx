@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-provider';
 import { Search, Loader2, Eye, EyeOff, Tag, RefreshCcw, Package } from 'lucide-react';
 import { format } from 'date-fns';
+import ReportExportToolbar from '@/components/ReportExportToolbar';
+import { useCallback } from 'react';
+import { downloadCSV } from '@/utils/export';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -186,6 +189,8 @@ export default function AuditLogsPage() {
           </p>
         </div>
       </div>
+
+      <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} initialStartDate={dateRange.start} initialEndDate={dateRange.end} />
 
       <div className="flex space-x-1 p-1 bg-[hsl(222,35%,7%)] rounded-lg w-full max-w-2xl border border-[hsl(217,20%,18%)]">
         <button

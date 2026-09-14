@@ -37,10 +37,10 @@ export default function FinancialsPage() {
   }, []);
 
   useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
+    fetchReports(dateRange.start, dateRange.end);
+  }, [fetchReports, dateRange]);
   const handleDateChange = (start: string, end: string) => {
-    fetchReports(start, end);
+    setDateRange({ start, end });
   };
 
   const handleExport = async (format: 'pdf' | 'csv' | 'print') => {
@@ -108,7 +108,7 @@ export default function FinancialsPage() {
         </div>
       </div>
 
-      <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} />
+      <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} initialStartDate={dateRange.start} initialEndDate={dateRange.end} />
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-slate-700">

@@ -30,10 +30,19 @@ export class AuditLogsService {
     }
   }
 
-  async getLogs() {
+  async getLogs(start?: string, end?: string) {
+    const where: any = {};
+    if (start && end) {
+      where.createdAt = {
+        gte: new Date(start),
+        lte: new Date(new Date(end).setUTCHours(23, 59, 59, 999))
+      };
+    }
+
     const logs = await this.prisma.auditLog.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
-      take: 200, // Limit to recent 200 for now
+      take: (start && end) ? undefined : 200, // No limit if date range specified, otherwise 200
     });
 
     const userIds = [...new Set(logs.map(l => l.userId).filter(Boolean))] as string[];

@@ -575,16 +575,27 @@ export class AnalyticsService {
 
   // --- Financial Reports ---
 
-  async getProfitAndLoss() {
+  async getProfitAndLoss(start?: string, end?: string) {
+    const whereRevenue: any = { type: 'CHARGE' };
+    const whereExpense: any = {};
+
+    if (start && end) {
+      const gte = new Date(start);
+      const lte = new Date(new Date(end).setUTCHours(23, 59, 59, 999));
+      whereRevenue.createdAt = { gte, lte };
+      whereExpense.date = { gte, lte };
+    }
+
     const revenueItems = await this.prisma.folioLineItem.groupBy({
       by: ['category'],
       _sum: { amount: true },
-      where: { type: 'CHARGE' },
+      where: whereRevenue,
     });
 
     const expenseItems = await this.prisma.expense.groupBy({
       by: ['category'],
       _sum: { amount: true },
+      where: whereExpense,
     });
 
     const ticketRevenue = await this.prisma.ticket.aggregate({
@@ -616,20 +627,34 @@ export class AnalyticsService {
     return { revenues, totalRevenue, expenses, totalExpenses, netProfit };
   }
 
-  async getTrialBalance() {
+  async getTrialBalance(start?: string, end?: string) {
     // Assets & Expenses = Debits
     // Liabilities & Revenue = Credits
-    const pnl = await this.getProfitAndLoss();
+    const pnl = await this.getProfitAndLoss(start, end);
+    const wherePayments: any = { type: 'PAYMENT' };
+    if (start && end) {
+      wherePayments.createdAt = {
+        gte: new Date(start),
+        lte: new Date(new Date(end).setUTCHours(23, 59, 59, 999))
+      };
+    }
     const payments = await this.prisma.folioLineItem.aggregate({
       _sum: { amount: true },
-      where: { type: 'PAYMENT' }
+      where: wherePayments
     });
     const cash = payments._sum.amount ? payments._sum.amount.toNumber() : 0;
     
     // Unpaid Folios (AR)
+    const whereFolios: any = { status: 'OPEN' };
+    if (start && end) {
+      whereFolios.updatedAt = {
+        gte: new Date(start),
+        lte: new Date(new Date(end).setUTCHours(23, 59, 59, 999))
+      };
+    }
     const openFolios = await this.prisma.folio.aggregate({
       _sum: { balance: true },
-      where: { status: 'OPEN' }
+      where: whereFolios
     });
     const accountsReceivable = openFolios._sum.balance ? openFolios._sum.balance.toNumber() : 0;
 
@@ -650,16 +675,26 @@ export class AnalyticsService {
     return { debits, totalDebits, credits, totalCredits };
   }
 
-  async getBalanceSheet() {
+  async getBalanceSheet(start?: string, end?: string) {
+    const wherePayments: any = { type: 'PAYMENT' };
+    const whereFolios: any = { status: 'OPEN' };
+
+    if (start && end) {
+      const gte = new Date(start);
+      const lte = new Date(new Date(end).setUTCHours(23, 59, 59, 999));
+      wherePayments.createdAt = { gte, lte };
+      whereFolios.updatedAt = { gte, lte };
+    }
+
     const payments = await this.prisma.folioLineItem.aggregate({
       _sum: { amount: true },
-      where: { type: 'PAYMENT' }
+      where: wherePayments
     });
     const cash = payments._sum.amount ? payments._sum.amount.toNumber() : 0;
     
     const openFolios = await this.prisma.folio.aggregate({
       _sum: { balance: true },
-      where: { status: 'OPEN' }
+      where: whereFolios
     });
     const accountsReceivable = openFolios._sum.balance ? openFolios._sum.balance.toNumber() : 0;
 
