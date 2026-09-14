@@ -67,7 +67,7 @@ export default function BillingPage() {
     }
   };
 
-  const printViaIframe = () => {
+  const printViaIframe = (mode: 'RECEIPT' | 'INVOICE' = 'INVOICE') => {
     if (!selectedBill) return;
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
@@ -104,7 +104,7 @@ export default function BillingPage() {
           <div style="font-size:12px; color:#000;">+231 774 340 843 / +231 881 774 350</div>
           <div style="font-size:12px; color:#000;">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
         </div>
-        <div style="text-align:center; font-size:14px; font-weight:bold; margin:20px 0; color:#000;">ROOM INVOICE</div>
+        <div style="text-align:center; font-size:14px; font-weight:bold; margin:20px 0; color:#000;">${mode === 'RECEIPT' ? 'ROOM RECEIPT' : 'ROOM INVOICE'}</div>
         <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
         
         <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
@@ -348,7 +348,10 @@ export default function BillingPage() {
                   <div className={`text-3xl font-bold ${selectedBill.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                     ${Number(selectedBill.balance).toFixed(2)}
                   </div>
-                  <button onClick={printViaIframe} className="mt-2 bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Invoice</button>
+                  <div className="flex gap-2 justify-end mt-2">
+                      <button onClick={() => printViaIframe('RECEIPT')} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Receipt</button>
+                      <button onClick={() => printViaIframe('INVOICE')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Invoice</button>
+                    </div>
                 </div>
               </div>
               <div className="flex-1 p-6 overflow-y-auto">
