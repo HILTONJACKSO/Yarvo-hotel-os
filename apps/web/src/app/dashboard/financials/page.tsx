@@ -13,7 +13,15 @@ export default function FinancialsPage() {
   const [pnlData, setPnlData] = useState<any>(null);
   const [bsData, setBsData] = useState<any>(null);
   const [tbData, setTbData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+      const [isLoading, setIsLoading] = useState(true);
+    
+    const [dateRange, setDateRange] = useState(() => {
+      const end = new Date().toISOString().split('T')[0];
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      const start = d.toISOString().split('T')[0];
+      return { start, end };
+    });
 
   const fetchReports = useCallback(async (start?: string, end?: string) => {
     setIsLoading(true);

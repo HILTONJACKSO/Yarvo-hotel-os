@@ -61,14 +61,11 @@ export default function AuditLogsPage() {
     );
   };
 
-  useEffect(() => {
-    fetchLogs();
-  }, []);
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`${API_URL}/api/v1/audit-logs`, { credentials: 'include' });
+      const query = `?start=${dateRange.start}&end=${dateRange.end}`;
+      const res = await fetch(`${API_URL}/api/v1/audit-logs${query}`, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch audit logs');
       const data = await res.json();
       setLogs(data.data || data);
@@ -77,7 +74,11 @@ export default function AuditLogsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [dateRange.start, dateRange.end]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const allFilteredLogs = Array.isArray(logs) ? logs.filter(log => 
     log?.action?.toLowerCase()?.includes(search.toLowerCase()) || 
