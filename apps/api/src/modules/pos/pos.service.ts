@@ -562,7 +562,7 @@ export class PosService {
     });
 
     if (status === 'SERVED') {
-      const allServed = item.order.items.every(i => i.status === 'SERVED');
+      const allServed = item.order.items.every(i => ['SERVED', 'RETURNED'].includes(i.status));
       if (allServed) {
         let subtotal = 0;
         let calculatedTax = 0;
@@ -601,8 +601,9 @@ export class PosService {
 
     if (!order) throw new NotFoundException('Order not found');
 
-    // Enforce workflow: cashier can only settle SERVED orders (kitchen/bar done + waitstaff delivered)
-    if (order.status !== 'SERVED') {
+    // Enforce workflow: cashier can only settle orders where all active items are SERVED
+    const hasUnserved = order.items.some(i => !['SERVED', 'RETURNED'].includes(i.status));
+    if (hasUnserved) {
       throw new ForbiddenException(
         'Order cannot be settled yet. All items must be marked ready by the kitchen/bar, and delivered by the waitstaff first.'
       );
