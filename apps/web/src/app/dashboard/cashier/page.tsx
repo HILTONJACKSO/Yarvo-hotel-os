@@ -356,7 +356,7 @@ export default function CashierPage() {
       const isReturned = item.status === 'RETURNED';
       const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
       const displayPrice = isReturned 
-          ? `-$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`
+          ? `$0.00`
           : `$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`;
           
       itemsHtml += `
@@ -723,7 +723,7 @@ export default function CashierPage() {
                   <div key={item.id} className={`receipt-item ${isReturned ? 'text-rose-400' : ''}`}>
                     <span className="qty">{item.quantity}x</span>
                     <span className="name">{isReturned ? '(Returned) ' : ''}{item.menuItem.name}</span>
-                    <span className="price">{isReturned ? '-' : ''}${(Number(item.menuItem.price) * item.quantity).toFixed(2)}</span>
+                    <span className="price">{isReturned ? '$0.00' : `$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`}</span>
                   </div>
                 )})}
               <div className="receipt-total" style={{ borderBottom: calculatedDiscount > 0 ? 'none' : '', paddingBottom: calculatedDiscount > 0 ? '4px' : '' }}>
@@ -869,7 +869,7 @@ export default function CashierPage() {
                   const isReturned = item.status === 'RETURNED';
                   const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
                   const displayPrice = isReturned 
-                    ? `-$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`
+                    ? `$0.00`
                     : `$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`;
                   return (
                     <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', color: isReturned ? '#dc2626' : '#000' }}>
@@ -921,7 +921,7 @@ export default function CashierPage() {
                   const isReturned = item.status === 'RETURNED';
                   const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
                   const displayPrice = isReturned 
-                    ? `-$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`
+                    ? `$0.00`
                     : `$${(Number(item.menuItem.price) * item.quantity).toFixed(2)}`;
                   return (
                     <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', color: isReturned ? '#dc2626' : '#000' }}>
