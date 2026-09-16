@@ -1,28 +1,45 @@
 import sys
 import re
 
-with open('apps/web/src/components/reservations/NewReservationModal.tsx', 'r', encoding='utf-8') as f:
+with open("apps/web/src/app/dashboard/billing/page.tsx", "r", encoding="utf-8") as f:
     code = f.read()
 
-new_field = """
-          <div className="form-group">
-            <label>Assign Specific Room (Optional)</label>
-            <select {...register('roomId')} className={errors.roomId ? 'error' : ''} disabled={!watch('roomTypeId')}>
-              <option value="">-- Auto-assign on check-in --</option>
-              {rooms.filter(r => r.roomTypeId === watch('roomTypeId')).map((r) => (
-                <option key={r.id} value={r.id}>Room {r.number} - {r.status}</option>
-              ))}
-            </select>
-            <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-              Only rooms matching the selected room type will be shown.
-            </p>
-          </div>
+# Add handleCloseFolio function
+handler = """
+  const handleCloseFolio = async () => {
+    if (!selectedBill || selectedBill.type !== "FOLIO") return;
+    if (!confirm("Are you sure you want to close this folio?")) return;
+    try {
+      const res = await fetch(`/api/v1/folios/${selectedBill.id}/close`, { method: "POST" });
+      if (res.ok) {
+        showToast("Folio closed successfully!", "success");
+        setSelectedBill(null);
+        fetchBills();
+      } else {
+        const error = await res.json();
+        showToast(error.message || "Failed to close folio", "error");
+      }
+    } catch (error) {
+      showToast("Network error. Please try again.", "error");
+    }
+  };
+
+  const handlePostCharge = async (e: React.FormEvent) => {
 """
+code = code.replace("  const handlePostCharge = async (e: React.FormEvent) => {", handler)
 
-# Find the end of the roomTypeId form-group
-pattern = re.compile(r'(<select \{\.\.\.register\(\'roomTypeId\'\)\}.*?</select>\s*\{errors\.roomTypeId.*?\s*</div>)', re.DOTALL)
 
-code = pattern.sub(r'\1' + new_field, code)
+# Add button to UI
+old_buttons = """                        <button onClick={() => printViaIframe('RECEIPT')} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Receipt</button>
+                        <button onClick={() => printViaIframe('INVOICE')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Invoice</button>"""
 
-with open('apps/web/src/components/reservations/NewReservationModal.tsx', 'w', encoding='utf-8') as f:
+new_buttons = """                        {selectedBill.status === 'OPEN' && Number(selectedBill.balance) === 0 && (
+                          <button onClick={handleCloseFolio} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Close Folio</button>
+                        )}
+                        <button onClick={() => printViaIframe('RECEIPT')} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Receipt</button>
+                        <button onClick={() => printViaIframe('INVOICE')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Invoice</button>"""
+
+code = code.replace(old_buttons, new_buttons)
+
+with open("apps/web/src/app/dashboard/billing/page.tsx", "w", encoding="utf-8") as f:
     f.write(code)

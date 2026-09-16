@@ -54,5 +54,11 @@ export class FoliosController {
   ) {
     return this.foliosService.postPayment(id, createPaymentDto, req.user?.id);
   }
-}
 
+  @Post(':id/close')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
+  @ApiOperation({ summary: 'Close a folio manually' })
+  closeFolio(@Param('id') id: string, @Req() req: any) {
+    return this.foliosService.closeFolio(id, req.user?.id);
+  }
+}

@@ -121,5 +121,19 @@ export class FoliosService {
       return lineItem;
     });
   }
-}
+  async closeFolio(folioId: string, userId?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const folio = await tx.folio.findUnique({ where: { id: folioId } });
+      if (!folio) throw new NotFoundException(`Folio not found`);
+      if (folio.status === 'CLOSED') throw new BadRequestException('Folio is already closed.');
+      if (Number(folio.balance) !== 0) {
+         throw new BadRequestException('Cannot close a folio with a non-zero balance.');
+      }
 
+      return tx.folio.update({
+        where: { id: folioId },
+        data: { status: 'CLOSED' }
+      });
+    });
+  }
+}
