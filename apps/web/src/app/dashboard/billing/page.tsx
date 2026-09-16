@@ -6,6 +6,9 @@ import { useAuth } from "@/lib/auth-provider";
 import { ShoppingCart, Edit, Trash2, Receipt } from "lucide-react";
 
 export default function BillingPage() {
+  const [discountAmount, setDiscountAmount] = useState('');
+  const [discountDescription, setDiscountDescription] = useState('');
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const { user } = useAuth();
   const { showToast } = useToast();
   const [bills, setBills] = useState<any[]>([]);
@@ -449,6 +452,7 @@ export default function BillingPage() {
                     <button type="submit" className="bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 p-2.5 rounded-lg font-bold transition-all">Add Charge</button>
                   </form>
                   { (isCashierOrManager || isFrontDesk) && (
+                      <>
                     <form onSubmit={handlePostDiscount} className="flex-1 bg-slate-800 border border-slate-700 p-5 rounded-xl flex flex-col gap-3">
                       <h4 className="font-bold text-slate-200">Post Discount</h4>
                       <input type="text" placeholder="Description (e.g. Service Apology)" value={discountDescription} onChange={e => setDiscountDescription(e.target.value)} className="bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-cyan-500" required />
@@ -466,7 +470,8 @@ export default function BillingPage() {
                       <input type="number" step="0.01" min="0.01" placeholder="Amount ($)" required value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none" />
                       <button type="submit" className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 p-2.5 rounded-lg font-bold transition-all">Add Payment</button>
                     </form>
-                  )}
+                  </>
+)}
                 </div>
               )}
             </>
