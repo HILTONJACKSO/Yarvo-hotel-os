@@ -61,4 +61,15 @@ export class FoliosController {
   closeFolio(@Param('id') id: string, @Req() req: any) {
     return this.foliosService.closeFolio(id, req.user?.id);
   }
+
+  @Post(':id/discount')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
+  @ApiOperation({ summary: 'Post a discount to a folio' })
+  postDiscount(
+    @Param('id') id: string,
+    @Body() createPaymentDto: CreatePaymentDto,
+    @Req() req: any,
+  ) {
+    return this.foliosService.postDiscount(id, createPaymentDto, req.user?.id);
+  }
 }

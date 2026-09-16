@@ -178,21 +178,50 @@ export default function BillingPage() {
 
   // Folio Actions
 
-  const handleCloseFolio = async () => {
+  const handleCloseFolio = () => setIsCloseModalOpen(true);
+
+  const confirmCloseFolio = async () => {
     if (!selectedBill || selectedBill.type !== "FOLIO") return;
-    if (!confirm("Are you sure you want to close this folio?")) return;
     try {
       const res = await fetch(`/api/v1/folios/${selectedBill.id}/close`, { method: "POST" });
       if (res.ok) {
         showToast("Folio closed successfully!", "success");
         setSelectedBill(null);
         fetchBills();
+        setIsCloseModalOpen(false);
       } else {
         const error = await res.json();
         showToast(error.message || "Failed to close folio", "error");
+        setIsCloseModalOpen(false);
       }
     } catch (error) {
       showToast("Network error. Please try again.", "error");
+      setIsCloseModalOpen(false);
+    }
+  };
+
+
+  const handlePostDiscount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBill || selectedBill.type !== "FOLIO") return;
+    try {
+      const res = await fetch(`/api/v1/folios/${selectedBill.id}/discount`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: parseFloat(discountAmount), description: discountDescription || "Discount", category: "OTHER" }),
+      });
+      if (res.ok) {
+        showToast("Discount posted successfully!", "success");
+        setDiscountAmount("");
+        setDiscountDescription("");
+        selectFolio(selectedBill.id);
+        fetchBills();
+      } else {
+        const error = await res.json();
+        showToast(error.message || "Failed to post discount", "error");
+      }
+    } catch (error) {
+      showToast("Network error.", "error");
     }
   };
 
@@ -420,6 +449,12 @@ export default function BillingPage() {
                     <button type="submit" className="bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 p-2.5 rounded-lg font-bold transition-all">Add Charge</button>
                   </form>
                   { (isCashierOrManager || isFrontDesk) && (
+                    <form onSubmit={handlePostDiscount} className="flex-1 bg-slate-800 border border-slate-700 p-5 rounded-xl flex flex-col gap-3">
+                      <h4 className="font-bold text-slate-200">Post Discount</h4>
+                      <input type="text" placeholder="Description (e.g. Service Apology)" value={discountDescription} onChange={e => setDiscountDescription(e.target.value)} className="bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-cyan-500" required />
+                      <input type="number" step="0.01" min="0.01" placeholder="Amount ($)" value={discountAmount} onChange={e => setDiscountAmount(e.target.value)} className="bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 outline-none focus:border-cyan-500" required />
+                      <button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-lg transition-colors mt-auto shadow-lg shadow-amber-900/20">Add Discount</button>
+                    </form>
                     <form onSubmit={handlePostPayment} className="flex-1 bg-slate-800 border border-slate-700 p-5 rounded-xl flex flex-col gap-3">
                       <h4 className="font-bold text-slate-200">Post Payment</h4>
                       <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none">
@@ -504,6 +539,19 @@ export default function BillingPage() {
           )}
         </div>
       </div>
+      {/* Close Modal */}
+      {isCloseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-800 border border-slate-700 p-7 rounded-2xl shadow-2xl max-w-sm w-full mx-4">
+            <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2"><Receipt size={24} className="text-emerald-400" /> Close Folio</h3>
+            <p className="text-slate-300 mb-6 text-sm">Are you sure you want to close this folio? This action cannot be undone, and no further charges or payments can be posted.</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setIsCloseModalOpen(false)} className="px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-xl transition-colors">Cancel</button>
+              <button onClick={confirmCloseFolio} className="px-4 py-2.5 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors shadow-lg shadow-emerald-900/30">Yes, Close Folio</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
