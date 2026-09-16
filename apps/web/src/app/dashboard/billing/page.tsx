@@ -441,7 +441,7 @@ export default function BillingPage() {
                 </div>
               </div>
               {selectedBill.status === 'OPEN' && (
-                <div className="p-6 border-t border-slate-700 bg-slate-900/50 flex gap-6">
+                <div className="p-6 border-t border-slate-700 bg-slate-900/50 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   <form onSubmit={handlePostCharge} className="flex-1 bg-slate-800 border border-slate-700 p-5 rounded-xl flex flex-col gap-3">
                     <h4 className="font-bold text-slate-200">Post Charge</h4>
                     <select value={chargeCategory} onChange={(e) => setChargeCategory(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none">
