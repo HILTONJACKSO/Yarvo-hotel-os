@@ -20,7 +20,7 @@ type User = {
 
 export default function StaffPage() {
   const { user } = useAuth();
-  const isManager = user?.roles?.some((r: string) => ['super_admin', 'admin', 'ceo', 'manager'].includes(r));
+  const isManager = user?.roles?.some((r: string) => ['super_admin', 'admin', 'ceo', 'manager'].includes(r.toLowerCase()));
   const [staff, setStaff] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   
