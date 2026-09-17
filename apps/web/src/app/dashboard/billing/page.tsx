@@ -29,7 +29,7 @@ export default function BillingPage() {
   const fetchBills = async () => {
     try {
       // Fetch open folios
-      const resFolios = await fetch("/api/v1/bills?status=OPEN");
+      const resFolios = await fetch("/api/v1/folios?status=OPEN");
       if (!resFolios.ok) throw new Error("Failed to fetch folios");
       const jsonFolios = await resFolios.json();
       const folios = (jsonFolios.data || []).map((f: any) => ({ ...f, type: "FOLIO" }));
