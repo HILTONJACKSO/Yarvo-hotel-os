@@ -101,7 +101,7 @@ export default function BillingPage() {
       <body style="margin:0; padding:20px; font-family:'Courier New', Courier, monospace; color:#000; background:#fff; max-width: 380px; margin: 0 auto;">
         <div style="text-align:center; margin-bottom:20px;">
           <img src="/kwalee-logo.png" style="max-width:120px; margin-bottom:10px;" />
-          <div style="font-size:20px; font-weight:bold; margin-bottom:4px; color:#000;">KWAALEE BEACH RESORT</div>
+          <div style="font-size:20px; font-weight:bold; margin-bottom:4px; color:#000;">KWALEE BEACH RESORT</div>
           <div style="font-size:12px; color:#000;">www.kwaleebeachresort.com</div>
           <div style="font-size:12px; color:#000;">info@kwaleebeachresort.com</div>
           <div style="font-size:12px; color:#000;">+231 774 340 843 / +231 881 774 350</div>
@@ -149,7 +149,7 @@ export default function BillingPage() {
         ` : ''}
 
         <div style="text-align:center; font-size:11px; margin-top:40px; color:#333; line-height:1.5;">
-          <p style="color:#000;"><strong>THANK YOU FOR CHOOSING KWAALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
+          <p style="color:#000;"><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
         </div>
         
         <div style="text-align:left; font-size:10px; margin-top:20px; color:#000; line-height:1.4; border-top:1px dashed #000; padding-top:10px;">

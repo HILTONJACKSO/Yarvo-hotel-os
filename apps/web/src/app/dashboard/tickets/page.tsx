@@ -196,7 +196,7 @@ export default function TicketsPage() {
         <body>
           <div class="header-container">
             <img src="/kwalee-logo.png" alt="Logo" />
-            <div class="header-title">KWAALEE BEACH RESORT</div>
+            <div class="header-title">KWALEE BEACH RESORT</div>
             <div class="header-info">www.kwaleebeachresort.com</div>
             <div class="header-info">+231 774 340 843 / +231 881 774 350</div>
             <div class="header-info">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
@@ -220,7 +220,7 @@ export default function TicketsPage() {
           <div class="totals"><span>TOTAL</span><span>$${finalTotal.toFixed(2)}</span></div>
           
           <div class="footer">
-            <p><strong>THANK YOU FOR CHOOSING KWAALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
+            <p><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
           </div>
           
           <div class="footer-terms">

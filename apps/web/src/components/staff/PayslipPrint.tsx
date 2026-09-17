@@ -11,7 +11,7 @@ export function PayslipPrint({ payslip }: { payslip: any }) {
     <div className="print-payslip" style={{ fontFamily: 'sans-serif', padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <h1 style={{ margin: '0', fontSize: '24px' }}>KWAALEE BEACH RESORT</h1>
+        <h1 style={{ margin: '0', fontSize: '24px' }}>KWALEE BEACH RESORT</h1>
         <p style={{ margin: '0', fontSize: '12px' }}>www.kwaleebeachresort.com</p>
         <p style={{ margin: '0', fontSize: '12px' }}>+231 774 340 843 / +231 881 774 350</p>
         <p style={{ margin: '0', fontSize: '12px', marginBottom: '10px' }}>Kpakpa Kon, Marshall, Lower Margibi County, Liberia</p>
