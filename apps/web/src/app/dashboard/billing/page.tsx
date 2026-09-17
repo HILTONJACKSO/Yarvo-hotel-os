@@ -29,7 +29,7 @@ export default function BillingPage() {
   const fetchBills = async () => {
     try {
       // Fetch open folios
-      const resFolios = await fetch("/api/v1/folios?status=OPEN");
+      const resFolios = await fetch("/api/v1/bills?status=OPEN");
       if (!resFolios.ok) throw new Error("Failed to fetch folios");
       const jsonFolios = await resFolios.json();
       const folios = (jsonFolios.data || []).map((f: any) => ({ ...f, type: "FOLIO" }));
@@ -97,7 +97,7 @@ export default function BillingPage() {
     });
 
     const docHtml = `
-      <html><head><title>Folio Invoice</title></head>
+      <html><head><title>Bill Invoice</title></head>
       <body style="margin:0; padding:20px; font-family:'Courier New', Courier, monospace; color:#000; background:#fff; max-width: 380px; margin: 0 auto;">
         <div style="text-align:center; margin-bottom:20px;">
           <img src="/kwalee-logo.png" style="max-width:120px; margin-bottom:10px;" />
@@ -127,14 +127,26 @@ export default function BillingPage() {
         ${itemsHtml}
         <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
         
+        <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
+          <span>Subtotal</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE' && i.category !== 'TAX').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0)).toFixed(2)}</span>
+        </div>
+        <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
+          <span>GST / Tax</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE' && i.category === 'TAX').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0)).toFixed(2)}</span>
+        </div>
+        <div style="font-size:14px; font-weight:bold; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
+          <span>Total</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0)).toFixed(2)}</span>
+        </div>
+        
         <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-top:12px; color:#000;">
           <span>BALANCE DUE</span><span>$${Number(selectedBill.balance).toFixed(2)}</span>
         </div>
 
+        ${mode === 'INVOICE' ? `
         <div style="margin-top:50px; text-align:center;">
           <div style="border-top:1px solid #000; width:200px; margin:0 auto 8px auto;"></div>
           <p style="font-size:12px; margin:0; color:#000;">Guest Signature</p>
         </div>
+        ` : ''}
 
         <div style="text-align:center; font-size:11px; margin-top:40px; color:#333; line-height:1.5;">
           <p style="color:#000;"><strong>THANK YOU FOR CHOOSING KWAALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
@@ -354,7 +366,7 @@ export default function BillingPage() {
                   {b.type === 'FOLIO' ? (
                     <>
                       <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-slate-200 text-sm">Folio: {b.reservation?.guest?.lastName}</span>
+                        <span className="font-bold text-slate-200 text-sm">Bill: {b.reservation?.guest?.lastName}</span>
                         <span className={`font-bold ${b.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>${Number(b.balance).toFixed(2)}</span>
                       </div>
                       <div className="text-xs text-slate-400">Room {b.reservation?.room?.number || 'N/A'}</div>
@@ -402,7 +414,7 @@ export default function BillingPage() {
                   </div>
                   <div className="flex gap-2 justify-end mt-2">
                       {selectedBill.status === 'OPEN' && Number(selectedBill.balance) === 0 && (
-                          <button onClick={handleCloseFolio} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Close Folio</button>
+                          <button onClick={handleCloseFolio} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Close Bill</button>
                         )}
                         <button onClick={() => printViaIframe('RECEIPT')} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Receipt</button>
                       <button onClick={() => printViaIframe('INVOICE')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Invoice</button>
@@ -548,11 +560,11 @@ export default function BillingPage() {
       {isCloseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="bg-slate-800 border border-slate-700 p-7 rounded-2xl shadow-2xl max-w-sm w-full mx-4">
-            <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2"><Receipt size={24} className="text-emerald-400" /> Close Folio</h3>
-            <p className="text-slate-300 mb-6 text-sm">Are you sure you want to close this folio? This action cannot be undone, and no further charges or payments can be posted.</p>
+            <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2"><Receipt size={24} className="text-emerald-400" /> Close Bill</h3>
+            <p className="text-slate-300 mb-6 text-sm">Are you sure you want to close this bill? This action cannot be undone, and no further charges or payments can be posted.</p>
             <div className="flex justify-end gap-3">
               <button onClick={() => setIsCloseModalOpen(false)} className="px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-xl transition-colors">Cancel</button>
-              <button onClick={confirmCloseFolio} className="px-4 py-2.5 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors shadow-lg shadow-emerald-900/30">Yes, Close Folio</button>
+              <button onClick={confirmCloseFolio} className="px-4 py-2.5 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors shadow-lg shadow-emerald-900/30">Yes, Close Bill</button>
             </div>
           </div>
         </div>

@@ -452,7 +452,8 @@ export class AnalyticsService {
     const now = new Date();
     const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const startOfWeek = new Date(startOfToday);
-    startOfWeek.setUTCDate(startOfToday.getUTCDate() - startOfToday.getUTCDay());
+    const day = startOfToday.getUTCDay() || 7;
+    startOfWeek.setUTCDate(startOfToday.getUTCDate() - (day - 1));
     const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
     const tickets = await this.prisma.ticket.findMany({
@@ -521,7 +522,8 @@ export class AnalyticsService {
     const now = new Date();
     const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const startOfWeek = new Date(startOfToday);
-    startOfWeek.setUTCDate(startOfToday.getUTCDate() - startOfToday.getUTCDay());
+    const day = startOfToday.getUTCDay() || 7;
+    startOfWeek.setUTCDate(startOfToday.getUTCDate() - (day - 1));
     const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
     const bookings = await this.prisma.eventBooking.findMany({
