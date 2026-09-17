@@ -28,6 +28,8 @@ type PosReturnRequest = {
 export default function ReturnsPage() {
   const { showToast } = useToast();
   const [returns, setReturns] = useState<PosReturnRequest[]>([]);
+  const [discounts, setDiscounts] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'RETURNS' | 'DISCOUNTS'>('RETURNS');
 
   const [dateRange, setDateRange] = useState(() => {
     const d = new Date();
@@ -48,6 +50,11 @@ export default function ReturnsPage() {
     fetch(`${API_URL}/api/v1/pos/returns${query}`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => setReturns(data.data || data))
+      .catch(console.error);
+
+    fetch(`${API_URL}/api/v1/analytics/discounts${query}`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => setDiscounts(data.data || []))
       .catch(console.error);
   }, [dateRange.start, dateRange.end]);
 
@@ -132,16 +139,22 @@ export default function ReturnsPage() {
   return (
     <div className="returns-layout">
       <div className="header">
-        <h2>Order Returns Management</h2>
-        <p className="subtitle">Track and approve return requests from waitstaff and kitchen/bar.</p>
+        <h2>Returns & Discounts Dashboard</h2>
+        <p className="subtitle">Track return requests and monitor applied discounts across Folios and POS orders.</p>
       </div>
 
       <div style={{ marginBottom: '24px' }}>
         <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} initialStartDate={dateRange.start} initialEndDate={dateRange.end} />
       </div>
 
-      <div className="returns-grid">
-        {returns.length === 0 && <p className="no-data">No return requests found.</p>}
+      <div className="flex gap-4 mb-6 border-b border-slate-700">
+        <button onClick={() => setActiveTab('RETURNS')} className={`pb-3 px-4 font-bold ${activeTab === 'RETURNS' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'}`}>Returns</button>
+        <button onClick={() => setActiveTab('DISCOUNTS')} className={`pb-3 px-4 font-bold ${activeTab === 'DISCOUNTS' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400'}`}>Discounts</button>
+      </div>
+
+      {activeTab === 'RETURNS' && (
+        <div className="returns-grid">
+          {returns.length === 0 && <p className="no-data">No return requests found.</p>}
         {returns.map(req => (
           <div key={req.id} className="return-card">
             <div className="r-header">

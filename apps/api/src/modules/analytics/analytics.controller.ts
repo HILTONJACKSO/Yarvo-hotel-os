@@ -108,6 +108,12 @@ export class AnalyticsController {
     const data = await this.analyticsService.getBalanceSheet(start, end);
     return { data };
   }
+
+  @Get('discounts')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
+  @ApiOperation({ summary: 'Get discounts from folios and POS' })
+  async getDiscounts(@Query('start') start?: string, @Query('end') end?: string) {
+    const data = await this.analyticsService.getDiscounts(start, end);
+    return { data };
+  }
 }
-
-
