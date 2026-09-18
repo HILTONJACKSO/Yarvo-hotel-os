@@ -3,11 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import domtoimage from 'dom-to-image-more';
+import { useAuth } from '@/lib/auth-provider';
 import { Plus, Receipt, Search, Filter, Trash2 } from 'lucide-react';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
 
 export default function ExpensesPage() {
+  const { user } = useAuth();
+  const canDelete = user?.roles?.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT'].includes(r?.toUpperCase?.() || r?.name?.toUpperCase?.()));
+
   const [expenses, setExpenses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -197,12 +201,14 @@ export default function ExpensesPage() {
                       ${Number(expense.amount).toFixed(2)}
                     </td>
                     <td className="p-4 text-center">
-                      <button 
-                        onClick={() => handleDelete(expense.id)}
-                        className="text-slate-500 hover:text-rose-400 transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {canDelete && (
+                        <button 
+                          onClick={() => handleDelete(expense.id)}
+                          className="text-slate-500 hover:text-rose-400 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

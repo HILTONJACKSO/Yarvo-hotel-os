@@ -32,7 +32,7 @@ export class ExpensesController {
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
   async remove(@Param('id') id: string) {
     await this.expensesService.remove(id);
     return { message: 'Expense deleted successfully' };
