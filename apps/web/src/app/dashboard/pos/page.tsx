@@ -42,6 +42,7 @@ export default function PosPage() {
   
   // Checkout / Settle state
   const [settleDiscountPercent, setSettleDiscountPercent] = useState<number>(0);
+    const [settleDiscountReason, setSettleDiscountReason] = useState<string>('');
 
   const [showAddTable, setShowAddTable] = useState(false);
   const [newTable, setNewTable] = useState({ number: '', capacity: 2 });
@@ -327,7 +328,7 @@ export default function PosPage() {
       }
       
       const settleDiscountAmount = Number(settleOrder.totalAmount) * (settleDiscountPercent / 100);
-      if (settleDiscountAmount > 0) payload.discountAmount = settleDiscountAmount;
+      if (settleDiscountAmount > 0) { payload.discountAmount = settleDiscountAmount; payload.discountReason = settleDiscountReason || 'POS Discount'; }
 
       const res = await fetch(`${API_URL}/api/v1/pos/orders/${settleOrder.id}/checkout`, {
         method: 'POST',
@@ -340,7 +341,7 @@ export default function PosPage() {
         setShowSettleModal(false);
         setSettleOrder(null);
         setPayments([]);
-        setSettleDiscountPercent(0);
+        setSettleDiscountPercent(0); setSettleDiscountReason('');
         fetchData(); // Refresh served orders
         
         // Auto print receipt
@@ -660,7 +661,17 @@ export default function PosPage() {
                           style={{ width: '60px', background: 'hsl(222, 35%, 15%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', padding: '2px 4px', borderRadius: '4px', fontSize: '0.85rem', textAlign: 'right' }} 
                           placeholder="0"
                         />
-                      </div>
+                      {settleDiscountPercent > 0 && (
+                            <input
+                              type="text"
+                              value={settleDiscountReason}
+                              onChange={e => setSettleDiscountReason(e.target.value)}
+                              style={{ width: '120px', background: 'hsl(222, 35%, 15%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', padding: '2px 4px', borderRadius: '4px', fontSize: '0.85rem' }}
+                              placeholder="Reason"
+                              required
+                            />
+                          )}
+                        </div>
                     )}
                     <span className="sc-total">${Math.max(0, Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100))).toFixed(2)}</span>
                   </div>
@@ -724,7 +735,7 @@ export default function PosPage() {
                   </div>
                 )}
                 <div className="modal-actions">
-                  <button type="button" className="btn-cancel" onClick={() => { setSettleOrder(null); setPayments([]); setSettleDiscountPercent(0); }}>Back</button>
+                  <button type="button" className="btn-cancel" onClick={() => { setSettleOrder(null); setPayments([]); setSettleDiscountPercent(0); setSettleDiscountReason(''); }}>Back</button>
                   <button type="button" className="btn-success" onClick={handleSettle} disabled={(!settleOrder.folio?.reservation?.room && !settleOrder.folioId) && payments.reduce((sum, p) => sum + p.amount, 0) < Math.max(0, Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100)))}>
                     {(settleOrder.folio?.reservation?.room || settleOrder.folioId) ? 'Charge to Folio' : 'Complete Payment'}
                   </button>

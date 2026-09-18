@@ -133,7 +133,7 @@ export class PosController {
   }
 
   @Post('orders/:id/checkout')
-  checkoutOrder(@Param('id') id: string, @Body() data: { payments?: { method: string; amount: number }[], folioId?: string, discountAmount?: number }) {
+  checkoutOrder(@Param('id') id: string, @Body() data: { payments?: { method: string; amount: number }[], folioId?: string, discountAmount?: number, discountReason?: string }) {
     return this.posService.checkoutOrder(id, data);
   }
 

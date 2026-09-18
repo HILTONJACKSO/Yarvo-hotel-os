@@ -767,7 +767,7 @@ export class AnalyticsService {
       source: 'POS',
       date: d.createdAt,
       amount: d.discountAmount,
-      description: d.notes ? `POS Discount - ${d.notes}` : 'POS Discount',
+      description: d.discountReason ? `POS Discount - ${d.discountReason}` : 'POS Discount',
       reference: d.table ? `Table ${d.table.number}` : 'Takeout/Walk-in'
     }));
 

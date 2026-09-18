@@ -387,7 +387,7 @@ export class PosService {
     });
   }
 
-  async createOrder(data: { tableId?: string; folioId?: string; guestId?: string; userId?: string; userRoles?: string[]; discountAmount?: number; notes?: string }) {
+  async createOrder(data: { tableId?: string; folioId?: string; guestId?: string; userId?: string; userRoles?: string[]; discountAmount?: number; discountReason?: string; notes?: string }) {
     // Check if an OPEN or SERVED order already exists for this destination to consolidate bills
     if (data.tableId) {
       const existing = await this.prisma.posOrder.findFirst({
@@ -407,7 +407,8 @@ export class PosService {
             where: { id: existing.id }, 
             data: { 
               ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
-              ...(data.notes !== undefined ? { notes: data.notes } : {})
+                ...(data.discountReason !== undefined ? { discountReason: data.discountReason } : {}),
+                ...(data.notes !== undefined ? { notes: data.notes } : {})
             }
           });
         }
@@ -431,7 +432,8 @@ export class PosService {
             where: { id: existing.id }, 
             data: { 
               ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
-              ...(data.notes !== undefined ? { notes: data.notes } : {})
+                ...(data.discountReason !== undefined ? { discountReason: data.discountReason } : {}),
+                ...(data.notes !== undefined ? { notes: data.notes } : {})
             }
           });
         }
@@ -455,7 +457,8 @@ export class PosService {
             where: { id: existing.id }, 
             data: { 
               ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
-              ...(data.notes !== undefined ? { notes: data.notes } : {})
+                ...(data.discountReason !== undefined ? { discountReason: data.discountReason } : {}),
+                ...(data.notes !== undefined ? { notes: data.notes } : {})
             }
           });
         }
@@ -471,7 +474,8 @@ export class PosService {
         userId: data.userId,
         status: 'OPEN',
         discountAmount: data.discountAmount || 0,
-        notes: data.notes,
+          discountReason: data.discountReason,
+          notes: data.notes,
       },
     });
   }
@@ -593,7 +597,7 @@ export class PosService {
     return item;
   }
 
-  async checkoutOrder(orderId: string, data: { payments?: { method: string; amount: number }[], folioId?: string, discountAmount?: number }) {
+  async checkoutOrder(orderId: string, data: { payments?: { method: string; amount: number }[], folioId?: string, discountAmount?: number, discountReason?: string }) {
     const order = await this.prisma.posOrder.findUnique({
       where: { id: orderId },
       include: { items: { include: { menuItem: { include: { taxes: true } } } } }
@@ -638,7 +642,7 @@ export class PosService {
         entity: 'PosOrder',
         entityId: orderId,
         oldValues: { discountAmount: Number(order.discountAmount || 0) },
-        newValues: { discountAmount: appliedDiscount },
+        newValues: { discountAmount: appliedDiscount, ...(data.discountReason ? { discountReason: data.discountReason } : {}) },
         userId: undefined
       }).catch(console.error);
     }
@@ -666,7 +670,7 @@ export class PosService {
 
       return this.prisma.posOrder.update({
         where: { id: orderId },
-        data: { status: 'BILLED_TO_ROOM', folioId: folioIdToUse, totalAmount, discountAmount: appliedDiscount }
+        data: { status: 'BILLED_TO_ROOM', folioId: folioIdToUse, totalAmount, discountAmount: appliedDiscount, ...(data.discountReason ? { discountReason: data.discountReason } : {}) }
       });
     }
 
@@ -684,7 +688,7 @@ export class PosService {
         }
         await tx.posOrder.update({
           where: { id: orderId },
-          data: { status: 'PAID', totalAmount, discountAmount: appliedDiscount }
+          data: { status: 'PAID', totalAmount, discountAmount: appliedDiscount, ...(data.discountReason ? { discountReason: data.discountReason } : {}) }
         });
       });
       return this.prisma.posOrder.findUnique({ where: { id: orderId } });
@@ -692,7 +696,7 @@ export class PosService {
 
     return this.prisma.posOrder.update({
       where: { id: orderId },
-      data: { status: 'PAID', totalAmount, discountAmount: appliedDiscount }
+      data: { status: 'PAID', totalAmount, discountAmount: appliedDiscount, ...(data.discountReason ? { discountReason: data.discountReason } : {}) }
     });
   }
 

@@ -1,29 +1,46 @@
-import sys
+import os
+
+service_path = "apps/api/src/modules/pos/pos.service.ts"
+with open(service_path, "r", encoding="utf-8") as f:
+    c = f.read()
+
 import re
 
-with open("apps/api/src/modules/pos/pos.service.ts", "r", encoding="utf-8") as f:
-    code = f.read()
+# Update createOrder signature
+c = re.sub(
+    r"async createOrder\(data: \{ tableId\?: string; folioId\?: string; guestId\?: string; userId\?: string; userRoles\?: string\[\]; discountAmount\?: number; notes\?: string \}\) \{",
+    r"async createOrder(data: { tableId?: string; folioId?: string; guestId?: string; userId?: string; userRoles?: string[]; discountAmount?: number; discountReason?: string; notes?: string }) {",
+    c
+)
 
-# Fix 1: updateOrderItemStatus allServed logic
-old_allServed = "const allServed = item.order.items.every(i => i.status === 'SERVED');"
-new_allServed = "const allServed = item.order.items.every(i => ['SERVED', 'RETURNED'].includes(i.status));"
-code = code.replace(old_allServed, new_allServed)
+# Update createOrder updates
+c = re.sub(
+    r"\.\.\.\(data\.discountAmount \!== undefined \? \{ discountAmount: data\.discountAmount \} : \{\}\),\n\s*\.\.\.\(data\.notes \!== undefined \? \{ notes: data\.notes \} : \{\}\)",
+    r"...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),\n                ...(data.discountReason !== undefined ? { discountReason: data.discountReason } : {}),\n                ...(data.notes !== undefined ? { notes: data.notes } : {})",
+    c
+)
 
-# Fix 2: checkoutOrder enforcement logic
-old_checkout = """    // Enforce workflow: cashier can only settle SERVED orders (kitchen/bar done + waitstaff delivered)
-    if (order.status !== 'SERVED') {
-      throw new ForbiddenException(
-        'Order cannot be settled yet. All items must be marked ready by the kitchen/bar, and delivered by the waitstaff first.'
-      );
-    }"""
-new_checkout = """    // Enforce workflow: cashier can only settle orders where all active items are SERVED
-    const hasUnserved = order.items.some(i => !['SERVED', 'RETURNED'].includes(i.status));
-    if (hasUnserved) {
-      throw new ForbiddenException(
-        'Order cannot be settled yet. All items must be marked ready by the kitchen/bar, and delivered by the waitstaff first.'
-      );
-    }"""
-code = code.replace(old_checkout, new_checkout)
+# Update createOrder creation
+c = re.sub(
+    r"discountAmount: data\.discountAmount \|\| 0,\n\s*notes: data\.notes,",
+    r"discountAmount: data.discountAmount || 0,\n          discountReason: data.discountReason,\n          notes: data.notes,",
+    c
+)
 
-with open("apps/api/src/modules/pos/pos.service.ts", "w", encoding="utf-8") as f:
-    f.write(code)
+# Update checkoutOrder signature
+c = re.sub(
+    r"async checkoutOrder\(orderId: string, data: \{ payments\?: \{ method: string; amount: number \}\[\], folioId\?: string, discountAmount\?: number \}\) \{",
+    r"async checkoutOrder(orderId: string, data: { payments?: { method: string; amount: number }[], folioId?: string, discountAmount?: number, discountReason?: string }) {",
+    c
+)
+
+# Replace all instances where checkoutOrder updates posOrder state with discountReason
+c = re.sub(
+    r"discountAmount: appliedDiscount \}",
+    r"discountAmount: appliedDiscount, ...(data.discountReason ? { discountReason: data.discountReason } : {}) }",
+    c
+)
+
+with open(service_path, "w", encoding="utf-8") as f:
+    f.write(c)
+print("Patched pos.service.ts")
