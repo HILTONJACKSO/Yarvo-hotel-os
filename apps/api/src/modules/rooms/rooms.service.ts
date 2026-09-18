@@ -94,7 +94,7 @@ export class RoomsService {
         roomType: true,
         reservations: {
           where: {
-            status: { in: ['CONFIRMED', 'CHECKED_IN'] },
+            status: { notIn: ['CANCELLED', 'NO_SHOW'] },
             checkInDate: { lte: endDate },
             checkOutDate: { gte: startDate }
           },
