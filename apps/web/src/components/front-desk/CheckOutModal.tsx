@@ -99,9 +99,118 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
     }
   };
 
-  const handlePrint = () => {
-    // We will trigger a print. CSS will handle showing ONLY the print area.
-    window.print();
+    const handlePrint = () => {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    let itemsHtml = '';
+    let totalCharges = 0;
+    
+    (statement?.lineItems || []).forEach((item: any) => {
+      const amt = Number(item.amount);
+      if (item.type === 'CHARGE') totalCharges += amt;
+      const displayAmt = item.type === 'PAYMENT' ? `-$${amt.toFixed(2)}` : `$${amt.toFixed(2)}`;
+      itemsHtml += `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #eee;">${new Date(item.createdAt).toLocaleDateString()}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.description}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${displayAmt}</td>
+        </tr>
+      `;
+    });
+
+    const subtotal = totalCharges / 1.10;
+    const gst = totalCharges - subtotal;
+
+    doc.open();
+    doc.write(`
+      <html>
+      <head>
+        <title>Receipt</title>
+        <style>
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; color: #000; font-size: 14px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .header h2 { margin: 0 0 5px 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
+          .header p { margin: 0; color: #666; font-size: 14px; }
+          .title { text-align: center; font-weight: bold; font-size: 18px; margin: 20px 0; border-bottom: 2px solid #000; padding-bottom: 10px; }
+          .info { margin-bottom: 20px; display: flex; flex-wrap: wrap; }
+          .info div { width: 50%; margin-bottom: 8px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+          th { padding: 10px 8px; border-bottom: 2px solid #000; text-align: left; font-weight: bold; }
+          .totals { width: 100%; display: flex; justify-content: flex-end; }
+          .totals table { width: 250px; border-top: 2px solid #000; margin-bottom: 0; }
+          .totals td { padding: 6px 8px; text-align: right; border: none; }
+          .totals tr:last-child td { font-weight: bold; border-top: 1px solid #000; font-size: 16px; }
+          .footer { text-align: center; margin-top: 50px; font-size: 12px; color: #666; border-top: 1px dashed #ccc; padding-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2>KWALEE BEACH RESORT</h2>
+          <p>Monrovia, Liberia</p>
+        </div>
+        
+        <div class="title">ROOM RECEIPT</div>
+
+        <div class="info">
+          <div><strong>Guest:</strong> ${reservation?.guest?.firstName} ${reservation?.guest?.lastName}</div>
+          <div><strong>Room:</strong> ${reservation?.room?.number || 'N/A'}</div>
+          <div><strong>Check-In:</strong> ${new Date(reservation?.checkInDate).toLocaleDateString()}</div>
+          <div><strong>Check-Out:</strong> ${new Date().toLocaleDateString()}</div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th style="text-align: right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <table>
+            <tr>
+              <td>Subtotal:</td>
+              <td>$${subtotal.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>GST (10% inclusive):</td>
+              <td>$${gst.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td><strong>Balance Due:</strong></td>
+              <td><strong>$${balance.toFixed(2)}</strong></td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="footer">
+          <p>Thank you for choosing Kwalee Beach Resort!</p>
+        </div>
+      </body>
+      </html>
+    `);
+    doc.close();
+
+    iframe.contentWindow?.focus();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      setTimeout(() => { document.body.removeChild(iframe); }, 1000);
+    }, 250);
   };
 
   const [billToCompany, setBillToCompany] = useState(false);
