@@ -128,10 +128,10 @@ export default function BillingPage() {
         <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
         
         <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
-          <span>Subtotal</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE' && i.category !== 'TAX').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0)).toFixed(2)}</span>
+          <span>Subtotal</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0) / 1.10).toFixed(2)}</span>
         </div>
         <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
-          <span>GST / Tax</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE' && i.category === 'TAX').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0)).toFixed(2)}</span>
+          <span>GST / Tax (10%)</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0) - (selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0) / 1.10)).toFixed(2)}</span>
         </div>
         <div style="font-size:14px; font-weight:bold; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
           <span>Total</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0)).toFixed(2)}</span>

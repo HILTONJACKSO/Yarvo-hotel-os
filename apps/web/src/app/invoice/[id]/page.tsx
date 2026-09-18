@@ -77,6 +77,8 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
   if (!folio) return <div style={{ padding: '40px', textAlign: 'center' }}>Folio not found.</div>;
 
   const totalCharges = folio.lineItems.filter(i => i.type === 'CHARGE').reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const subtotal = totalCharges / 1.10;
+  const gst = totalCharges - subtotal;
   const totalPayments = folio.lineItems.filter(i => i.type === 'PAYMENT').reduce((acc, curr) => acc + Number(curr.amount), 0);
 
   return (
@@ -161,8 +163,16 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
           <table className="summary-table">
             <tbody>
               <tr>
-                <td>Total Charges:</td>
-                <td>${totalCharges.toFixed(2)}</td>
+                <td>Subtotal:</td>
+                <td>${subtotal.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td>GST / Tax (10%):</td>
+                <td>${gst.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold' }}>Total Charges:</td>
+                <td style={{ fontWeight: 'bold' }}>${totalCharges.toFixed(2)}</td>
               </tr>
               <tr>
                 <td>Total Payments:</td>
