@@ -808,6 +808,7 @@ export default function PosPage() {
                 <select className="form-select" value={newMenuItem.type} onChange={e => setNewMenuItem({...newMenuItem, type: e.target.value})}>
                   <option value="FOOD">Food</option>
                   <option value="DRINK">Drink</option>
+                    <option value="MERCHANDISE">Merchandise</option>
                 </select>
               </div>
               <div className="form-group">
