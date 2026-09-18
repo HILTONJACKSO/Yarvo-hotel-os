@@ -153,7 +153,7 @@ export class FoliosService {
           type: 'ADJUSTMENT',
           category: 'OTHER',
           amount: new Prisma.Decimal(paymentDto.amount * -1), // Negative amount for discount logic or positive depending on UI? Wait, postPayment did positive, but balance decrements. For ADJUSTMENT, if we decrement balance, we might as well keep it positive in LineItem or negative. I will keep it positive for consistency and decrement the folio balance.
-          description: paymentDto.description || 'Discount',
+          description: paymentDto.description ? (paymentDto.description.toLowerCase().startsWith('discount') ? paymentDto.description : `Discount - ${paymentDto.description}`) : 'Discount',
           referenceCode: paymentDto.referenceCode,
           createdById: userId,
         },
