@@ -114,92 +114,82 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
 
     let itemsHtml = '';
     let totalCharges = 0;
+    let totalDiscounts = 0;
+    let totalPayments = 0;
     
     (statement?.lineItems || []).forEach((item: any) => {
       const amt = Number(item.amount);
       if (item.type === 'CHARGE') totalCharges += amt;
-      const displayAmt = item.type === 'PAYMENT' ? `-$${amt.toFixed(2)}` : `$${amt.toFixed(2)}`;
+      if (item.type === 'ADJUSTMENT') totalDiscounts += Math.abs(amt);
+      if (item.type === 'PAYMENT') totalPayments += Math.abs(amt);
+      const isSub = (item.type === 'PAYMENT' || item.type === 'ADJUSTMENT' || amt < 0);
+      const displayAmt = isSub ? `-$${Math.abs(amt).toFixed(2)}` : `$${Math.abs(amt).toFixed(2)}`;
       itemsHtml += `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${new Date(item.createdAt).toLocaleDateString()}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.description}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">${displayAmt}</td>
-        </tr>
+        <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
+          <div style="flex:1;">${new Date(item.createdAt).toLocaleDateString()}</div>
+          <div style="flex:2; padding:0 8px;">${item.description}</div>
+          <div style="flex:1; text-align:right;">${displayAmt}</div>
+        </div>
       `;
     });
 
-    const subtotal = totalCharges / 1.10;
-    const gst = totalCharges - subtotal;
+    const gst = totalCharges - (totalCharges / 1.10);
+    const bal = (statement?.balance || 0);
 
     doc.open();
     doc.write(`
       <html>
       <head>
         <title>Receipt</title>
-        <style>
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; color: #000; font-size: 14px; }
-          .header { text-align: center; margin-bottom: 30px; }
-          .header h2 { margin: 0 0 5px 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
-          .header p { margin: 0; color: #666; font-size: 14px; }
-          .title { text-align: center; font-weight: bold; font-size: 18px; margin: 20px 0; border-bottom: 2px solid #000; padding-bottom: 10px; }
-          .info { margin-bottom: 20px; display: flex; flex-wrap: wrap; }
-          .info div { width: 50%; margin-bottom: 8px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-          th { padding: 10px 8px; border-bottom: 2px solid #000; text-align: left; font-weight: bold; }
-          .totals { width: 100%; display: flex; justify-content: flex-end; }
-          .totals table { width: 250px; border-top: 2px solid #000; margin-bottom: 0; }
-          .totals td { padding: 6px 8px; text-align: right; border: none; }
-          .totals tr:last-child td { font-weight: bold; border-top: 1px solid #000; font-size: 16px; }
-          .footer { text-align: center; margin-top: 50px; font-size: 12px; color: #666; border-top: 1px dashed #ccc; padding-top: 20px; }
-        </style>
       </head>
-      <body>
-        <div class="header">
-          <h2>KWALEE BEACH RESORT</h2>
-          <p>Monrovia, Liberia</p>
+      <body style="margin:0; padding:20px; font-family:'Courier New', Courier, monospace; color:#000; background:#fff; max-width: 380px; margin: 0 auto;">
+        <div style="text-align:center; margin-bottom:20px;">
+          <img src="/kwalee-logo.png" style="max-width:120px; margin-bottom:10px;" />
+          <div style="font-size:20px; font-weight:bold; margin-bottom:4px; color:#000;">KWALEE BEACH RESORT</div>
+          <div style="font-size:12px; color:#000;">www.kwaleebeachresort.com</div>
+          <div style="font-size:12px; color:#000;">info@kwaleebeachresort.com</div>
+          <div style="font-size:12px; color:#000;">+231 774 340 843 / +231 881 774 350</div>
+          <div style="font-size:12px; color:#000;">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
+        </div>
+        <div style="text-align:center; font-size:14px; font-weight:bold; margin:20px 0; color:#000;">ROOM RECEIPT</div>
+        <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
+        
+        <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
+          <span style="color:#666;">Guest:</span><span>${reservation?.guest?.firstName || ''} ${reservation?.guest?.lastName || ''}</span>
+        </div>
+        <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
+          <span style="color:#666;">Room:</span><span>${reservation?.room?.number || 'N/A'}</span>
+        </div>
+        <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
+          <span style="color:#666;">Check-In:</span><span>${new Date(reservation?.checkInDate).toLocaleDateString()}</span>
+        </div>
+        <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
+          <span style="color:#666;">Check-Out:</span><span>${new Date().toLocaleDateString()}</span>
         </div>
         
-        <div class="title">ROOM RECEIPT</div>
-
-        <div class="info">
-          <div><strong>Guest:</strong> ${reservation?.guest?.firstName} ${reservation?.guest?.lastName}</div>
-          <div><strong>Room:</strong> ${reservation?.room?.number || 'N/A'}</div>
-          <div><strong>Check-In:</strong> ${new Date(reservation?.checkInDate).toLocaleDateString()}</div>
-          <div><strong>Check-Out:</strong> ${new Date().toLocaleDateString()}</div>
+        <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
+        ${itemsHtml}
+        <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
+        
+        <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
+          <span>Subtotal (Charges)</span><span>$${totalCharges.toFixed(2)}</span>
         </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Description</th>
-              <th style="text-align: right;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
-
-        <div class="totals">
-          <table>
-            <tr>
-              <td>Subtotal:</td>
-              <td>$${subtotal.toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td>GST (10% inclusive):</td>
-              <td>$${gst.toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td><strong>Balance Due:</strong></td>
-              <td><strong>$${balance.toFixed(2)}</strong></td>
-            </tr>
-          </table>
+        <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
+          <span style="color:#555;">GST Included (10%)</span><span style="color:#555;">$${gst.toFixed(2)}</span>
         </div>
-
-        <div class="footer">
-          <p>Thank you for choosing Kwalee Beach Resort!</p>
+        ${totalDiscounts > 0 ? `<div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#dc2626;">
+          <span>Total Discounts</span><span>-$${totalDiscounts.toFixed(2)}</span>
+        </div>` : ''}
+        ${totalPayments > 0 ? `<div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#059669;">
+          <span>Total Payments</span><span>-$${totalPayments.toFixed(2)}</span>
+        </div>` : ''}
+        
+        <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-top:12px; color:#000;">
+          <span>BALANCE DUE</span><span>$${Number(bal).toFixed(2)}</span>
+        </div>
+        
+        <div style="margin-top:40px; text-align:center; font-size:11px; color:#333; line-height:1.5;">
+          <p style="color:#000; margin:0;"><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
         </div>
       </body>
       </html>

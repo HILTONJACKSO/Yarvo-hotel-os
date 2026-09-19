@@ -85,6 +85,181 @@ export default function BillingPage() {
     if (!doc) return;
 
     let itemsHtml = '';
+    let totalCharges = 0;
+    let totalDiscounts = 0;
+    let totalPayments = 0;
+    
+    (selectedBill.lineItems || []).forEach((item: any) => {
+      const amt = Number(item.amount);
+      if (item.type === 'CHARGE') totalCharges += amt;
+      if (item.type === 'ADJUSTMENT') totalDiscounts += Math.abs(amt);
+      if (item.type === 'PAYMENT') totalPayments += Math.abs(amt);
+      const isSub = (item.type === 'PAYMENT' || item.type === 'ADJUSTMENT' || amt < 0);
+      const displayAmt = isSub ? `-$${Math.abs(amt).toFixed(2)}` : `$${Math.abs(amt).toFixed(2)}`;
+      itemsHtml += `
+        <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
+          <div style="flex:1;">${new Date(item.createdAt).toLocaleDateString()}</div>
+          <div style="flex:2; padding:0 8px;">${item.description}</div>
+          <div style="flex:1; text-align:right;">${displayAmt}</div>
+        </div>
+      `;
+    });
+
+    const gst = totalCharges - (totalCharges / 1.10);
+    const bal = (selectedBill?.balance || 0);
+
+    const docHtml = `
+      <html><head><title>Bill ${mode}</title></head>
+      <body style="margin:0; padding:20px; font-family:'Courier New', Courier, monospace; color:#000; background:#fff; max-width: 380px; margin: 0 auto;">
+        <div style="text-align:center; margin-bottom:20px;">
+          <img src="/kwalee-logo.png" style="max-width:120px; margin-bottom:10px;" />
+          <div style="font-size:20px; font-weight:bold; margin-bottom:4px; color:#000;">KWALEE BEACH RESORT</div>
+          <div style="font-size:12px; color:#000;">www.kwaleebeachresort.com</div>
+          <div style="font-size:12px; color:#000;">info@kwaleebeachresort.com</div>
+          <div style="font-size:12px; color:#000;">+231 774 340 843 / +231 881 774 350</div>
+          <div style="font-size:12px; color:#000;">Kpakpa Kon, Marshall, Lower Margibi County, Liberia</div>
+        </div>
+        <div style="text-align:center; font-size:14px; font-weight:bold; margin:20px 0; color:#000;">${mode === 'RECEIPT' ? 'ROOM RECEIPT' : 'ROOM INVOICE'}</div>
+        <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
+        
+        <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
+          <span style="color:#666;">Invoice No:</span><span>FL-${selectedBill.id.substring(0,6).toUpperCase()}</span>
+        </div>
+        <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
+          <span style="color:#666;">Date:</span><span>${new Date().toLocaleDateString()}</span>
+        </div>
+        <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
+          <span style="color:#666;">Guest:</span><span>${selectedBill.reservation?.guest?.firstName || ''} ${selectedBill.reservation?.guest?.lastName || ''}</span>
+        </div>
+        <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
+          <span style="color:#666;">Room:</span><span>${selectedBill.reservation?.room?.number || 'N/A'}</span>
+        </div>
+        
+        <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
+        ${itemsHtml}
+        <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
+        
+        <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
+          <span>Subtotal (Charges)</span><span>$${totalCharges.toFixed(2)}</span>
+        </div>
+        <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
+          <span style="color:#555;">GST Included (10%)</span><span style="color:#555;">$${gst.toFixed(2)}</span>
+        </div>
+        ${totalDiscounts > 0 ? `<div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#dc2626;">
+          <span>Total Discounts</span><span>-$${totalDiscounts.toFixed(2)}</span>
+        </div>` : ''}
+        ${totalPayments > 0 ? `<div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#059669;">
+          <span>Total Payments</span><span>-$${totalPayments.toFixed(2)}</span>
+        </div>` : ''}
+        
+        <div style="font-size:18px; font-weight:bold; display:flex; justify-content:space-between; margin-top:12px; color:#000;">
+          <span>BALANCE DUE</span><span>$${Number(bal).toFixed(2)}</span>
+        </div>
+
+        ${mode === 'INVOICE' ? `
+        <div style="margin-top:50px; text-align:center;">
+          <div style="border-top:1px solid #000; width:200px; margin:0 auto 8px auto;"></div>
+          <p style="font-size:12px; margin:0; color:#000;">Guest Signature</p>
+        </div>
+        ` : ''}
+        
+        <div style="text-align:center; font-size:11px; margin-top:40px; color:#333; line-height:1.5;">
+          <p style="color:#000; margin:0;"><strong>THANK YOU FOR CHOOSING KWALEE BEACH RESORT!</strong><br/>PLEASE COME AGAIN!</p>
+        </div>
+        
+        <div style="text-align:left; font-size:10px; margin-top:20px; color:#000; line-height:1.4; border-top:1px dashed #000; padding-top:10px;">
+          <strong>PAYMENT TERMS & CONDITIONS:</strong><br/>
+          Payment is due immediately upon receipt of this invoice unless otherwise agreed. All prices are subject to applicable charges. Any additional orders or services will be added to the final bill.
+          <br/><br/>
+          Thank you for choosing Kwalee Beach Resort.
+        </div>
+      </body>
+      </html>
+    `; useState, useEffect } from "react";
+import { useToast } from "@/components/ui/toast-provider";
+import { useAuth } from "@/lib/auth-provider";
+import { ShoppingCart, Edit, Trash2, Receipt } from "lucide-react";
+
+export default function BillingPage() {
+  const [discountAmount, setDiscountAmount] = useState('');
+  const [discountDescription, setDiscountDescription] = useState('');
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const [bills, setBills] = useState<any[]>([]);
+  const [selectedBill, setSelectedBill] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Form states for Folio
+  const [chargeAmount, setChargeAmount] = useState("");
+  const [chargeDesc, setChargeDesc] = useState("");
+  const [chargeCategory, setChargeCategory] = useState("ROOM");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("PAYMENT_CARD");
+
+  // Top Bar Stats
+  const [totalPendingPOS, setTotalPendingPOS] = useState(0);
+  const [totalPendingRooms, setTotalPendingRooms] = useState(0);
+
+  const fetchBills = async () => {
+    try {
+      // Fetch open folios
+      const resFolios = await fetch("/api/v1/folios?status=OPEN");
+      if (!resFolios.ok) throw new Error("Failed to fetch folios");
+      const jsonFolios = await resFolios.json();
+      const folios = (jsonFolios.data || []).map((f: any) => ({ ...f, type: "FOLIO" }));
+
+      // Fetch POS served orders
+      const resPos = await fetch("/api/v1/pos/served-orders");
+      if (!resPos.ok) throw new Error("Failed to fetch pos orders");
+      const jsonPos = await resPos.json();
+      const allPos = jsonPos.data || [];
+      
+      // Filter POS: We now show all active OPEN and SERVED orders immediately
+      const invoicedPos = allPos.filter((o: any) => o.status === "SERVED" || o.status === "OPEN");
+      const posOrders = invoicedPos.map((o: any) => ({ ...o, type: "POS_ORDER" }));
+
+      // Calculate total pending POS
+      const totalPosAmount = posOrders.reduce((sum: number, o: any) => sum + Number(o.totalAmount || 0), 0);
+      setTotalPendingPOS(totalPosAmount);
+      const totalRoomsAmount = folios.reduce((sum: number, f: any) => sum + Number(f.balance || 0), 0);
+      setTotalPendingRooms(totalRoomsAmount);
+
+      // Combine
+      setBills([...folios, ...posOrders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      
+      // Refresh selected bill if exists
+      if (selectedBill) {
+        if (selectedBill.type === "FOLIO") {
+           selectFolio(selectedBill.id, false);
+        } else {
+           const updatedPos = posOrders.find((o: any) => o.id === selectedBill.id);
+           if (updatedPos) setSelectedBill(updatedPos);
+           else setSelectedBill(null);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const printViaIframe = (mode: 'RECEIPT' | 'INVOICE' = 'INVOICE') => {
+    if (!selectedBill) return;
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    let itemsHtml = '';
     selectedBill.lineItems.forEach((item: any) => {
       const typeStr = item.type === 'CHARGE' ? 'Charge' : 'Payment';
       const amountStr = item.type === 'CHARGE' ? `$${Number(item.amount).toFixed(2)}` : `-$${Number(item.amount).toFixed(2)}`;

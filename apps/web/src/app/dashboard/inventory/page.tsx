@@ -57,8 +57,20 @@ export default function InventoryPage() {
     }
 
     let rowsHtml = '';
+    
+    // Filter items based on location
+    const filteredItems = items.filter(item => {
+      if (printLocation === 'ALL') return true;
+      if (printLocation === 'BAR') return item.category === 'DRINK' || item.category === 'BAR' || Number(item.stockBar || 0) > 0;
+      if (printLocation === 'KITCHEN') return item.category === 'FOOD' || item.category === 'KITCHEN' || Number(item.stockKitchen || 0) > 0;
+      if (printLocation === 'BOUTIQUE') return item.category === 'BOUTIQUE' || Number(item.stockBoutique || 0) > 0;
+      if (printLocation === 'HOUSEKEEPING') return item.category === 'HOUSEKEEPING' || Number(item.stockHousekeeping || 0) > 0;
+      if (printLocation === 'MAIN') return item.category === 'GENERAL' || item.category === 'MAINTENANCE' || Number(item.stockMain || 0) > 0;
+      return false;
+    });
+
     // Sort items by category then name
-    const sortedItems = [...items].sort((a, b) => {
+    const sortedItems = [...filteredItems].sort((a, b) => {
       if (a.category !== b.category) return a.category.localeCompare(b.category);
       return a.name.localeCompare(b.name);
     });
@@ -111,7 +123,7 @@ export default function InventoryPage() {
         </style>
       </head>
       <body>
-        <h1>Yarvo Resort - Inventory Report</h1>
+        <h1>Kwalee Beach Resort - Inventory Report</h1>
         <h2>${printReportPeriod} Record - Date: ${printReportDate}</h2>
         <h2>Department: ${printLocation === 'ALL' ? 'All Departments' : printLocation}</h2>
         <table>
