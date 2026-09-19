@@ -418,7 +418,7 @@ export default function BillingPage() {
                   <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 mb-3 uppercase tracking-wider">
                     {selectedBill.status}
                   </div>
-                  <h2 className="text-2xl font-extrabold text-white mb-1 tracking-tight">{selectedBill.reservation?.guest?.lastName} Folio</h2>
+                  <h2 className="text-2xl font-extrabold text-white mb-1 tracking-tight">Bill: {selectedBill.reservation?.guest?.lastName}</h2>
                   <div className="text-slate-400 font-medium">Room {selectedBill.reservation?.room?.number || 'N/A'}</div>
                 </div>
                 <div className="text-right">
@@ -427,8 +427,8 @@ export default function BillingPage() {
                     ${Number(selectedBill.balance).toFixed(2)}
                   </div>
                   <div className="flex gap-2 justify-end mt-2">
-                      {selectedBill.status === 'OPEN' && Number(selectedBill.balance) === 0 && (
-                          <button onClick={handleCloseFolio} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Close Bill</button>
+                      {selectedBill.status === 'OPEN' && (
+                          <button onClick={handleCloseFolio} disabled={Number(selectedBill.balance) !== 0} className={`text-xs px-3 py-1.5 rounded-md transition-colors ${Number(selectedBill.balance) === 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}>Close Bill</button>
                         )}
                         <button onClick={() => printViaIframe('INVOICE')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Invoice</button>
                         <button onClick={() => printViaIframe('RECEIPT')} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Receipt</button>

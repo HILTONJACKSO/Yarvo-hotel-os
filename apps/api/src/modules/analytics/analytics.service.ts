@@ -748,7 +748,7 @@ export class AnalyticsService {
         createdAt: { gte: start, lte: end },
         discountAmount: { gt: 0 }
       },
-      include: { table: true },
+      include: { table: true, items: { include: { menuItem: true } } },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -762,14 +762,17 @@ export class AnalyticsService {
       reference: d.folio?.reservation?.guest ? `${d.folio.reservation.guest.firstName} ${d.folio.reservation.guest.lastName} (Room ${d.folio.reservation.room?.number || 'N/A'})` : 'Unknown Folio'
     }));
 
-    const formattedPos = posDiscounts.map((d: any) => ({
-      id: d.id,
-      source: 'POS',
-      date: d.createdAt,
-      amount: d.discountAmount,
-      description: d.discountReason ? `POS Discount - ${d.discountReason}` : 'POS Discount',
-      reference: d.table ? `Table ${d.table.number}` : 'Takeout/Walk-in'
-    }));
+    const formattedPos = posDiscounts.map((d: any) => {
+      const itemsStr = d.items?.map((i: any) => `${i.quantity}x ${i.menuItem?.name || 'Item'}`).join(', ') || 'POS Discount';
+      return {
+        id: d.id,
+        source: 'POS',
+        date: d.createdAt,
+        amount: d.discountAmount,
+        description: d.discountReason ? `${itemsStr} - ${d.discountReason}` : itemsStr,
+        reference: d.table ? `Table ${d.table.number}` : 'Takeout/Walk-in'
+      };
+    });
 
     const combined = [...formattedFolio, ...formattedPos].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return combined;
