@@ -4,7 +4,7 @@ import { PayslipPrint } from './PayslipPrint';
 import { PayrollSummaryPrint } from './PayrollSummaryPrint';
 import { useAuth } from '@/lib/auth-provider';
 
-export function PayrollTab({ staff }: { staff: any[] }) {
+export function PayrollTab({ staff, isManager }: { staff: any[], isManager?: boolean }) {
   const { user } = useAuth();
   const isManagerOrAdmin = user?.roles?.some((r: any) => ["SUPER_ADMIN", "ADMIN", "CEO", "MANAGER"].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
 
