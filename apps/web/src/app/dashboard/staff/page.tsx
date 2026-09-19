@@ -151,11 +151,11 @@ export default function StaffPage() {
       )}
 
       {activeTab === 'attendance' && (
-        <AttendanceTab staff={staff} />
+        <AttendanceTab staff={staff} isManager={isManager} currentUser={user} />
       )}
 
       {activeTab === 'payroll' && (
-        <PayrollTab staff={staff} />
+        <PayrollTab staff={staff} isManager={isManager} />
       )}
 
       <style>{`

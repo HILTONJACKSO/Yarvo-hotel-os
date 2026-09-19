@@ -419,7 +419,7 @@ export default function PosPage() {
               )}
             </div>
             <div className="flex gap-2">
-              <button className="btn-success btn-sm" onClick={() => {fetchData(); setShowSettleModal(true);}}>Settle Orders ({servedOrders.length})</button>
+              {canSettleOrders && <button className="btn-success btn-sm" onClick={() => {fetchData(); setShowSettleModal(true);}}>Settle Orders ({servedOrders.length})</button>}
               {canEditPos && <button className="btn-secondary btn-sm" onClick={() => setShowAddTable(true)}>+ Add Table</button>}
             </div>
           </div>
@@ -454,7 +454,7 @@ export default function PosPage() {
               <select className="form-select w-full" value={selectedFolioId || ''} onChange={e => setSelectedFolioId(e.target.value)}>
                 <option value="" disabled>Select a Checked-In Guest</option>
                 {inHouseGuests.map(r => (
-                  <option key={r.id} value={r.folio.id}>Room {r.room?.number || 'N/A'} - {r.guest.firstName} {r.guest.lastName}</option>
+                  <option key={r.id} value={r.folio.id}>{r.room?.number || 'N/A'} - {r.guest.firstName} {r.guest.lastName}</option>
                 ))}
               </select>
             </div>
@@ -688,7 +688,7 @@ export default function PosPage() {
                       <select className="form-select w-full" value={settleFolioId || ''} onChange={e => setSettleFolioId(e.target.value)}>
                         <option value="">-- Do not bill to room (Pay now) --</option>
                         {inHouseGuests.map(r => (
-                          <option key={r.id} value={r.folio.id}>Room {r.room?.number || 'N/A'} - {r.guest.firstName} {r.guest.lastName}</option>
+                          <option key={r.id} value={r.folio.id}>{r.room?.number || 'N/A'} - {r.guest.firstName} {r.guest.lastName}</option>
                         ))}
                       </select>
                     </div>

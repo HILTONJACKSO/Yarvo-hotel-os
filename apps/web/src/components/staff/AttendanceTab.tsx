@@ -17,7 +17,7 @@ type Attendance = {
   notes?: string;
 };
 
-export function AttendanceTab({ staff }: { staff: User[] }) {
+export function AttendanceTab({ staff, isManager, currentUser }: { staff: User[], isManager?: boolean, currentUser?: any }) {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(false);
   const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0]);
@@ -85,15 +85,34 @@ export function AttendanceTab({ staff }: { staff: User[] }) {
           className="form-input"
         />
         
-        <form className="clock-in-form" onSubmit={handleClockIn}>
-          <select value={clockInUserId} onChange={e => setClockInUserId(e.target.value)} required className="form-input">
-            <option value="">Select Staff to Clock In</option>
-            {staff.map(s => (
-              <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>
-            ))}
-          </select>
-          <button type="submit" className="btn-primary">Clock In Now</button>
-        </form>
+        <form className="clock-in-form" onSubmit={(e) => {
+            if (!isManager && currentUser?.id) {
+              e.preventDefault();
+              setClockInUserId(currentUser.id);
+              // We must call it right away with the correct ID
+              fetch('/api/v1/staff/attendance/clock-in', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id })
+              }).then(r => { if (r.ok) fetchAttendance(); });
+            } else {
+              handleClockIn(e);
+            }
+          }}>
+            {isManager ? (
+              <>
+                <select value={clockInUserId} onChange={e => setClockInUserId(e.target.value)} required className="form-input">
+                  <option value="">Select Staff to Clock In</option>
+                  {staff.map(s => (
+                    <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>
+                  ))}
+                </select>
+                <button type="submit" className="btn-primary">Clock In Now</button>
+              </>
+            ) : (
+              <button type="submit" className="btn-primary">Clock In (Me)</button>
+            )}
+          </form>
       </div>
 
       {loading ? (
