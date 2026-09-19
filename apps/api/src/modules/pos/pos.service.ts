@@ -617,6 +617,7 @@ export class PosService {
     let calculatedTax = 0;
 
     order.items.forEach(i => {
+      if (i.status === 'RETURNED' || i.status === 'RETURN_REQUESTED') return;
       const itemTotal = Number(i.menuItem.price) * i.quantity;
       subtotal += itemTotal;
       let totalPercentage = 0;
@@ -783,7 +784,7 @@ export class PosService {
   async approveReturn(returnId: string, userId: string, approved: boolean) {
     const returnReq = await this.prisma.posReturnRequest.findUnique({ 
       where: { id: returnId },
-      include: { orderItem: { include: { order: { include: { items: { include: { menuItem: true } } } } } } }
+      include: { orderItem: { include: { menuItem: { include: { taxes: true } }, order: { include: { items: { include: { menuItem: true } } } } } } }
     });
     
     if (!returnReq) throw new Error("Return request not found");
@@ -820,11 +821,65 @@ export class PosService {
       data: { status: 'RETURNED' }
     });
 
-    // Recalculate total amount for the order if it hasn't been PAID
-    const order = returnReq.orderItem.order;
-    if (order.status !== 'PAID' && order.status !== 'BILLED_TO_ROOM') {
+          // Always recalculate total amount for the order so dashboard revenue is accurate
+      const order = returnReq.orderItem.order;
       await this.recalculateOrderTotal(order.id);
-    }
+
+      // If it was already paid in cash/pos, we must log a negative payment to offset the revenue
+      if (order.status === 'PAID') {
+        const returnedItemTotal = Number(returnReq.orderItem.menuItem.price) * returnReq.orderItem.quantity;
+        let totalPercentage = 0;
+        let totalFlat = 0;
+        (returnReq.orderItem.menuItem as any).taxes?.forEach((tax: any) => {
+          if (tax.isActive) {
+            if (tax.type === 'PERCENTAGE') totalPercentage += Number(tax.rate);
+            else if (tax.type === 'FLAT_AMOUNT') totalFlat += Number(tax.rate) * returnReq.orderItem.quantity;
+          }
+        });
+        const returnedTax = (returnedItemTotal * totalPercentage / 100) + totalFlat;
+        const refundAmount = returnedItemTotal + returnedTax;
+
+        // Find original payment method if possible, otherwise use 'CASH'
+        const payments = await this.prisma.posPayment.findMany({ where: { orderId: order.id } });
+        const method = payments.length > 0 ? payments[0].method : 'CASH';
+
+        await this.prisma.posPayment.create({
+          data: {
+            orderId: order.id,
+            amount: -refundAmount,
+            method
+          }
+        });
+      } else if (order.status === 'BILLED_TO_ROOM' && order.folioId) {
+        // Offset folio balance
+        const returnedItemTotal = Number(returnReq.orderItem.menuItem.price) * returnReq.orderItem.quantity;
+        let totalPercentage = 0;
+        let totalFlat = 0;
+        (returnReq.orderItem.menuItem as any).taxes?.forEach((tax: any) => {
+          if (tax.isActive) {
+            if (tax.type === 'PERCENTAGE') totalPercentage += Number(tax.rate);
+            else if (tax.type === 'FLAT_AMOUNT') totalFlat += Number(tax.rate) * returnReq.orderItem.quantity;
+          }
+        });
+        const returnedTax = (returnedItemTotal * totalPercentage / 100) + totalFlat;
+        const refundAmount = returnedItemTotal + returnedTax;
+
+        await this.prisma.folio.update({
+          where: { id: order.folioId },
+          data: { balance: { decrement: refundAmount } }
+        });
+        
+        // Also add a line item so it shows on Folio!
+        await this.prisma.folioLineItem.create({
+          data: {
+            folioId: order.folioId,
+            amount: -refundAmount,
+            description: `Refund for POS Order #${order.id.substring(0,8)} - ${returnReq.orderItem.menuItem.name}`,
+            category: 'F_AND_B',
+            type: 'ADJUSTMENT'
+          }
+        });
+      }
 
     return updatedReturn;
   }
