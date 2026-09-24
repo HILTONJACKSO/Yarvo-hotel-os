@@ -182,7 +182,8 @@ export default function EventsPage() {
 function CalendarTab({ bookings, spaces, refresh }: { bookings: EventBooking[], spaces: EventSpace[], refresh: () => void }) {
   // Simple grouping by Date
   const groupedBookings = bookings.reduce((acc, booking) => {
-    const date = new Date(booking.startTime).toLocaleDateString();
+    // Group by standard YYYY-MM-DD to avoid timezone/locale parse errors on 'new Date(string)'
+    const date = new Date(booking.startTime).getFullYear() + '-' + String(new Date(booking.startTime).getMonth() + 1).padStart(2, '0') + '-' + String(new Date(booking.startTime).getDate()).padStart(2, '0');
     if (!acc[date]) acc[date] = [];
     acc[date].push(booking);
     return acc;
@@ -203,7 +204,7 @@ function CalendarTab({ bookings, spaces, refresh }: { bookings: EventBooking[], 
           {sortedDates.map(date => (
             <div key={date} style={{ border: '1px solid hsl(215, 20%, 25%)', borderRadius: '8px', overflow: 'hidden' }}>
               <div style={{ backgroundColor: 'hsl(215, 25%, 20%)', padding: '12px 16px', fontWeight: 600, borderBottom: '1px solid hsl(215, 20%, 25%)' }}>
-                {new Date(date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                {new Date(date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
               </div>
               <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {groupedBookings[date].map(b => (

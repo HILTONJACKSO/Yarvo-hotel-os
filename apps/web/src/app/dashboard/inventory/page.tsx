@@ -34,6 +34,7 @@ export default function InventoryPage() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printReportPeriod, setPrintReportPeriod] = useState('WEEKLY');
   const [printReportDate, setPrintReportDate] = useState(new Date().toISOString().split('T')[0]);
+  const [printEndDate, setPrintEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [printLocation, setPrintLocation] = useState('ALL');
 
   const handlePrint = () => {
@@ -124,7 +125,14 @@ export default function InventoryPage() {
       </head>
       <body>
         <h1>Kwalee Beach Resort - Inventory Report</h1>
-        <h2>${printReportPeriod} Record - Date: ${printReportDate}</h2>
+        <h2>${printReportPeriod} Record - Date: ${(() => {
+          const s = printReportDate.split('-');
+          const e = printEndDate.split('-');
+          if (s[0] === e[0] && s[1] === e[1]) {
+            return `${s[0]}, ${s[1]}, ${s[2]} - ${e[2]}`;
+          }
+          return `${printReportDate} to ${printEndDate}`;
+        })()}</h2>
         <h2>Department: ${printLocation === 'ALL' ? 'All Departments' : printLocation}</h2>
         <table>
           <thead><tr>${headersHtml}</tr></thead>
@@ -512,8 +520,12 @@ export default function InventoryPage() {
               </select>
             </div>
             <div className="form-group">
-              <label>Record Date</label>
-              <input type="date" value={printReportDate} onChange={e => setPrintReportDate(e.target.value)} className="form-control w-full" />
+              <label>Start Date</label>
+                <input type="date" value={printReportDate} onChange={e => setPrintReportDate(e.target.value)} className="form-control w-full" />
+              </div>
+              <div className="form-group">
+                <label>End Date</label>
+                <input type="date" value={printEndDate} onChange={e => setPrintEndDate(e.target.value)} className="form-control w-full" />
             </div>
             <div className="form-group">
               <label>Department / Location</label>
