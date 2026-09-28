@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: '%s | Kwalee Beach Resort',
   },
   description:
-    'Discover Kwalee Beach Resort — a coastal destination in Liberia offering beach relaxation, poolside experiences, dining, drinks and unforgettable events by the ocean.',
+    'Discover Kwalee Beach Resort â€” a coastal destination in Liberia offering beach relaxation, poolside experiences, dining, drinks and unforgettable events by the ocean.',
 };
 
 export default function RootLayout({
