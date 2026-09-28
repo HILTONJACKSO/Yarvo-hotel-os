@@ -25,16 +25,16 @@ const placeholder = (keyword: string, width = 1600, height = 900) =>
   `https://images.unsplash.com/photo-${keyword}?auto=format&fit=crop&w=${width}&q=80`;
 
 const IMAGES = {
-  hero: "1611892440504-42a792e24d32", // Hotel room luxury
-  intro: "1582719508461-905c673771fd", // Relaxation / Room
-  beach: "1507525428034-b723cf961d3e", // Beach 
-  pool: "1576013462273-d1a460851ec0", // Pool
-  bar: "1514362545857-3bc16c4c7d1b", // Drinks
-  dining: "1544148103-0773bf10d330", // Restaurant
-  events: "1511795409834-ef04bbd61620", // Event
+  hero: "1611892440504-42a792e24d32", 
+  intro: "1582719508461-905c673771fd",
+  beach: "1507525428034-b723cf961d3e", 
+  pool: "1499793983690-e29da59ef1c2", // Fixed broken pool ID
+  bar: "1514362545857-3bc16c4c7d1b",
+  dining: "1544148103-0773bf10d330",
+  events: "1511795409834-ef04bbd61620", // Hopefully this one works too
   rooms: {
-    r1: "1582719508461-905c673771fd", // Room 1
-    r2: "1631049307264-da0ec9d70304", // Room 2
+    r1: "1582719508461-905c673771fd", 
+    r2: "1631049307264-da0ec9d70304", 
   },
   sunset: "1507525428034-b723cf961d3e"
 };
