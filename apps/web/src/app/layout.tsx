@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Geist } from 'next/font/google';
+import { Inter, Geist, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { AuthProvider } from '@/lib/auth-provider';
@@ -14,17 +14,19 @@ const inter = Inter({
   display: 'swap',
 });
 
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-serif',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   title: {
-    default: 'Kwalee Hotel Management System',
-    template: '%s | Kwalee HMS',
+    default: 'Kwalee Beach Resort | Beach Resort in Liberia',
+    template: '%s | Kwalee Beach Resort',
   },
   description:
-    'Production-grade Property Management System for Kwalee Hotel, Liberia.',
-  robots: {
-    index: false, // Internal system â€” do not index
-    follow: false,
-  },
+    'Discover Kwalee Beach Resort — a coastal destination in Liberia offering beach relaxation, poolside experiences, dining, drinks and unforgettable events by the ocean.',
 };
 
 export default function RootLayout({
@@ -33,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn('font-sans', geist.variable, inter.variable)} suppressHydrationWarning>
+    <html lang="en" className={cn("font-sans scroll-smooth", geist.variable, inter.variable, playfair.variable)} suppressHydrationWarning>
       <body className="antialiased min-h-screen">
         <AuthProvider>
           <ToastProvider>
@@ -45,9 +47,9 @@ export default function RootLayout({
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js');
+              if ("serviceWorker" in navigator) {
+                window.addEventListener("load", function() {
+                  navigator.serviceWorker.register("/sw.js").catch(console.error);
                 });
               }
             `,
@@ -57,5 +59,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-
