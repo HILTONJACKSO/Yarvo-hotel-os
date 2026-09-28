@@ -176,7 +176,7 @@ export class PosService {
         menuItem: {
           type: type === 'FOOD' ? 'FOOD' : { in: ['DRINK', 'BAR'] }
         },
-        status: { notIn: ['CANCELLED', 'RETURNED'] }
+        status: { notIn: ['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'] }
       },
       include: {
         menuItem: true,
@@ -205,7 +205,7 @@ export class PosService {
       where: {
         createdAt: { gte: today },
         order: { userId },
-        status: { notIn: ['CANCELLED', 'RETURNED'] },
+        status: { notIn: ['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'] },
       },
       include: {
         menuItem: true,
