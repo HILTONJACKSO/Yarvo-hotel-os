@@ -25,8 +25,8 @@ const placeholder = (keyword: string, width = 1600, height = 900) =>
   `https://images.unsplash.com/photo-${keyword}?auto=format&fit=crop&w=${width}&q=80`;
 
 const IMAGES = {
-  hero: "1499793983690-e29da59ef1c2", // Beach sunset/resort
-  intro: "1540541338-8c27379d201b", // Relaxation
+  hero: "1611892440504-42a792e24d32", // Hotel room luxury
+  intro: "1582719508461-905c673771fd", // Relaxation / Room
   beach: "1507525428034-b723cf961d3e", // Beach 
   pool: "1576013462273-d1a460851ec0", // Pool
   bar: "1514362545857-3bc16c4c7d1b", // Drinks
@@ -34,7 +34,7 @@ const IMAGES = {
   events: "1511795409834-ef04bbd61620", // Event
   rooms: {
     r1: "1582719508461-905c673771fd", // Room 1
-    r2: "1590490360182-c33d5773342b", // Room 2
+    r2: "1631049307264-da0ec9d70304", // Room 2
   },
   sunset: "1507525428034-b723cf961d3e"
 };
@@ -223,7 +223,7 @@ const IntroSection = () => {
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-12 lg:gap-20 items-start w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-20 items-center w-full">
         <div className="order-2 lg:order-1 flex flex-col items-start pt-4">
           <span className="px-4 py-1.5 rounded-lg border border-gray-200 text-sm font-semibold tracking-wide text-gray-800 mb-8 uppercase shadow-sm">
             About Us
@@ -239,32 +239,26 @@ const IntroSection = () => {
           </Link>
         </div>
         
-        <div className="order-1 lg:order-2 grid grid-cols-3 gap-3 md:gap-5 h-[400px] md:h-[500px] lg:h-[600px] w-full">
-          <div className="flex flex-col h-full w-full">
-            <div className="relative rounded-2xl overflow-hidden h-[85%] mt-0 shadow-lg group cursor-pointer">
-              <img 
-                src={placeholder(IMAGES.rooms.r1)} 
-                alt="Room" 
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-            </div>
-            <div className="mt-4 px-1">
-              <h4 className="font-semibold text-lg text-gray-900">Ocean Room</h4>
-              <p className="text-xs text-gray-500 mt-1">Wake up to the sound of waves</p>
-            </div>
-          </div>
-          <div className="relative rounded-2xl overflow-hidden h-[85%] mt-[15%] shadow-lg group cursor-pointer w-full">
+        <div className="order-1 lg:order-2 relative h-[400px] md:h-[500px] lg:h-[600px] w-full mt-10 lg:mt-0">
+          {/* Main Large Horizontal Image */}
+          <div className="absolute top-0 right-0 w-[85%] aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl z-10 group cursor-pointer">
             <img 
-              src={placeholder(IMAGES.rooms.r2)} 
+              src={placeholder(IMAGES.rooms.r1)} 
               alt="Room" 
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
+            <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-5 py-3 rounded-xl shadow-lg">
+              <h4 className="font-bold text-lg text-gray-900">Ocean Room</h4>
+              <p className="text-sm text-gray-600 font-medium mt-0.5">Wake up to the sound of waves</p>
+            </div>
           </div>
-          <div className="relative rounded-2xl overflow-hidden h-[85%] mt-[30%] shadow-lg group cursor-pointer w-full bg-gray-900">
+          
+          {/* Second Overlapping Horizontal Image */}
+          <div className="absolute bottom-0 left-0 w-[60%] aspect-video rounded-2xl overflow-hidden shadow-xl z-20 group cursor-pointer border-4 border-white bg-gray-100">
             <img 
-              src={placeholder(IMAGES.intro)} 
-              alt="Room" 
-              className="w-full h-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-105"
+              src={placeholder(IMAGES.pool)} 
+              alt="Pool" 
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
           </div>
         </div>
