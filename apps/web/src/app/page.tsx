@@ -133,7 +133,7 @@ const Navbar = () => {
 
 const Hero = () => {
   return (
-    <section className="relative h-screen min-h-[600px] w-full flex items-center pt-24 justify-start px-6 md:px-12">
+    <section className="relative min-h-[100svh] w-full flex flex-col justify-center pt-32 pb-32 px-6 md:px-12">
       <div className="absolute inset-0 z-0">
         <img 
           src={placeholder(IMAGES.hero)} 
