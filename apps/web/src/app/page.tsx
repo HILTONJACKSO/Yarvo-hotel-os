@@ -133,25 +133,25 @@ const Navbar = () => {
 
 const Hero = () => {
   return (
-    <section className="relative h-screen min-h-[600px] w-full flex items-end pb-32 md:pb-40 justify-start px-6 md:px-12">
+    <section className="relative h-screen min-h-[600px] w-full flex items-center pt-24 justify-start px-6 md:px-12">
       <div className="absolute inset-0 z-0">
         <img 
           src={placeholder(IMAGES.hero)} 
           alt="Kwalee Beach Resort" 
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-black/30" />
       </div>
 
-      <div className="relative z-10 max-w-3xl text-white">
+      <div className="relative z-10 max-w-4xl text-white">
         <div className="flex items-center space-x-3 mb-6 text-xs md:text-sm tracking-[0.2em] uppercase">
           <MapPin size={16} />
           <span>Liberia • West African Coast</span>
         </div>
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif leading-[1.1] mb-8">
-          WHERE THE OCEAN<br />MEETS YOUR ESCAPE.
+        <h1 className="text-4xl md:text-5xl lg:text-7xl font-serif leading-[1.1] mb-8">
+          WHERE THE OCEAN<br className="hidden md:block" /> MEETS YOUR ESCAPE.
         </h1>
-        <p className="text-lg md:text-xl font-sans font-light max-w-xl mb-12 opacity-90 leading-relaxed">
+        <p className="text-base md:text-lg lg:text-xl font-sans font-light max-w-2xl mb-10 opacity-90 leading-relaxed">
           Discover the beauty of Kwalee Beach Resort — where the beach, pool, dining, events and coastal atmosphere come together for an unforgettable experience.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
