@@ -119,7 +119,7 @@ export default function DiningPage() {
             <div className="flex flex-wrap justify-center gap-4 mb-16">
               <button 
                 onClick={() => setSelectedCategory('All')}
-                className={\`px-6 py-2 rounded-full border transition-all \${selectedCategory === 'All' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-transparent text-gray-600 border-gray-300 hover:border-[#1A1A1A]'}\`}
+                className={`px-6 py-2 rounded-full border transition-all ${selectedCategory === 'All' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-transparent text-gray-600 border-gray-300 hover:border-[#1A1A1A]'}`}
               >
                 All Menu
               </button>
@@ -127,7 +127,7 @@ export default function DiningPage() {
                 <button 
                   key={idx}
                   onClick={() => setSelectedCategory(c.name)}
-                  className={\`px-6 py-2 rounded-full border transition-all \${selectedCategory === c.name ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-transparent text-gray-600 border-gray-300 hover:border-[#1A1A1A]'}\`}
+                  className={`px-6 py-2 rounded-full border transition-all ${selectedCategory === c.name ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-transparent text-gray-600 border-gray-300 hover:border-[#1A1A1A]'}`}
                 >
                   {c.name}
                 </button>
@@ -141,7 +141,7 @@ export default function DiningPage() {
                   {item.image ? (
                     <div className="w-full h-56 relative overflow-hidden bg-gray-100">
                       <Image 
-                        src={item.image.startsWith('http') ? item.image : \`\${process.env.NEXT_PUBLIC_API_URL || ''}\${item.image}\`} 
+                        src={item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_API_URL || ''}${item.image}`} 
                         alt={item.name}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
