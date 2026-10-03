@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { BookingBarInteractive } from "../components/landing/BookingBarInteractive";
 import { 
   Menu, X, MapPin, Phone, Mail, Instagram, Facebook, 
   ChevronRight, ChevronLeft, Heart, Star, Calendar, Users, Home as HomeIcon, Check
@@ -167,51 +168,7 @@ const Hero = () => {
   );
 };
 
-const BookingBar = () => {
-  return (
-    <section id="book" className="relative z-20 -mt-16 max-w-6xl mx-auto px-6">
-      <div className="bg-white shadow-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
-        <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-6 border-b md:border-b-0 md:border-r border-[#E8E1D7] pb-6 md:pb-0 md:pr-6">
-          <div>
-            <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">Check-in — Check-out</label>
-            <div className="flex items-center gap-3 border-b border-[#1A1A1A] py-2">
-              <Calendar size={18} className="text-gray-400" />
-              <input type="text" placeholder="Select Dates" className="w-full bg-transparent outline-none text-[#1A1A1A]" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">Guests</label>
-            <div className="flex items-center gap-3 border-b border-[#1A1A1A] py-2">
-              <Users size={18} className="text-gray-400" />
-              <select className="w-full bg-transparent outline-none text-[#1A1A1A] appearance-none">
-                <option>2 Adults, 0 Children</option>
-                <option>1 Adult</option>
-                <option>2 Adults, 1 Child</option>
-                <option>Group / Event</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">Accommodation</label>
-            <div className="flex items-center gap-3 border-b border-[#1A1A1A] py-2">
-              <HomeIcon size={18} className="text-gray-400" />
-              <select className="w-full bg-transparent outline-none text-[#1A1A1A] appearance-none">
-                <option>All Rooms & Tents</option>
-                <option>Double Tent</option>
-                <option>Triple Tent</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div className="w-full md:w-auto flex-shrink-0">
-          <Link href="https://wa.me/23100000000" target="_blank" className="block w-full px-8 py-5 bg-[#1A1A1A] text-white uppercase tracking-widest text-sm text-center hover:bg-[#2B4B5C] transition-colors">
-            Check Availability
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-};
+
 
 const IntroSection = () => {
   return (
@@ -708,7 +665,7 @@ export default function LandingPage() {
     <main className="font-sans text-[#1A1A1A] bg-[#FAFAF7] selection:bg-[#E8E1D7] selection:text-[#1A1A1A]">
       <Navbar />
       <Hero />
-      <BookingBar />
+      <BookingBarInteractive />
       <IntroSection />
       
       <FeatureSection 

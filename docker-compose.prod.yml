@@ -52,6 +52,7 @@ services:
       - COOKIE_SECRET=${COOKIE_SECRET}
       - COOKIE_DOMAIN=.kwaleebeachresort.com
       - CORS_ORIGINS=https://kwaleebeachresort.com,https://www.kwaleebeachresort.com
+      - PUBLIC_API_KEY=yarvo_pub_test_1234567890abcdef
     ports:
       - "3001:3001"
 
@@ -67,6 +68,8 @@ services:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=https://api.kwaleebeachresort.com
       - NEXT_PUBLIC_APP_NAME="Kwalee Beach Resort"
+      - INTERNAL_API_URL=http://api:3001
+      - PUBLIC_API_KEY=yarvo_pub_test_1234567890abcdef
     ports:
       - "3000:3000"
     volumes:
