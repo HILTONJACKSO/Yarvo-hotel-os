@@ -116,7 +116,7 @@ export const DigitalMenuMarquee = () => {
               {item.image ? (
                 <div className="w-full h-48 relative overflow-hidden">
                   <Image 
-                    src={item.image.startsWith('http') ? item.image : \`\${process.env.NEXT_PUBLIC_API_URL || ''}\${item.image}\`} 
+                    src={item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_API_URL || ''}${item.image}`} 
                     alt={item.name}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
