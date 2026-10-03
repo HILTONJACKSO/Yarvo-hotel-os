@@ -31,7 +31,7 @@ const IMAGES = {
   pool: "1499793983690-e29da59ef1c2", // Fixed broken pool ID
   bar: "1514362545857-3bc16c4c7d1b",
   dining: "1544148103-0773bf10d330",
-  events: "1511795409834-ef04bbd61620", // Hopefully this one works too
+  events: "1499793983690-e29da59ef1c2", // Hopefully this one works too
   rooms: {
     r1: "1582719508461-905c673771fd", 
     r2: "1631049307264-da0ec9d70304", 
