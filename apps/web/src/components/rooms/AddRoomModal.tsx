@@ -11,6 +11,7 @@ const schema = z.object({
   number: z.string().min(1, 'Room number is required').max(10, 'Room number too long'),
   floor: z.number().min(1, 'Floor must be at least 1').max(100, 'Floor must be less than 100'),
   roomTypeId: z.string().min(1, 'Please select a room type'),
+  status: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -80,14 +81,24 @@ export function AddRoomModal({ isOpen, onClose, onSuccess, initialData }: Props)
       const url = initialData ? `/api/v1/rooms/${initialData.id}` : '/api/v1/rooms';
       const method = initialData ? 'PATCH' : 'POST';
       
+      const { status, ...submitData } = data;
+      
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       });
       
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || `Failed to ${initialData ? 'edit' : 'add'} room`);
+      
+      if (initialData && data.status && data.status !== initialData.status) {
+        await fetch(`/api/v1/rooms/${initialData.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: data.status, reason: 'Manually changed from Rooms Dashboard' })
+        });
+      }
       
       onSuccess();
       onClose();

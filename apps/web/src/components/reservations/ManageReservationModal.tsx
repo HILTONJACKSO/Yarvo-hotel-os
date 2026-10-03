@@ -220,7 +220,7 @@ export function ManageReservationModal({ isOpen, onClose, onSuccess, reservation
               <select {...register('roomId')}>
                 <option value="">-- Unassigned --</option>
                 {rooms.filter(r => r.roomTypeId === watchRoomTypeId).map((r) => (
-                  <option key={r.id} value={r.id}>Room {r.number} - {r.status}</option>
+                  <option key={r.id} value={r.id}>{r.number} - {r.status}</option>
                 ))}
               </select>
             </div>

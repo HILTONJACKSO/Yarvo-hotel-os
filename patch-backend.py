@@ -1,23 +1,14 @@
-import sys
+import re
 
-with open("apps/api/src/modules/pos/pos.service.ts", "r", encoding="utf-8") as f:
-    code = f.read()
+path = "apps/api/src/modules/expenses/expenses.controller.ts"
+with open(path, "r", encoding="utf-8") as f:
+    c = f.read()
 
-# Fix updateOrderItemStatus loop
-old_loop_1 = """          item.order.items.forEach(i => {
-            const itemTotal = Number(i.menuItem.price) * i.quantity;"""
-new_loop_1 = """          item.order.items.forEach(i => {
-            if (i.status === 'RETURNED' || i.status === 'RETURN_REQUESTED') return;
-            const itemTotal = Number(i.menuItem.price) * i.quantity;"""
-code = code.replace(old_loop_1, new_loop_1)
+# Replace roles for Delete
+c = re.sub(r"@Roles\('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER'\)\s+async remove\(", 
+           "@Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')\n  async remove(", c)
 
-# Fix checkoutOrder loop
-old_loop_2 = """      order.items.forEach(i => {
-        const itemTotal = Number(i.menuItem.price) * i.quantity;"""
-new_loop_2 = """      order.items.forEach(i => {
-        if (i.status === 'RETURNED' || i.status === 'RETURN_REQUESTED') return;
-        const itemTotal = Number(i.menuItem.price) * i.quantity;"""
-code = code.replace(old_loop_2, new_loop_2)
+with open(path, "w", encoding="utf-8") as f:
+    f.write(c)
 
-with open("apps/api/src/modules/pos/pos.service.ts", "w", encoding="utf-8") as f:
-    f.write(code)
+print("Patched backend")

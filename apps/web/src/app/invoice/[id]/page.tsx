@@ -77,8 +77,8 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
   if (!folio) return <div style={{ padding: '40px', textAlign: 'center' }}>Folio not found.</div>;
 
   const totalCharges = folio.lineItems.filter(i => i.type === 'CHARGE').reduce((acc, curr) => acc + Number(curr.amount), 0);
-  const subtotal = totalCharges / 1.10;
-  const gst = totalCharges - subtotal;
+  const subtotal = totalCharges;
+  const gst = totalCharges - (totalCharges / 1.10);
   const totalPayments = folio.lineItems.filter(i => i.type === 'PAYMENT').reduce((acc, curr) => acc + Number(curr.amount), 0);
 
   return (
@@ -121,12 +121,12 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
             {folio.reservation.guest.phone && <p>{folio.reservation.guest.phone}</p>}
           </div>
           <div className="meta-right">
-            <h3>Invoice Details:</h3>
+            <h3>{folio.reservation.room?.number?.toLowerCase().includes('tent') ? 'TENT INVOICE' : 'ROOM INVOICE'}:</h3>
             <table className="meta-table">
               <tbody>
                 <tr><td>Invoice No:</td><td>INV-{folio.id.split('-')[0].toUpperCase()}</td></tr>
                 <tr><td>Date:</td><td>{new Date().toLocaleDateString()}</td></tr>
-                <tr><td>Room:</td><td>{folio.reservation.room?.number || 'N/A'}</td></tr>
+                <tr><td>{folio.reservation.room?.number?.toLowerCase().includes('tent') ? 'Tent' : 'Room'}:</td><td>{folio.reservation.room?.number || 'N/A'}</td></tr>
                 <tr><td>Check-In:</td><td>{new Date(folio.reservation.checkInDate).toLocaleDateString()}</td></tr>
                 <tr><td>Check-Out:</td><td>{new Date(folio.reservation.checkOutDate).toLocaleDateString()}</td></tr>
               </tbody>

@@ -170,7 +170,7 @@ export default function ReservationsPage() {
                         </td>
                         <td>
                           <div>{res.roomType.name}</div>
-                          <div className="text-muted">{res.room ? `Room ${res.room.number}` : 'Unassigned'}</div>
+                          <div className="text-muted">{res.room ? res.room.number : 'Unassigned'}</div>
                         </td>
                         <td>
                           <span className={getStatusBadge(res.status)}>

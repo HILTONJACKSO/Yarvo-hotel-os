@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import { PublicService } from './public.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { CreateMenuOrderDto } from './dto/create-menu-order.dto';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { Public } from '../../common/decorators/public.decorator';
 
@@ -52,4 +53,12 @@ export class PublicController {
   async getMenu() {
     return { data: await this.publicService.getDigitalMenu() };
   }
+
+  @Post('menu-orders')
+  @ApiOperation({ summary: 'Submit a new room service POS order from website' })
+  @ApiResponse({ status: 201, description: 'Order successfully created and sent to kitchen/bar.' })
+  async createMenuOrder(@Body() createMenuOrderDto: CreateMenuOrderDto) {
+    return { data: await this.publicService.createMenuOrder(createMenuOrderDto) };
+  }
+
 }

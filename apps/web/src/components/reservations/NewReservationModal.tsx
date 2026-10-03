@@ -264,7 +264,7 @@ export function NewReservationModal({ isOpen, onClose, onSuccess }: Props) {
             <select {...register('roomId')} className={errors.roomId ? 'error' : ''} disabled={!watch('roomTypeId')}>
               <option value="">-- Auto-assign on check-in --</option>
               {rooms.filter(r => r.roomTypeId === watch('roomTypeId')).map((r) => (
-                <option key={r.id} value={r.id}>Room {r.number} - {r.status}</option>
+                <option key={r.id} value={r.id}>{r.number} - {r.status}</option>
               ))}
             </select>
             <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>

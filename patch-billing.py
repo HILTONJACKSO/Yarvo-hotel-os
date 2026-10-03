@@ -1,34 +1,23 @@
-import os
+import re
 
-target_file = "apps/web/src/app/dashboard/billing/page.tsx"
+path = "apps/web/src/app/dashboard/billing/page.tsx"
+with open(path, "r", encoding="utf-8") as f:
+    c = f.read()
 
-with open(target_file, 'r', encoding='utf-8') as f:
-    content = f.read()
+pattern1 = r"\{selectedBill\.reservation\?\.guest\?\.lastName\} Folio"
+replace1 = "Bill: {selectedBill.reservation?.guest?.lastName}"
 
-old_block = """          <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
-            <span>Subtotal</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE' && i.category !== 'TAX').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0)).toFixed(2)}</span>
-          </div>
-          <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
-            <span>GST / Tax</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE' && i.category === 'TAX').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0)).toFixed(2)}</span>
-          </div>
-          <div style="font-size:14px; font-weight:bold; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
-            <span>Total</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0)).toFixed(2)}</span>
-          </div>"""
+pattern2 = r"\{selectedBill\.status === 'OPEN' && Number\(selectedBill\.balance\) === 0 && \(\s*<button onClick=\{handleCloseFolio\} className=\"bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1\.5 rounded-md transition-colors\">Close Bill</button>\s*\)\}"
 
-new_block = """          <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
-            <span>Subtotal</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0) / 1.10).toFixed(2)}</span>
-          </div>
-          <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
-            <span>GST (10%)</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0) - (selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0) / 1.10)).toFixed(2)}</span>
-          </div>
-          <div style="font-size:14px; font-weight:bold; display:flex; justify-content:space-between; margin-top:4px; color:#000;">
-            <span>Total</span><span>$${(selectedBill.lineItems.filter((i:any) => i.type === 'CHARGE').reduce((acc:number, curr:any) => acc + Number(curr.amount), 0)).toFixed(2)}</span>
-          </div>"""
+replace2 = """{selectedBill.status === 'OPEN' && (
+                          <button onClick={handleCloseFolio} disabled={Number(selectedBill.balance) !== 0} className={`text-xs px-3 py-1.5 rounded-md transition-colors ${Number(selectedBill.balance) === 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}>Close Bill</button>
+                        )}"""
 
-if old_block in content:
-    content = content.replace(old_block, new_block)
-    with open(target_file, 'w', encoding='utf-8') as f:
-        f.write(content)
-    print("Updated billing/page.tsx")
+if re.search(pattern1, c) and re.search(pattern2, c):
+    c = re.sub(pattern1, replace1, c)
+    c = re.sub(pattern2, replace2, c)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(c)
+    print("Patched billing page via regex")
 else:
-    print("Could not find old_block in billing/page.tsx")
+    print("Could not find regex patterns")
