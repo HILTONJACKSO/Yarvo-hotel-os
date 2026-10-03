@@ -84,6 +84,7 @@ export const DigitalMenuMarquee = () => {
   if (items.length === 0) return null; // Don't show if menu is empty
 
   return (
+    <>
     <section className="py-24 bg-[#FAF9F6] overflow-hidden border-t border-[#E8E1D7]">
       <style>{`
         @keyframes marquee {
