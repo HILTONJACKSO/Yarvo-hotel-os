@@ -1,4 +1,7 @@
+const { execSync } = require('child_process');
+const fs = require('fs');
 
+const script = `
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
@@ -31,3 +34,8 @@ async function main() {
 }
 
 main().catch(e => console.error(e)).finally(async () => await prisma.$disconnect());
+`;
+
+fs.writeFileSync('inject_pos.js', script);
+execSync('scp -o ConnectTimeout=15 -o StrictHostKeyChecking=no inject_pos.js root@82.29.175.72:/root/bellacasa/inject_pos.js', { stdio: 'inherit' });
+execSync('ssh -o ConnectTimeout=15 -o StrictHostKeyChecking=no root@82.29.175.72 "docker cp /root/bellacasa/inject_pos.js bellacasa-api:/app/inject_pos.js && docker exec bellacasa-api node /app/inject_pos.js"', { stdio: 'inherit' });

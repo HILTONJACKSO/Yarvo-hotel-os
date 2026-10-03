@@ -39,6 +39,13 @@ const nextConfig: NextConfig = {
       allowedOrigins: ['localhost:3000', 'kwaleebeachresort.com', 'www.kwaleebeachresort.com'],
     },
   },
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'https', hostname: 'api.kwaleebeachresort.com' }
+    ]
+  },
   output: 'standalone',
 };
 
