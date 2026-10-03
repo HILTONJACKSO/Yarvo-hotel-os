@@ -6,7 +6,7 @@ export async function POST(request: Request) {
     const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const apiKey = process.env.PUBLIC_API_KEY || 'yarvo_pub_test_1234567890abcdef';
 
-    const res = await fetch(`${apiUrl}/api/public/menu-orders`, {
+    const res = await fetch(`${apiUrl}/api/v1/public/menu-orders`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const apiKey = process.env.PUBLIC_API_KEY || 'yarvo_pub_test_1234567890abcdef';
 
-    const res = await fetch(`${apiUrl}/api/public/menu`, {
+    const res = await fetch(`${apiUrl}/api/v1/public/menu`, {
       headers: {
         'x-api-key': apiKey,
       },
