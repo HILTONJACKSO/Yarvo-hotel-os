@@ -5,7 +5,7 @@ import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import Image from 'next/image';
 import { Bed, Users, Wifi, Wind, Tv, Coffee } from 'lucide-react';
-import BookingBarInteractive from '@/components/landing/BookingBarInteractive';
+import { BookingBarInteractive } from '@/components/landing/BookingBarInteractive';
 
 export default function StayPage() {
   const [roomTypes, setRoomTypes] = useState<any[]>([]);
@@ -115,7 +115,7 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
   if (room.images && Array.isArray(room.images) && room.images.length > 0) {
     imageUrl = room.images[0];
     if (!imageUrl.startsWith('http')) {
-      imageUrl = \`\${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/uploads/\${imageUrl}\`;
+      imageUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/uploads/${imageUrl}`;
     }
   }
 
@@ -131,7 +131,7 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
 
   return (
     <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
-      <div className={\`relative w-full \${isLarge ? 'h-80' : 'h-64'} overflow-hidden\`}>
+      <div className={`relative w-full ${isLarge ? 'h-80' : 'h-64'} overflow-hidden`}>
         <Image 
           src={imageUrl}
           alt={room.name}
@@ -155,7 +155,7 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
         </div>
 
         <p className="text-gray-600 mb-8 flex-grow line-clamp-3">
-          {room.description || \`Experience the perfect blend of comfort and style in our \${room.name}.\`}
+          {room.description || `Experience the perfect blend of comfort and style in our ${room.name}.`}
         </p>
 
         {parsedAmenities.length > 0 && (
