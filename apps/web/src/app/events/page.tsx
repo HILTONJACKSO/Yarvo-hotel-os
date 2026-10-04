@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import Navbar from '@/components/landing/Navbar';
-import Footer from '@/components/landing/Footer';
+import { Navbar } from '@/components/landing/Navbar';
+import { Footer } from '@/components/landing/Footer';
 import Image from 'next/image';
 import { Calendar, Users, MapPin, ArrowRight } from 'lucide-react';
-import { toast } from '@/components/ui/toast-provider';
+import { useToast } from '@/components/ui/toast-provider';
 
 export default function EventsPage() {
   const [eventSpaces, setEventSpaces] = useState<any[]>([]);
@@ -132,6 +132,7 @@ export default function EventsPage() {
 
 function EventBookingForm({ spaceId, onSuccess }: { spaceId: string, onSuccess: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -161,28 +162,16 @@ function EventBookingForm({ spaceId, onSuccess }: { spaceId: string, onSuccess: 
       });
 
       if (res.ok) {
-        toast({
-          title: "Booking Submitted",
-          description: "Your event inquiry has been sent successfully!",
-          variant: "default",
-        });
+        showToast("Your event inquiry has been sent successfully!", "success", "Booking Submitted");
         e.currentTarget.reset();
         onSuccess();
       } else {
         const err = await res.json();
-        toast({
-          title: "Booking Failed",
-          description: err.message || "Something went wrong.",
-          variant: "destructive",
-        });
+        showToast(err.message || "Something went wrong.", "error", "Booking Failed");
       }
     } catch (err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: "Network error occurred.",
-        variant: "destructive",
-      });
+      showToast("Network error occurred.", "error", "Error");
     } finally {
       setIsSubmitting(false);
     }
