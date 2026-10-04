@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { CreateMenuOrderDto } from './dto/create-menu-order.dto';
+import { CreateEventBookingDto } from './dto/create-event-booking.dto';
 
 @Injectable()
 export class PublicService {
@@ -222,6 +223,47 @@ export class PublicService {
       success: true,
       orderId: posOrder.id,
       message: 'Room service order placed successfully. It is being prepared!'
+    };
+  }
+
+  async getEventSpaces() {
+    return this.prisma.eventSpace.findMany({
+      where: { isActive: true },
+    });
+  }
+
+  async createEventBooking(dto: CreateEventBookingDto) {
+    const space = await this.prisma.eventSpace.findUnique({ where: { id: dto.spaceId } });
+    if (!space) throw new BadRequestException('Event space not found');
+
+    const startTime = new Date(dto.startTime);
+    const endTime = new Date(dto.endTime);
+    if (startTime >= endTime) throw new BadRequestException('End time must be after start time');
+
+    // Calculate roughly hours
+    const hours = Math.ceil((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60));
+    const totalAmount = Number(space.pricePerHour) * hours;
+
+    const booking = await this.prisma.eventBooking.create({
+      data: {
+        spaceId: dto.spaceId,
+        guestName: dto.guestName,
+        guestEmail: dto.guestEmail,
+        guestPhone: dto.guestPhone,
+        eventType: dto.eventType,
+        attendeesCount: dto.attendeesCount,
+        startTime,
+        endTime,
+        totalAmount,
+        status: 'PENDING',
+        specialRequests: dto.specialRequests,
+      }
+    });
+
+    return {
+      success: true,
+      bookingId: booking.id,
+      message: 'Event booking request submitted successfully. We will contact you shortly.'
     };
   }
 

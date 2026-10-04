@@ -15,11 +15,11 @@ const Navbar = () => {
   }, []);
 
   const navLinks = [
-    { label: "Stay", href: "/#stay" },
+    { label: "Stay", href: "/stay" },
     { label: "Beach", href: "/#beach" },
     { label: "Pool", href: "/#pool" },
     { label: "Dining", href: "/dining" },
-    { label: "Events", href: "/#events" },
+    { label: "Events", href: "/events" },
     { label: "Gallery", href: "/#gallery" },
     { label: "Contact", href: "/#contact" },
   ];

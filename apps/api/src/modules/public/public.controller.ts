@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiQuery } from '@nestjs
 import { PublicService } from './public.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { CreateMenuOrderDto } from './dto/create-menu-order.dto';
+import { CreateEventBookingDto } from './dto/create-event-booking.dto';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { Public } from '../../common/decorators/public.decorator';
 
@@ -59,6 +60,20 @@ export class PublicController {
   @ApiResponse({ status: 201, description: 'Order successfully created and sent to kitchen/bar.' })
   async createMenuOrder(@Body() createMenuOrderDto: CreateMenuOrderDto) {
     return { data: await this.publicService.createMenuOrder(createMenuOrderDto) };
+  }
+
+  @Get('event-spaces')
+  @ApiOperation({ summary: 'Get all active event spaces' })
+  @ApiResponse({ status: 200, description: 'List of event spaces.' })
+  async getEventSpaces() {
+    return { data: await this.publicService.getEventSpaces() };
+  }
+
+  @Post('event-bookings')
+  @ApiOperation({ summary: 'Submit a new event booking request from website' })
+  @ApiResponse({ status: 201, description: 'Event booking successfully created in PENDING state.' })
+  async createEventBooking(@Body() createEventBookingDto: CreateEventBookingDto) {
+    return { data: await this.publicService.createEventBooking(createEventBookingDto) };
   }
 
 }
