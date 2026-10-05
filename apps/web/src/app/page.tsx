@@ -350,78 +350,79 @@ const CoverflowTestimonialsSection = () => {
           })}
         </div>
 
-        {/* Testimonials */}
-        <div className="max-w-5xl w-full flex flex-col lg:flex-row justify-between gap-16 lg:gap-24">
+                {/* Testimonials Redesign */}
+        <div className="max-w-6xl w-full flex flex-col lg:flex-row justify-between gap-16 lg:gap-20 mt-12 bg-white p-10 md:p-16 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
           {/* Left Side */}
-          <div className="lg:w-[40%] flex flex-col">
-            <span className="text-xs font-bold tracking-wide text-gray-500 mb-6 block capitalize">Testimonials</span>
-            <h2 className="text-4xl md:text-5xl font-bold font-sans text-gray-900 leading-[1.15] mb-6 tracking-tight">
-              Client about<br/>our work
+          <div className="lg:w-[35%] flex flex-col">
+            <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#a67b27] mb-4 block">Testimonials</span>
+            <h2 className="text-3xl md:text-5xl font-serif text-[#1A1A1A] leading-[1.1] mb-6">
+              What Our<br/>Guests Say
             </h2>
-            <p className="text-gray-400 text-xs md:text-sm leading-relaxed max-w-xs mb-16">
-              Proactively morph optimal intermediaries rather than accurate expertise. Intrinsicly progressive resources.
+            <p className="text-gray-500 text-sm leading-relaxed max-w-sm mb-12 font-light">
+              Experience Kwalee Beach Resort through the eyes of those who have stayed with us. We take pride in delivering unforgettable moments and exceptional coastal hospitality.
             </p>
             
             <div className="flex items-center gap-4 mt-auto">
               <button 
                 onClick={() => setTestimonialIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
-                className="w-10 h-10 rounded-full bg-[#a67b27] text-white flex items-center justify-center hover:bg-[#8f6920] transition shadow-md cursor-pointer"
+                className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#a67b27] hover:text-white hover:border-[#a67b27] transition-all shadow-sm cursor-pointer"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={20} strokeWidth={1.5} />
               </button>
               <button 
                 onClick={() => setTestimonialIndex((prev) => (prev + 1) % testimonials.length)}
-                className="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-50 transition shadow-sm cursor-pointer"
+                className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#a67b27] hover:text-white hover:border-[#a67b27] transition-all shadow-sm cursor-pointer"
               >
-                <ChevronRight size={20} />
+                <ChevronRight size={20} strokeWidth={1.5} />
               </button>
               
-              <div className="flex items-center ml-8">
+              <div className="flex items-center ml-8 hidden sm:flex">
                 <div className="flex -space-x-3">
-                  <img className="w-9 h-9 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
-                  <img className="w-9 h-9 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
-                  <img className="w-9 h-9 rounded-full border-2 border-white object-cover" src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+                  <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
+                  <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
+                  <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
                 </div>
-                <span className="ml-3 text-xs font-bold text-gray-500">+900</span>
+                <div className="ml-4 flex flex-col">
+                  <span className="text-sm font-bold text-gray-900 leading-tight">4.8/5</span>
+                  <span className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">from 2,800+ reviews</span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Right Side */}
-          <div className="lg:w-[55%] flex flex-col justify-center min-h-[250px]">
-            <div className="flex items-center gap-4 mb-8">
-              <h3 className="text-5xl md:text-[64px] font-bold text-gray-900 font-sans tracking-tighter leading-none">{currentTestimonial.rating}</h3>
-              <div className="bg-[#d49931] px-3 py-1.5 rounded flex flex-col items-center shadow-sm">
-                 <div className="flex text-white text-xs gap-0.5 mb-0.5">
-                   <Star size={10} className="fill-white" />
-                   <Star size={10} className="fill-white" />
-                   <Star size={10} className="fill-white" />
-                   <Star size={10} className="fill-white" />
-                   <Star size={10} className="fill-white" />
-                 </div>
-                 <p className="text-[10px] text-white font-semibold">{currentTestimonial.reviews}</p>
-              </div>
-              <p className="text-[10px] text-gray-400 max-w-[120px] ml-auto text-right hidden md:block leading-tight">
-                Proactively morph optimal intermediaries rather than accurate expertise.
-              </p>
+          <div className="lg:w-[60%] flex flex-col justify-center relative">
+            <div className="absolute -top-6 -left-6 text-[#a67b27] opacity-10 pointer-events-none">
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14.017 21L16.41 14.904C16.634 14.303 16.746 13.682 16.746 13.044V3H23V12.784C23 15.65 21.848 18.232 19.544 21H14.017ZM3 21L5.393 14.904C5.617 14.303 5.729 13.682 5.729 13.044V3H12V12.784C12 15.65 10.848 18.232 8.544 21H3Z" />
+              </svg>
             </div>
             
-            <h4 className="text-lg md:text-xl font-bold text-gray-900 leading-snug mb-8 font-sans max-w-lg transition-opacity duration-300">
-              {currentTestimonial.text}
-            </h4>
-            
-            <div className="flex items-center gap-4">
-               <img className="w-12 h-12 rounded-full object-cover transition-all duration-300" src={currentTestimonial.avatar} alt={currentTestimonial.author} />
-               <div>
-                 <h5 className="font-bold text-sm text-gray-900">{currentTestimonial.author}</h5>
-                 <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5 font-medium">
-                   {currentTestimonial.source}
-                 </p>
-               </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-1 mb-8">
+                 <Star size={16} className="fill-[#a67b27] text-[#a67b27]" />
+                 <Star size={16} className="fill-[#a67b27] text-[#a67b27]" />
+                 <Star size={16} className="fill-[#a67b27] text-[#a67b27]" />
+                 <Star size={16} className="fill-[#a67b27] text-[#a67b27]" />
+                 <Star size={16} className="fill-[#a67b27] text-[#a67b27]" />
+              </div>
+              
+              <h4 className="text-xl md:text-3xl font-serif text-[#1A1A1A] leading-relaxed mb-10 transition-opacity duration-300 min-h-[120px] italic">
+                "{currentTestimonial.text}"
+              </h4>
+              
+              <div className="flex items-center gap-5 pt-6 border-t border-gray-100">
+                 <img className="w-14 h-14 rounded-full object-cover transition-all duration-300 shadow-sm" src={currentTestimonial.avatar} alt={currentTestimonial.author} />
+                 <div>
+                   <h5 className="font-bold text-base text-gray-900 tracking-wide">{currentTestimonial.author}</h5>
+                   <p className="text-xs text-gray-400 mt-1 uppercase tracking-widest">
+                     Via {currentTestimonial.source}
+                   </p>
+                 </div>
+              </div>
             </div>
           </div>
         </div>
-
       </div>
     </section>
   );
