@@ -100,7 +100,7 @@ export const DigitalMenuMarquee = () => {
       `}</style>
       
       <div className="max-w-7xl mx-auto px-6 mb-12 text-center">
-        <h2 className="text-sm tracking-[0.2em] text-[#a67b27] uppercase font-semibold mb-4">In-Room Dining & Bar</h2>
+        <h2 className="text-sm tracking-[0.2em] text-[#F5A623] uppercase font-semibold mb-4">In-Room Dining & Bar</h2>
         <h3 className="text-3xl md:text-5xl font-serif text-[#1A1A1A]">Order From Anywhere</h3>
         <p className="text-gray-600 mt-4 max-w-2xl mx-auto">Explore our digital menu and order food or drinks directly to your room or table.</p>
       </div>
@@ -124,7 +124,7 @@ export const DigitalMenuMarquee = () => {
                   />
                 </div>
               ) : (
-                <div className="w-full h-48 bg-[#F0EBE1] flex items-center justify-center text-[#a67b27]">
+                <div className="w-full h-48 bg-[#F0EBE1] flex items-center justify-center text-[#F5A623]">
                   {item.type === 'FOOD' ? <Utensils size={48} opacity={0.5} /> : <Coffee size={48} opacity={0.5} />}
                 </div>
               )}
@@ -132,10 +132,10 @@ export const DigitalMenuMarquee = () => {
               <div className="p-5">
                 <div className="flex justify-between items-start mb-2">
                   <h4 className="font-serif text-lg text-[#1A1A1A] truncate pr-2">{item.name}</h4>
-                  <span className="font-semibold text-[#a67b27]">$\{(Number(item.price)).toFixed(2)}</span>
+                  <span className="font-semibold text-[#F5A623]">$\{(Number(item.price)).toFixed(2)}</span>
                 </div>
                 <p className="text-sm text-gray-500 truncate">{item.description}</p>
-                <div className="mt-4 flex items-center text-xs uppercase tracking-widest text-[#a67b27] font-semibold group-hover:text-[#1A1A1A] transition-colors">
+                <div className="mt-4 flex items-center text-xs uppercase tracking-widest text-[#F5A623] font-semibold group-hover:text-[#1A1A1A] transition-colors">
                   <ShoppingBag size={14} className="mr-2" />
                   Order Now
                 </div>
@@ -186,23 +186,23 @@ export const DigitalMenuMarquee = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1">Room Number</label>
-                      <input required type="text" value={roomNumber} onChange={e => setRoomNumber(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#a67b27]" placeholder="e.g. 101" />
+                      <input required type="text" value={roomNumber} onChange={e => setRoomNumber(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="e.g. 101" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1">Quantity</label>
-                      <input required type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#a67b27]" />
+                      <input required type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Primary Guest Name</label>
-                    <input required type="text" value={guestName} onChange={e => setGuestName(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#a67b27]" placeholder="Registered name on room" />
+                    <input required type="text" value={guestName} onChange={e => setGuestName(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="Registered name on room" />
                     <p className="text-[10px] text-gray-400 mt-1">Required for room charge verification.</p>
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Special Instructions / Notes</label>
-                    <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#a67b27] h-20" placeholder="e.g. No onions, extra spicy..." />
+                    <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623] h-20" placeholder="e.g. No onions, extra spicy..." />
                   </div>
 
                   <div className="bg-gray-50 p-4 rounded text-sm text-gray-600 mt-6 border border-gray-100 flex justify-between items-center">
@@ -213,7 +213,7 @@ export const DigitalMenuMarquee = () => {
                   <button 
                     type="submit" 
                     disabled={isSubmitting}
-                    className="w-full bg-[#a67b27] text-white font-bold py-3 rounded mt-4 hover:bg-[#8f6920] transition disabled:opacity-50"
+                    className="w-full bg-[#F5A623] text-white font-bold py-3 rounded mt-4 hover:bg-[#D08C1D] transition disabled:opacity-50"
                   >
                     {isSubmitting ? 'Sending Order...' : 'Place Order'}
                   </button>

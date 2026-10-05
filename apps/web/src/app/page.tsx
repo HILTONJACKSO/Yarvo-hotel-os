@@ -99,7 +99,7 @@ const IntroSection = () => {
           <p className="text-gray-600 text-base md:text-lg mb-10 leading-relaxed max-w-md">
             Escape to a coastal destination where days are shaped by the rhythm of the ocean, warm hospitality, good food, refreshing swims and unforgettable moments by the beach.
           </p>
-          <Link href="#gallery" className="bg-[#a67b27] text-white px-8 py-3.5 rounded-md font-medium hover:bg-[#8f6920] transition-colors shadow-md">
+          <Link href="#gallery" className="bg-[#F5A623] text-white px-8 py-3.5 rounded-md font-medium hover:bg-[#D08C1D] transition-colors shadow-md">
             Read More
           </Link>
         </div>
@@ -208,7 +208,7 @@ const ServicesSection = () => {
           </button>
           
           {/* Arrow Right */}
-          <button className="absolute -right-6 top-[40%] -translate-y-1/2 z-10 w-12 h-12 bg-[#a67b27] rounded-full shadow-lg flex items-center justify-center text-white hover:bg-[#8f6920] transition opacity-0 group-hover:opacity-100 hidden md:flex cursor-pointer">
+          <button className="absolute -right-6 top-[40%] -translate-y-1/2 z-10 w-12 h-12 bg-[#F5A623] rounded-full shadow-lg flex items-center justify-center text-white hover:bg-[#D08C1D] transition opacity-0 group-hover:opacity-100 hidden md:flex cursor-pointer">
             <ChevronRight size={24} />
           </button>
 
@@ -354,7 +354,7 @@ const CoverflowTestimonialsSection = () => {
         <div className="max-w-6xl w-full flex flex-col lg:flex-row justify-between gap-16 lg:gap-20 mt-12 bg-white p-10 md:p-16 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
           {/* Left Side */}
           <div className="lg:w-[35%] flex flex-col">
-            <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#a67b27] mb-4 block">Testimonials</span>
+            <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-4 block">Testimonials</span>
             <h2 className="text-3xl md:text-5xl font-serif text-[#1A1A1A] leading-[1.1] mb-6">
               What Our<br/>Guests Say
             </h2>
@@ -365,13 +365,13 @@ const CoverflowTestimonialsSection = () => {
             <div className="flex items-center gap-4 mt-auto">
               <button 
                 onClick={() => setTestimonialIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
-                className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#a67b27] hover:text-white hover:border-[#a67b27] transition-all shadow-sm cursor-pointer"
+                className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#F5A623] hover:text-white hover:border-[#F5A623] transition-all shadow-sm cursor-pointer"
               >
                 <ChevronLeft size={20} strokeWidth={1.5} />
               </button>
               <button 
                 onClick={() => setTestimonialIndex((prev) => (prev + 1) % testimonials.length)}
-                className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#a67b27] hover:text-white hover:border-[#a67b27] transition-all shadow-sm cursor-pointer"
+                className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#F5A623] hover:text-white hover:border-[#F5A623] transition-all shadow-sm cursor-pointer"
               >
                 <ChevronRight size={20} strokeWidth={1.5} />
               </button>
@@ -392,7 +392,7 @@ const CoverflowTestimonialsSection = () => {
 
           {/* Right Side */}
           <div className="lg:w-[60%] flex flex-col justify-center relative">
-            <div className="absolute -top-6 -left-6 text-[#a67b27] opacity-10 pointer-events-none">
+            <div className="absolute -top-6 -left-6 text-[#F5A623] opacity-10 pointer-events-none">
               <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                 <path d="M14.017 21L16.41 14.904C16.634 14.303 16.746 13.682 16.746 13.044V3H23V12.784C23 15.65 21.848 18.232 19.544 21H14.017ZM3 21L5.393 14.904C5.617 14.303 5.729 13.682 5.729 13.044V3H12V12.784C12 15.65 10.848 18.232 8.544 21H3Z" />
               </svg>
@@ -400,11 +400,11 @@ const CoverflowTestimonialsSection = () => {
             
             <div className="relative z-10">
               <div className="flex items-center gap-1 mb-8">
-                 <Star size={16} className="fill-[#a67b27] text-[#a67b27]" />
-                 <Star size={16} className="fill-[#a67b27] text-[#a67b27]" />
-                 <Star size={16} className="fill-[#a67b27] text-[#a67b27]" />
-                 <Star size={16} className="fill-[#a67b27] text-[#a67b27]" />
-                 <Star size={16} className="fill-[#a67b27] text-[#a67b27]" />
+                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
+                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
+                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
+                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
+                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
               </div>
               
               <h4 className="text-xl md:text-3xl font-serif text-[#1A1A1A] leading-relaxed mb-10 transition-opacity duration-300 min-h-[120px] italic">
@@ -479,7 +479,7 @@ const EventInquiryForm = () => {
       <div className="max-w-4xl mx-auto relative z-10">
         <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-gray-100 p-8 md:p-16">
           <div className="text-center mb-12">
-            <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#a67b27] mb-4 block">Plan With Us</span>
+            <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-4 block">Plan With Us</span>
             <h2 className="text-3xl md:text-5xl font-serif mb-4 text-[#1A1A1A]">Event Inquiry</h2>
             <p className="text-gray-500 font-light max-w-lg mx-auto">Tell us about your upcoming event and our dedicated team will get in touch to bring your vision to life.</p>
           </div>
@@ -488,18 +488,18 @@ const EventInquiryForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Full Name</label>
-                <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all" placeholder="John Doe" />
+                <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="John Doe" />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Phone / WhatsApp</label>
-                <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all" placeholder="+231..." />
+                <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="+231..." />
               </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Event Type</label>
-                <select className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all cursor-pointer">
+                <select className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all cursor-pointer">
                   <option value="" disabled selected>Select an event...</option>
                   <option>Birthday Celebration</option>
                   <option>Corporate Retreat</option>
@@ -509,22 +509,22 @@ const EventInquiryForm = () => {
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Estimated Guests</label>
-                <input type="number" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all" placeholder="e.g. 50" />
+                <input type="number" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="e.g. 50" />
               </div>
             </div>
             
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Preferred Date</label>
-              <input type="date" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all text-gray-500" />
+              <input type="date" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all text-gray-500" />
             </div>
             
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Message Details</label>
-              <textarea rows={4} className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all resize-none" placeholder="Any special requests, theme ideas, or dietary requirements..."></textarea>
+              <textarea rows={4} className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all resize-none" placeholder="Any special requests, theme ideas, or dietary requirements..."></textarea>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 pt-6">
-              <button type="submit" className="flex-1 px-8 py-4 bg-[#1A1A1A] text-white uppercase tracking-widest text-xs font-bold rounded-xl shadow-lg shadow-black/10 hover:bg-[#a67b27] hover:shadow-[#a67b27]/20 hover:-translate-y-0.5 transition-all duration-300">
+              <button type="submit" className="flex-1 px-8 py-4 bg-[#1A1A1A] text-white uppercase tracking-widest text-xs font-bold rounded-xl shadow-lg shadow-black/10 hover:bg-[#F5A623] hover:shadow-[#F5A623]/20 hover:-translate-y-0.5 transition-all duration-300">
                 Send Request
               </button>
               <Link href="https://wa.me/23100000000" target="_blank" rel="noopener noreferrer" className="flex-1 px-8 py-4 border border-gray-200 bg-white text-[#1A1A1A] uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:border-[#25D366] hover:text-[#25D366] transition-all duration-300">

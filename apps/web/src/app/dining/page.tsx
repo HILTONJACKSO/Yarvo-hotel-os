@@ -148,7 +148,7 @@ export default function DiningPage() {
                       />
                     </div>
                   ) : (
-                    <div className="w-full h-56 bg-[#F0EBE1] flex items-center justify-center text-[#a67b27]">
+                    <div className="w-full h-56 bg-[#F0EBE1] flex items-center justify-center text-[#F5A623]">
                       {item.type === 'FOOD' ? <Utensils size={48} opacity={0.5} /> : <Coffee size={48} opacity={0.5} />}
                     </div>
                   )}
@@ -156,12 +156,12 @@ export default function DiningPage() {
                   <div className="p-6 flex flex-col flex-grow">
                     <div className="flex justify-between items-start mb-3">
                       <h4 className="font-serif text-2xl text-[#1A1A1A]">{item.name}</h4>
-                      <span className="font-bold text-[#a67b27] text-lg">${(Number(item.price)).toFixed(2)}</span>
+                      <span className="font-bold text-[#F5A623] text-lg">${(Number(item.price)).toFixed(2)}</span>
                     </div>
                     <p className="text-gray-500 mb-6 flex-grow">{item.description}</p>
                     <button 
                       onClick={() => handleOrderClick(item)}
-                      className="w-full py-3 flex items-center justify-center border border-[#E8E1D7] rounded text-[#a67b27] font-semibold tracking-widest uppercase text-sm group-hover:bg-[#a67b27] group-hover:text-white group-hover:border-[#a67b27] transition-all"
+                      className="w-full py-3 flex items-center justify-center border border-[#E8E1D7] rounded text-[#F5A623] font-semibold tracking-widest uppercase text-sm group-hover:bg-[#F5A623] group-hover:text-white group-hover:border-[#F5A623] transition-all"
                     >
                       <ShoppingBag size={16} className="mr-2" />
                       Order to Room
@@ -173,7 +173,7 @@ export default function DiningPage() {
           </>
         ) : (
           <div className="text-center py-32">
-            <div className="w-16 h-16 border-4 border-gray-200 border-t-[#a67b27] rounded-full animate-spin mx-auto mb-6"></div>
+            <div className="w-16 h-16 border-4 border-gray-200 border-t-[#F5A623] rounded-full animate-spin mx-auto mb-6"></div>
             <p className="text-gray-500 text-lg">Curating our fine dining menu...</p>
           </div>
         )}
@@ -218,28 +218,28 @@ export default function DiningPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Room Number</label>
-                      <input required type="text" value={roomNumber} onChange={e => setRoomNumber(e.target.value)} className="w-full border border-gray-300 rounded-md p-3 text-sm outline-none focus:border-[#a67b27] bg-gray-50 focus:bg-white transition-colors" placeholder="e.g. 101" />
+                      <input required type="text" value={roomNumber} onChange={e => setRoomNumber(e.target.value)} className="w-full border border-gray-300 rounded-md p-3 text-sm outline-none focus:border-[#F5A623] bg-gray-50 focus:bg-white transition-colors" placeholder="e.g. 101" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Quantity</label>
-                      <input required type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} className="w-full border border-gray-300 rounded-md p-3 text-sm outline-none focus:border-[#a67b27] bg-gray-50 focus:bg-white transition-colors" />
+                      <input required type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} className="w-full border border-gray-300 rounded-md p-3 text-sm outline-none focus:border-[#F5A623] bg-gray-50 focus:bg-white transition-colors" />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Primary Guest Name</label>
-                    <input required type="text" value={guestName} onChange={e => setGuestName(e.target.value)} className="w-full border border-gray-300 rounded-md p-3 text-sm outline-none focus:border-[#a67b27] bg-gray-50 focus:bg-white transition-colors" placeholder="Registered name on room" />
+                    <input required type="text" value={guestName} onChange={e => setGuestName(e.target.value)} className="w-full border border-gray-300 rounded-md p-3 text-sm outline-none focus:border-[#F5A623] bg-gray-50 focus:bg-white transition-colors" placeholder="Registered name on room" />
                     <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wide">Required for room charge verification.</p>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Special Instructions</label>
-                    <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full border border-gray-300 rounded-md p-3 text-sm outline-none focus:border-[#a67b27] bg-gray-50 focus:bg-white transition-colors h-24 resize-none" placeholder="e.g. No onions, extra spicy..." />
+                    <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full border border-gray-300 rounded-md p-3 text-sm outline-none focus:border-[#F5A623] bg-gray-50 focus:bg-white transition-colors h-24 resize-none" placeholder="e.g. No onions, extra spicy..." />
                   </div>
 
                   <div className="bg-[#FAF9F6] p-4 rounded-md text-sm text-gray-600 mt-6 border border-[#E8E1D7] flex justify-between items-center">
                     <span className="uppercase tracking-widest font-semibold text-xs">Total Estimate:</span>
-                    <span className="text-xl font-bold text-[#a67b27]">${(Number(selectedItem.price) * parseInt(quantity || '1', 10)).toFixed(2)}</span>
+                    <span className="text-xl font-bold text-[#F5A623]">${(Number(selectedItem.price) * parseInt(quantity || '1', 10)).toFixed(2)}</span>
                   </div>
 
                   <button 

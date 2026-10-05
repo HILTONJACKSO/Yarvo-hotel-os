@@ -205,22 +205,22 @@ export const BookingBarInteractive = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1">First Name</label>
-                      <input required type="text" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#a67b27]" placeholder="John" />
+                      <input required type="text" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="John" />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1">Last Name</label>
-                      <input required type="text" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#a67b27]" placeholder="Doe" />
+                      <input required type="text" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="Doe" />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
-                    <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#a67b27]" placeholder="john@example.com" />
+                    <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="john@example.com" />
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Phone Number</label>
-                    <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#a67b27]" placeholder="+1 234 567 8900" />
+                    <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="+1 234 567 8900" />
                   </div>
 
                   <div className="bg-gray-50 p-4 rounded text-sm text-gray-600 mt-6 border border-gray-100">
@@ -233,7 +233,7 @@ export const BookingBarInteractive = () => {
                   <button 
                     type="submit" 
                     disabled={isSubmitting}
-                    className="w-full bg-[#a67b27] text-white font-bold py-3 rounded mt-4 hover:bg-[#8f6920] transition disabled:opacity-50"
+                    className="w-full bg-[#F5A623] text-white font-bold py-3 rounded mt-4 hover:bg-[#D08C1D] transition disabled:opacity-50"
                   >
                     {isSubmitting ? 'Submitting...' : 'Confirm Request'}
                   </button>
