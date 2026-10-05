@@ -521,6 +521,7 @@ export default function LandingPage() {
         text="Whether you're looking for a quiet afternoon by the water, time with friends or an unforgettable celebration, the beach is at the heart of the Kwalee experience."
         image={placeholder(IMAGES.beach)}
         cta="Explore the Beach"
+        ctaHref="/gallery"
       />
       
       <FeatureSection 
@@ -539,6 +540,7 @@ export default function LandingPage() {
         text="Cold drinks, good company and the perfect setting for sunset. Our coastal bar offers signature cocktails, mocktails, and a curated selection of beverages."
         image={placeholder(IMAGES.bar)}
         cta="Discover the Bar"
+        ctaHref="/dining"
       />
       
       <FeatureSection 
@@ -549,6 +551,7 @@ export default function LandingPage() {
         image={placeholder(IMAGES.dining)}
         reverse={true}
         cta="View Dining"
+        ctaHref="/dining"
       />
       
       <ServicesSection />
