@@ -249,39 +249,105 @@ const ServicesSection = () => {
   );
 };
 
+
 const CoverflowTestimonialsSection = () => {
+  const [activeIndex, setActiveIndex] = useState(2);
+  const [isHovered, setIsHovered] = useState(false);
+  const [testimonialIndex, setTestimonialIndex] = useState(0);
+
+  const slides = [
+    { id: 0, image: placeholder(IMAGES.beach), title: "Ocean Breeze", subtitle: "Relaxation at its best." },
+    { id: 1, image: placeholder(IMAGES.bar), title: "Evening Cocktails", subtitle: "Toast to the sunset." },
+    { id: 2, image: placeholder(IMAGES.dining), title: "Festive Grand\nInterior", subtitle: "Adventure is never far away." },
+    { id: 3, image: placeholder(IMAGES.events), title: "Unforgettable\nEvents", subtitle: "Celebrate your moments." },
+    { id: 4, image: placeholder(IMAGES.hero), title: "Luxury Suites", subtitle: "Stay in comfort." },
+  ];
+
+  const testimonials = [
+    {
+      rating: "4.80",
+      reviews: "2,898 review",
+      text: "Brilliant staff and exceptional customer service. The place is fantastic. Great facilities and atmosphere. Buffet breakfast daily is very generous.",
+      author: "Karar Mahmud",
+      source: "TripAdvisor",
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+    },
+    {
+      rating: "5.00",
+      reviews: "1,204 review",
+      text: "An unforgettable experience! The oceanfront tents were amazing and the service was absolutely top-notch. Highly recommended for couples.",
+      author: "Sarah Jenkins",
+      source: "Google Reviews",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+    },
+    {
+      rating: "4.90",
+      reviews: "856 review",
+      text: "The dining experience was out of this world. Fresh seafood and perfectly crafted cocktails. We will definitely be coming back next year.",
+      author: "Michael Chen",
+      source: "Booking.com",
+      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+    }
+  ];
+
+  useEffect(() => {
+    if (isHovered) return;
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % slides.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [isHovered]);
+
+  const getPositionStyles = (index: number) => {
+    const diff = (index - activeIndex + slides.length) % slides.length;
+    if (diff === 0) {
+      return "z-20 left-[50%] -translate-x-[50%] w-[65%] md:w-[45%] lg:w-[35%] opacity-100 scale-100 shadow-2xl border-[8px] border-white/10 blur-0";
+    } else if (diff === 1 || diff === slides.length - 4) {
+      return "z-10 left-[75%] -translate-x-[50%] w-[35%] md:w-[25%] lg:w-[22%] opacity-80 scale-90 blur-[1px] shadow-lg hidden sm:block";
+    } else if (diff === 2 || diff === slides.length - 3) {
+      return "z-0 left-[95%] -translate-x-[50%] w-[25%] md:w-[20%] opacity-40 scale-75 blur-[2px] hidden sm:block";
+    } else if (diff === 3 || diff === slides.length - 2) {
+      return "z-0 left-[5%] -translate-x-[50%] w-[25%] md:w-[20%] opacity-40 scale-75 blur-[2px] hidden sm:block";
+    } else if (diff === 4 || diff === slides.length - 1) {
+      return "z-10 left-[25%] -translate-x-[50%] w-[35%] md:w-[25%] lg:w-[22%] opacity-80 scale-90 blur-[1px] shadow-lg hidden sm:block";
+    }
+    return "hidden";
+  };
+
+  const currentTestimonial = testimonials[testimonialIndex];
+
   return (
     <section className="py-24 bg-[#FAFAF7] px-6 border-t border-gray-100 overflow-hidden">
       <div className="max-w-7xl mx-auto flex flex-col items-center">
         
         {/* Coverflow Gallery */}
-        <div className="w-full relative flex justify-center items-center h-[300px] md:h-[450px] mb-24 max-w-5xl mx-auto">
-          {/* Far Left */}
-          <div className="absolute left-[-5%] md:left-[5%] w-[25%] md:w-[20%] aspect-[3/4] rounded-lg overflow-hidden opacity-40 scale-75 blur-[2px] transition-all hidden sm:block">
-            <img src={placeholder(IMAGES.beach)} className="w-full h-full object-cover" />
-          </div>
-          {/* Mid Left */}
-          <div className="absolute left-[5%] md:left-[15%] lg:left-[20%] w-[35%] md:w-[25%] lg:w-[22%] aspect-[3/4] rounded-xl overflow-hidden opacity-80 scale-90 blur-[1px] shadow-lg transition-all z-10 hidden sm:block">
-            <img src={placeholder(IMAGES.bar)} className="w-full h-full object-cover" />
-          </div>
-          
-          {/* Center */}
-          <div className="absolute z-20 w-[65%] md:w-[45%] lg:w-[35%] aspect-[3/4] rounded-sm overflow-hidden shadow-2xl scale-100 transition-all group cursor-pointer border-[8px] border-white/10">
-            <img src={placeholder(IMAGES.dining)} className="w-full h-full object-cover brightness-75 group-hover:brightness-90 transition-all" />
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-               <h3 className="text-white text-3xl md:text-4xl lg:text-5xl font-bold font-sans drop-shadow-lg leading-tight tracking-tight">Festive Grand<br/>Interior</h3>
-               <p className="text-white/80 text-xs md:text-sm mt-3 drop-shadow-md">Adventure is never far away.</p>
-            </div>
-          </div>
-          
-          {/* Mid Right */}
-          <div className="absolute right-[5%] md:right-[15%] lg:right-[20%] w-[35%] md:w-[25%] lg:w-[22%] aspect-[3/4] rounded-xl overflow-hidden opacity-80 scale-90 blur-[1px] shadow-lg transition-all z-10 hidden sm:block">
-            <img src={placeholder(IMAGES.events)} className="w-full h-full object-cover" />
-          </div>
-          {/* Far Right */}
-          <div className="absolute right-[-5%] md:right-[5%] w-[25%] md:w-[20%] aspect-[3/4] rounded-lg overflow-hidden opacity-40 scale-75 blur-[2px] transition-all hidden sm:block">
-            <img src={placeholder(IMAGES.hero)} className="w-full h-full object-cover" />
-          </div>
+        <div 
+          className="w-full relative flex items-center h-[300px] md:h-[450px] mb-24 max-w-5xl mx-auto"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {slides.map((slide, idx) => {
+            const diff = (idx - activeIndex + slides.length) % slides.length;
+            const isCenter = diff === 0;
+            return (
+              <div 
+                key={slide.id}
+                onClick={() => setActiveIndex(idx)}
+                className={`absolute aspect-[3/4] rounded-xl overflow-hidden transition-all duration-700 cursor-pointer group ${getPositionStyles(idx)}`}
+              >
+                <img 
+                  src={slide.image} 
+                  className={`w-full h-full object-cover transition-all duration-700 ${isCenter ? 'brightness-75 group-hover:brightness-90' : 'brightness-100'}`} 
+                />
+                {isCenter && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                     <h3 className="text-white text-3xl md:text-4xl lg:text-5xl font-bold font-sans drop-shadow-lg leading-tight tracking-tight whitespace-pre-line">{slide.title}</h3>
+                     <p className="text-white/80 text-xs md:text-sm mt-3 drop-shadow-md">{slide.subtitle}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Testimonials */}
@@ -297,10 +363,16 @@ const CoverflowTestimonialsSection = () => {
             </p>
             
             <div className="flex items-center gap-4 mt-auto">
-              <button className="w-10 h-10 rounded-full bg-[#a67b27] text-white flex items-center justify-center hover:bg-[#8f6920] transition shadow-md">
+              <button 
+                onClick={() => setTestimonialIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
+                className="w-10 h-10 rounded-full bg-[#a67b27] text-white flex items-center justify-center hover:bg-[#8f6920] transition shadow-md cursor-pointer"
+              >
                 <ChevronLeft size={20} />
               </button>
-              <button className="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-50 transition shadow-sm">
+              <button 
+                onClick={() => setTestimonialIndex((prev) => (prev + 1) % testimonials.length)}
+                className="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-gray-50 transition shadow-sm cursor-pointer"
+              >
                 <ChevronRight size={20} />
               </button>
               
@@ -316,9 +388,9 @@ const CoverflowTestimonialsSection = () => {
           </div>
 
           {/* Right Side */}
-          <div className="lg:w-[55%] flex flex-col justify-center">
+          <div className="lg:w-[55%] flex flex-col justify-center min-h-[250px]">
             <div className="flex items-center gap-4 mb-8">
-              <h3 className="text-5xl md:text-[64px] font-bold text-gray-900 font-sans tracking-tighter leading-none">4.80</h3>
+              <h3 className="text-5xl md:text-[64px] font-bold text-gray-900 font-sans tracking-tighter leading-none">{currentTestimonial.rating}</h3>
               <div className="bg-[#d49931] px-3 py-1.5 rounded flex flex-col items-center shadow-sm">
                  <div className="flex text-white text-xs gap-0.5 mb-0.5">
                    <Star size={10} className="fill-white" />
@@ -327,23 +399,23 @@ const CoverflowTestimonialsSection = () => {
                    <Star size={10} className="fill-white" />
                    <Star size={10} className="fill-white" />
                  </div>
-                 <p className="text-[10px] text-white font-semibold">2,898 review</p>
+                 <p className="text-[10px] text-white font-semibold">{currentTestimonial.reviews}</p>
               </div>
               <p className="text-[10px] text-gray-400 max-w-[120px] ml-auto text-right hidden md:block leading-tight">
                 Proactively morph optimal intermediaries rather than accurate expertise.
               </p>
             </div>
             
-            <h4 className="text-lg md:text-xl font-bold text-gray-900 leading-snug mb-8 font-sans max-w-lg">
-              Brilliant staff and exceptional customer service. The place is fantastic. Great facilities and atmosphere. Buffet breakfast daily is very generous.
+            <h4 className="text-lg md:text-xl font-bold text-gray-900 leading-snug mb-8 font-sans max-w-lg transition-opacity duration-300">
+              {currentTestimonial.text}
             </h4>
             
             <div className="flex items-center gap-4">
-               <img className="w-12 h-12 rounded-full object-cover" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Karar Mahmud" />
+               <img className="w-12 h-12 rounded-full object-cover transition-all duration-300" src={currentTestimonial.avatar} alt={currentTestimonial.author} />
                <div>
-                 <h5 className="font-bold text-sm text-gray-900">Karar Mahmud</h5>
+                 <h5 className="font-bold text-sm text-gray-900">{currentTestimonial.author}</h5>
                  <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5 font-medium">
-                   TripAdvisor
+                   {currentTestimonial.source}
                  </p>
                </div>
             </div>
@@ -352,7 +424,7 @@ const CoverflowTestimonialsSection = () => {
 
       </div>
     </section>
-  )
+  );
 };
 
 const EventsSection = () => {
