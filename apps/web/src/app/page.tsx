@@ -214,7 +214,7 @@ const ServicesSection = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {rooms.map((room, idx) => (
-              <div key={idx} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col group cursor-pointer transition-shadow hover:shadow-xl">
+              <Link href="/stay" key={idx} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col group cursor-pointer transition-shadow hover:shadow-xl">
                 <div className="relative aspect-[4/3] w-full overflow-hidden p-2 pb-0">
                   <img src={room.img} alt={room.name} className="w-full h-full object-cover rounded-t-xl transition-transform duration-700 group-hover:scale-105" />
                   <div className="absolute top-6 left-6 bg-white/40 backdrop-blur-md border border-white/20 text-white px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1 shadow-sm">
@@ -240,7 +240,7 @@ const ServicesSection = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
