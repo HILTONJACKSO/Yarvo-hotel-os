@@ -88,7 +88,7 @@ export default function DiningPage() {
   };
 
   return (
-    <main className="font-sans text-[#1A1A1A] bg-[#FAFAF7] min-h-screen flex flex-col">
+    <main className="font-sans text-[#1A1A1A] bg-[#F4F1EA] min-h-screen flex flex-col">
       <Navbar />
 
       {/* Hero Section */}
@@ -183,7 +183,7 @@ export default function DiningPage() {
       {isModalOpen && selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-[#FAFAF7]">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-[#F4F1EA]">
               <h3 className="text-xl font-serif font-bold text-gray-900">Order {selectedItem.name}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition">
                 <X size={24} />
@@ -237,7 +237,7 @@ export default function DiningPage() {
                     <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full border border-gray-300 rounded-md p-3 text-sm outline-none focus:border-[#F5A623] bg-gray-50 focus:bg-white transition-colors h-24 resize-none" placeholder="e.g. No onions, extra spicy..." />
                   </div>
 
-                  <div className="bg-[#FAF9F6] p-4 rounded-md text-sm text-gray-600 mt-6 border border-[#E8E1D7] flex justify-between items-center">
+                  <div className="bg-[#F4F1EA] p-4 rounded-md text-sm text-gray-600 mt-6 border border-[#E8E1D7] flex justify-between items-center">
                     <span className="uppercase tracking-widest font-semibold text-xs">Total Estimate:</span>
                     <span className="text-xl font-bold text-[#F5A623]">${(Number(selectedItem.price) * parseInt(quantity || '1', 10)).toFixed(2)}</span>
                   </div>

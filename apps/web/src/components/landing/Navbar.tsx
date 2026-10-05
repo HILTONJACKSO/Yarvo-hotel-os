@@ -27,7 +27,7 @@ const Navbar = () => {
   return (
     <header 
       className={`fixed w-full top-0 z-50 transition-all duration-500 ${
-        isScrolled ? "bg-[#FAFAF7] text-[#1A1A1A] py-4 shadow-sm" : "bg-transparent text-white py-6"
+        isScrolled ? "bg-[#F4F1EA] text-[#1A1A1A] py-4 shadow-sm" : "bg-transparent text-white py-6"
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center">
@@ -51,7 +51,7 @@ const Navbar = () => {
             href="/#book" 
             className={`hidden md:inline-block px-6 py-3 text-xs tracking-widest uppercase border transition-colors ${
               isScrolled 
-                ? "border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-[#FAFAF7]" 
+                ? "border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-[#F4F1EA]" 
                 : "border-white text-white hover:bg-white hover:text-[#1A1A1A]"
             }`}
           >
@@ -68,7 +68,7 @@ const Navbar = () => {
 
       {/* MOBILE MENU */}
       {mobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 w-full bg-[#FAFAF7] text-[#1A1A1A] shadow-xl flex flex-col p-6 space-y-6">
+        <div className="lg:hidden absolute top-full left-0 w-full bg-[#F4F1EA] text-[#1A1A1A] shadow-xl flex flex-col p-6 space-y-6">
           {navLinks.map((link) => (
             <Link 
               key={link.label} 
@@ -82,7 +82,7 @@ const Navbar = () => {
           <Link 
             href="/#book" 
             onClick={() => setMobileMenuOpen(false)}
-            className="bg-[#1A1A1A] text-[#FAFAF7] text-center py-4 uppercase tracking-widest text-sm"
+            className="bg-[#1A1A1A] text-[#F4F1EA] text-center py-4 uppercase tracking-widest text-sm"
           >
             Book Now
           </Link>

@@ -85,7 +85,7 @@ export const DigitalMenuMarquee = () => {
 
   return (
     <>
-    <section className="py-24 bg-[#FAF9F6] overflow-hidden border-t border-[#E8E1D7]">
+    <section className="py-24 bg-[#F4F1EA] overflow-hidden border-t border-[#E8E1D7]">
       <style>{`
         @keyframes marquee {
           0% { transform: translateX(0); }

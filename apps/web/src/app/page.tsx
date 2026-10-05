@@ -16,7 +16,7 @@ import Image from "next/image";
 // ==========================================
 const THEME = {
   colors: {
-    ivory: "#FAFAF7",
+    ivory: "#F4F1EA",
     charcoal: "#1A1A1A",
     sand: "#E8E1D7",
     ocean: "#2B4B5C",
@@ -183,7 +183,7 @@ const ServicesSection = () => {
   ];
 
   return (
-    <section id="stay" className="py-24 md:py-32 bg-[#FAFAF7] px-6">
+    <section id="stay" className="py-24 md:py-32 bg-[#F4F1EA] px-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row justify-between items-end mb-16 gap-8">
           <div className="max-w-2xl">
@@ -317,7 +317,7 @@ const CoverflowTestimonialsSection = () => {
   const currentTestimonial = testimonials[testimonialIndex];
 
   return (
-    <section className="py-24 bg-[#FAFAF7] px-6 border-t border-gray-100 overflow-hidden">
+    <section className="py-24 bg-[#F4F1EA] px-6 border-t border-gray-100 overflow-hidden">
       <div className="max-w-7xl mx-auto flex flex-col items-center">
         
         {/* Coverflow Gallery */}
@@ -472,7 +472,7 @@ const EventsSection = () => {
 
 const EventInquiryForm = () => {
   return (
-    <section id="inquiry" className="py-24 md:py-32 px-6 relative bg-[#FAFAF7]">
+    <section id="inquiry" className="py-24 md:py-32 px-6 relative bg-[#F4F1EA]">
       {/* Decorative background elements */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-white"></div>
       
@@ -540,7 +540,7 @@ const EventInquiryForm = () => {
 
 const GallerySection = () => {
   return (
-    <section id="gallery" className="py-24 bg-[#FAFAF7] px-6">
+    <section id="gallery" className="py-24 bg-[#F4F1EA] px-6">
       <div className="max-w-7xl mx-auto">
         <h2 className="text-3xl md:text-5xl font-serif text-center mb-16">MOMENTS AT KWALEE</h2>
         <div className="columns-1 sm:columns-2 md:columns-3 gap-6 space-y-6">
@@ -588,7 +588,7 @@ const FinalCTA = () => {
 
 export default function LandingPage() {
   return (
-    <main className="font-sans text-[#1A1A1A] bg-[#FAFAF7] selection:bg-[#E8E1D7] selection:text-[#1A1A1A]">
+    <main className="font-sans text-[#1A1A1A] bg-[#F4F1EA] selection:bg-[#E8E1D7] selection:text-[#1A1A1A]">
       <Navbar />
       <Hero />
       <BookingBarInteractive />
