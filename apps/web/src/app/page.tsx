@@ -521,7 +521,7 @@ export default function LandingPage() {
         text="Whether you're looking for a quiet afternoon by the water, time with friends or an unforgettable celebration, the beach is at the heart of the Kwalee experience."
         image={placeholder(IMAGES.beach)}
         cta="Explore the Beach"
-        ctaHref="/gallery"
+        ctaHref="/#gallery"
       />
       
       <FeatureSection 
