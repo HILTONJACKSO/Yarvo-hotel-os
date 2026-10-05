@@ -472,60 +472,67 @@ const EventsSection = () => {
 
 const EventInquiryForm = () => {
   return (
-    <section id="inquiry" className="py-24 md:py-32 px-6 bg-white">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-serif mb-4">Event Inquiry</h2>
-          <p className="text-gray-500">Tell us about your event and our team will get in touch.</p>
+    <section id="inquiry" className="py-24 md:py-32 px-6 relative bg-[#FAFAF7]">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 left-0 w-full h-1/2 bg-white"></div>
+      
+      <div className="max-w-4xl mx-auto relative z-10">
+        <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-gray-100 p-8 md:p-16">
+          <div className="text-center mb-12">
+            <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#a67b27] mb-4 block">Plan With Us</span>
+            <h2 className="text-3xl md:text-5xl font-serif mb-4 text-[#1A1A1A]">Event Inquiry</h2>
+            <p className="text-gray-500 font-light max-w-lg mx-auto">Tell us about your upcoming event and our dedicated team will get in touch to bring your vision to life.</p>
+          </div>
+          
+          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Full Name</label>
+                <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all" placeholder="John Doe" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Phone / WhatsApp</label>
+                <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all" placeholder="+231..." />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Event Type</label>
+                <select className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all cursor-pointer">
+                  <option value="" disabled selected>Select an event...</option>
+                  <option>Birthday Celebration</option>
+                  <option>Corporate Retreat</option>
+                  <option>Wedding Ceremony</option>
+                  <option>Private Party</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Estimated Guests</label>
+                <input type="number" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all" placeholder="e.g. 50" />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Preferred Date</label>
+              <input type="date" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all text-gray-500" />
+            </div>
+            
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Message Details</label>
+              <textarea rows={4} className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#a67b27] focus:ring-1 focus:ring-[#a67b27] transition-all resize-none" placeholder="Any special requests, theme ideas, or dietary requirements..."></textarea>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4 pt-6">
+              <button type="submit" className="flex-1 px-8 py-4 bg-[#1A1A1A] text-white uppercase tracking-widest text-xs font-bold rounded-xl shadow-lg shadow-black/10 hover:bg-[#a67b27] hover:shadow-[#a67b27]/20 hover:-translate-y-0.5 transition-all duration-300">
+                Send Request
+              </button>
+              <Link href="https://wa.me/23100000000" target="_blank" rel="noopener noreferrer" className="flex-1 px-8 py-4 border border-gray-200 bg-white text-[#1A1A1A] uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:border-[#25D366] hover:text-[#25D366] transition-all duration-300">
+                Chat on WhatsApp
+              </Link>
+            </div>
+          </form>
         </div>
-        
-        <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="border-b border-gray-300 pb-2">
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Name</label>
-              <input type="text" className="w-full outline-none bg-transparent" placeholder="John Doe" />
-            </div>
-            <div className="border-b border-gray-300 pb-2">
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Phone / WhatsApp</label>
-              <input type="text" className="w-full outline-none bg-transparent" placeholder="+231..." />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="border-b border-gray-300 pb-2">
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Event Type</label>
-              <select className="w-full outline-none bg-transparent appearance-none">
-                <option>Birthday</option>
-                <option>Corporate</option>
-                <option>Wedding</option>
-                <option>Other Party</option>
-              </select>
-            </div>
-            <div className="border-b border-gray-300 pb-2">
-              <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Estimated Guests</label>
-              <input type="number" className="w-full outline-none bg-transparent" placeholder="e.g. 50" />
-            </div>
-          </div>
-          
-          <div className="border-b border-gray-300 pb-2">
-            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Preferred Date</label>
-            <input type="date" className="w-full outline-none bg-transparent" />
-          </div>
-          
-          <div className="border-b border-gray-300 pb-2">
-            <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Message Details</label>
-            <textarea rows={4} className="w-full outline-none bg-transparent" placeholder="Any special requests or details..."></textarea>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-6 pt-4">
-            <button type="submit" className="flex-1 px-8 py-4 bg-[#1A1A1A] text-white uppercase tracking-widest text-sm hover:bg-[#2B4B5C] transition-colors">
-              Send Event Request
-            </button>
-            <Link href="https://wa.me/23100000000" className="flex-1 px-8 py-4 border border-[#1A1A1A] text-[#1A1A1A] uppercase tracking-widest text-sm text-center hover:bg-[#1A1A1A] hover:text-white transition-colors">
-              Chat on WhatsApp
-            </Link>
-          </div>
-        </form>
       </div>
     </section>
   );
