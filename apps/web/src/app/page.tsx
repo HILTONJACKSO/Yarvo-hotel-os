@@ -16,7 +16,7 @@ import Image from "next/image";
 // ==========================================
 const THEME = {
   colors: {
-    ivory: "#F4F1EA",
+    ivory: "#FAF9F4",
     charcoal: "#1A1A1A",
     sand: "#E8E1D7",
     ocean: "#2B4B5C",
@@ -70,10 +70,10 @@ const Hero = () => {
           Discover the beauty of Kwalee Beach Resort — where the beach, pool, dining, events and coastal atmosphere come together for an unforgettable experience.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
-          <Link href="#book" className="px-8 py-4 bg-white text-[#1A1A1A] uppercase tracking-widest text-sm text-center hover:bg-[#E8E1D7] transition-colors">
+          <Link href="#book" className="px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm text-center hover:bg-[#E8E1D7] transition-colors">
             Book Your Stay
           </Link>
-          <Link href="#experience" className="px-8 py-4 border border-white text-white uppercase tracking-widest text-sm text-center hover:bg-white hover:text-[#1A1A1A] transition-colors">
+          <Link href="#experience" className="px-8 py-4 border border-white text-white uppercase tracking-widest text-sm text-center hover:bg-white hover:text-[#1F1F1F] transition-colors">
             Explore the Resort
           </Link>
         </div>
@@ -93,7 +93,7 @@ const IntroSection = () => {
           <span className="px-4 py-1.5 rounded-lg border border-gray-200 text-sm font-semibold tracking-wide text-gray-800 mb-8 uppercase shadow-sm">
             About Us
           </span>
-          <h3 className="text-4xl md:text-5xl font-sans font-medium text-[#1A1A1A] leading-[1.15] mb-6 tracking-tight">
+          <h3 className="text-4xl md:text-5xl font-sans font-medium text-[#1F1F1F] leading-[1.15] mb-6 tracking-tight">
             A Place to Slow Down.<br/>Stay Better, Travel Happier.
           </h3>
           <p className="text-gray-600 text-base md:text-lg mb-10 leading-relaxed max-w-md">
@@ -141,10 +141,10 @@ const FeatureSection = ({ id, label, title, text, image, reverse, cta, ctaHref }
         </div>
         <div className="w-full lg:w-1/2">
           <span className="text-xs uppercase tracking-[0.2em] text-[#4A5D4E] block mb-6">{label}</span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif text-[#1A1A1A] leading-[1.1] mb-8">{title}</h2>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif text-[#1F1F1F] leading-[1.1] mb-8">{title}</h2>
           <p className="text-lg text-gray-600 font-light leading-relaxed mb-10">{text}</p>
           {cta && (
-            <Link href={ctaHref || "#"} className="inline-block px-8 py-4 border border-[#1A1A1A] text-[#1A1A1A] uppercase tracking-widest text-sm hover:bg-[#1A1A1A] hover:text-white transition-colors">
+            <Link href={ctaHref || "#"} className="inline-block px-8 py-4 border border-[#1F1F1F] text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#1B2418] hover:text-white transition-colors">
               {cta}
             </Link>
           )}
@@ -183,19 +183,19 @@ const ServicesSection = () => {
   ];
 
   return (
-    <section id="stay" className="py-24 md:py-32 bg-[#F4F1EA] px-6">
+    <section id="stay" className="py-24 md:py-32 bg-[#FAF9F4] px-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row justify-between items-end mb-16 gap-8">
           <div className="max-w-2xl">
             <span className="px-4 py-1.5 rounded-full border border-gray-300 text-xs font-bold tracking-widest text-gray-800 mb-6 inline-block uppercase bg-white">
               POPULAR SERVICES
             </span>
-            <h2 className="text-4xl md:text-5xl lg:text-[64px] font-sans font-bold text-[#1A1A1A] leading-tight tracking-tight">
+            <h2 className="text-4xl md:text-5xl lg:text-[64px] font-sans font-bold text-[#1F1F1F] leading-tight tracking-tight">
               Services Built For<br/>Travelers.
             </h2>
           </div>
           <div className="max-w-sm lg:text-right text-left pb-2">
-            <p className="text-gray-500 text-sm md:text-sm leading-relaxed">
+            <p className="text-[#6B6F72] text-sm md:text-sm leading-relaxed">
               Kwalee provides smart tools, secure payments, verified reviews, ensuring smooth, confident, and effortless hotel booking.
             </p>
           </div>
@@ -226,17 +226,17 @@ const ServicesSection = () => {
                 </div>
                 <div className="p-6 flex flex-col flex-grow">
                   <h3 className="font-bold text-lg md:text-xl text-gray-900 mb-1">{room.name}</h3>
-                  <p className="text-gray-400 text-xs mb-6 truncate">{room.location}</p>
+                  <p className="text-[#6B6F72]/80 text-xs mb-6 truncate">{room.location}</p>
                   
                   <div className="flex justify-between items-end mt-auto pt-4 border-t border-gray-100">
-                    <div className="flex gap-4 text-gray-500 text-xs font-medium">
+                    <div className="flex gap-4 text-[#6B6F72] text-xs font-medium">
                       {room.features.split(' • ').map((feat, i) => (
                          <span key={i} className="flex items-center gap-1">{feat}</span>
                       ))}
                     </div>
                     <div className="text-right flex items-baseline gap-1">
                       <span className="font-bold text-lg text-gray-900 block leading-none">{room.price.split('/')[0]}</span>
-                      <span className="text-xs text-gray-400">/{room.price.split('/')[1]}</span>
+                      <span className="text-xs text-[#6B6F72]/80">/{room.price.split('/')[1]}</span>
                     </div>
                   </div>
                 </div>
@@ -317,7 +317,7 @@ const CoverflowTestimonialsSection = () => {
   const currentTestimonial = testimonials[testimonialIndex];
 
   return (
-    <section className="py-24 bg-[#F4F1EA] px-6 border-t border-gray-100 overflow-hidden">
+    <section className="py-24 bg-[#FAF9F4] px-6 border-t border-gray-100 overflow-hidden">
       <div className="max-w-7xl mx-auto flex flex-col items-center">
         
         {/* Coverflow Gallery */}
@@ -355,10 +355,10 @@ const CoverflowTestimonialsSection = () => {
           {/* Left Side */}
           <div className="lg:w-[35%] flex flex-col">
             <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-4 block">Testimonials</span>
-            <h2 className="text-3xl md:text-5xl font-serif text-[#1A1A1A] leading-[1.1] mb-6">
+            <h2 className="text-3xl md:text-5xl font-serif text-[#1F1F1F] leading-[1.1] mb-6">
               What Our<br/>Guests Say
             </h2>
-            <p className="text-gray-500 text-sm leading-relaxed max-w-sm mb-12 font-light">
+            <p className="text-[#6B6F72] text-sm leading-relaxed max-w-sm mb-12 font-light">
               Experience Kwalee Beach Resort through the eyes of those who have stayed with us. We take pride in delivering unforgettable moments and exceptional coastal hospitality.
             </p>
             
@@ -384,7 +384,7 @@ const CoverflowTestimonialsSection = () => {
                 </div>
                 <div className="ml-4 flex flex-col">
                   <span className="text-sm font-bold text-gray-900 leading-tight">4.8/5</span>
-                  <span className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">from 2,800+ reviews</span>
+                  <span className="text-[10px] uppercase tracking-wider text-[#6B6F72]/80 font-bold">from 2,800+ reviews</span>
                 </div>
               </div>
             </div>
@@ -407,7 +407,7 @@ const CoverflowTestimonialsSection = () => {
                  <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
               </div>
               
-              <h4 className="text-xl md:text-3xl font-serif text-[#1A1A1A] leading-relaxed mb-10 transition-opacity duration-300 min-h-[120px] italic">
+              <h4 className="text-xl md:text-3xl font-serif text-[#1F1F1F] leading-relaxed mb-10 transition-opacity duration-300 min-h-[120px] italic">
                 "{currentTestimonial.text}"
               </h4>
               
@@ -415,7 +415,7 @@ const CoverflowTestimonialsSection = () => {
                  <img className="w-14 h-14 rounded-full object-cover transition-all duration-300 shadow-sm" src={currentTestimonial.avatar} alt={currentTestimonial.author} />
                  <div>
                    <h5 className="font-bold text-base text-gray-900 tracking-wide">{currentTestimonial.author}</h5>
-                   <p className="text-xs text-gray-400 mt-1 uppercase tracking-widest">
+                   <p className="text-xs text-[#6B6F72]/80 mt-1 uppercase tracking-widest">
                      Via {currentTestimonial.source}
                    </p>
                  </div>
@@ -430,7 +430,7 @@ const CoverflowTestimonialsSection = () => {
 
 const EventsSection = () => {
   return (
-    <section id="events" className="py-24 md:py-40 bg-[#1A1A1A] text-white">
+    <section id="events" className="py-24 md:py-40 bg-[#1B2418] text-white">
       <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-12 gap-16">
         
         <div className="lg:col-span-5 flex flex-col justify-center">
@@ -452,7 +452,7 @@ const EventsSection = () => {
           </ul>
           
           <div>
-            <Link href="#inquiry" className="inline-block px-8 py-4 bg-white text-[#1A1A1A] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors">
+            <Link href="#inquiry" className="inline-block px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors">
               Plan Your Event
             </Link>
           </div>
@@ -472,7 +472,7 @@ const EventsSection = () => {
 
 const EventInquiryForm = () => {
   return (
-    <section id="inquiry" className="py-24 md:py-32 px-6 relative bg-[#F4F1EA]">
+    <section id="inquiry" className="py-24 md:py-32 px-6 relative bg-[#FAF9F4]">
       {/* Decorative background elements */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-white"></div>
       
@@ -480,25 +480,25 @@ const EventInquiryForm = () => {
         <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-gray-100 p-8 md:p-16">
           <div className="text-center mb-12">
             <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-4 block">Plan With Us</span>
-            <h2 className="text-3xl md:text-5xl font-serif mb-4 text-[#1A1A1A]">Event Inquiry</h2>
-            <p className="text-gray-500 font-light max-w-lg mx-auto">Tell us about your upcoming event and our dedicated team will get in touch to bring your vision to life.</p>
+            <h2 className="text-3xl md:text-5xl font-serif mb-4 text-[#1F1F1F]">Event Inquiry</h2>
+            <p className="text-[#6B6F72] font-light max-w-lg mx-auto">Tell us about your upcoming event and our dedicated team will get in touch to bring your vision to life.</p>
           </div>
           
           <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Full Name</label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Full Name</label>
                 <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="John Doe" />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Phone / WhatsApp</label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Phone / WhatsApp</label>
                 <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="+231..." />
               </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Event Type</label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Event Type</label>
                 <select className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all cursor-pointer">
                   <option value="" disabled selected>Select an event...</option>
                   <option>Birthday Celebration</option>
@@ -508,26 +508,26 @@ const EventInquiryForm = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Estimated Guests</label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Estimated Guests</label>
                 <input type="number" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="e.g. 50" />
               </div>
             </div>
             
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Preferred Date</label>
-              <input type="date" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all text-gray-500" />
+              <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Preferred Date</label>
+              <input type="date" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all text-[#6B6F72]" />
             </div>
             
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Message Details</label>
+              <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Message Details</label>
               <textarea rows={4} className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all resize-none" placeholder="Any special requests, theme ideas, or dietary requirements..."></textarea>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 pt-6">
-              <button type="submit" className="flex-1 px-8 py-4 bg-[#1A1A1A] text-white uppercase tracking-widest text-xs font-bold rounded-xl shadow-lg shadow-black/10 hover:bg-[#F5A623] hover:shadow-[#F5A623]/20 hover:-translate-y-0.5 transition-all duration-300">
+              <button type="submit" className="flex-1 px-8 py-4 bg-[#1B2418] text-white uppercase tracking-widest text-xs font-bold rounded-xl shadow-lg shadow-black/10 hover:bg-[#F5A623] hover:shadow-[#F5A623]/20 hover:-translate-y-0.5 transition-all duration-300">
                 Send Request
               </button>
-              <Link href="https://wa.me/23100000000" target="_blank" rel="noopener noreferrer" className="flex-1 px-8 py-4 border border-gray-200 bg-white text-[#1A1A1A] uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:border-[#25D366] hover:text-[#25D366] transition-all duration-300">
+              <Link href="https://wa.me/23100000000" target="_blank" rel="noopener noreferrer" className="flex-1 px-8 py-4 border border-gray-200 bg-white text-[#1F1F1F] uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:border-[#25D366] hover:text-[#25D366] transition-all duration-300">
                 Chat on WhatsApp
               </Link>
             </div>
@@ -540,7 +540,7 @@ const EventInquiryForm = () => {
 
 const GallerySection = () => {
   return (
-    <section id="gallery" className="py-24 bg-[#F4F1EA] px-6">
+    <section id="gallery" className="py-24 bg-[#FAF9F4] px-6">
       <div className="max-w-7xl mx-auto">
         <h2 className="text-3xl md:text-5xl font-serif text-center mb-16">MOMENTS AT KWALEE</h2>
         <div className="columns-1 sm:columns-2 md:columns-3 gap-6 space-y-6">
@@ -574,10 +574,10 @@ const FinalCTA = () => {
         </h2>
         <p className="text-xl font-light mb-12 opacity-90">Come for the beach. Stay for the experience.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="#book" className="px-8 py-4 bg-white text-[#1A1A1A] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors">
+          <Link href="#book" className="px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors">
             Book Your Stay
           </Link>
-          <Link href="#inquiry" className="px-8 py-4 border border-white text-white uppercase tracking-widest text-sm hover:bg-white hover:text-[#1A1A1A] transition-colors">
+          <Link href="#inquiry" className="px-8 py-4 border border-white text-white uppercase tracking-widest text-sm hover:bg-white hover:text-[#1F1F1F] transition-colors">
             Plan An Event
           </Link>
         </div>
@@ -588,7 +588,7 @@ const FinalCTA = () => {
 
 export default function LandingPage() {
   return (
-    <main className="font-sans text-[#1A1A1A] bg-[#F4F1EA] selection:bg-[#E8E1D7] selection:text-[#1A1A1A]">
+    <main className="font-sans text-[#1F1F1F] bg-[#FAF9F4] selection:bg-[#E8E1D7] selection:text-[#1F1F1F]">
       <Navbar />
       <Hero />
       <BookingBarInteractive />
@@ -642,8 +642,8 @@ export default function LandingPage() {
       
       <section className="py-24 bg-white text-center px-6">
         <span className="text-xs uppercase tracking-[0.2em] text-[#4A5D4E] block mb-12">Social Proof</span>
-        <h2 className="text-3xl md:text-4xl font-serif text-[#1A1A1A] mb-12">WHAT OUR GUESTS SAY</h2>
-        <p className="text-gray-500 italic max-w-2xl mx-auto">"[GUEST REVIEWS COMING SOON]"</p>
+        <h2 className="text-3xl md:text-4xl font-serif text-[#1F1F1F] mb-12">WHAT OUR GUESTS SAY</h2>
+        <p className="text-[#6B6F72] italic max-w-2xl mx-auto">"[GUEST REVIEWS COMING SOON]"</p>
       </section>
       
       <FinalCTA />

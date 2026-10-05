@@ -66,40 +66,40 @@ export default function StayPage() {
         {/* Rooms Section */}
         <section>
           <div className="text-center mb-16">
-            <h2 className="font-serif text-4xl text-[#1A1A1A] mb-4">Luxury Rooms & Suites</h2>
+            <h2 className="font-serif text-4xl text-[#1F1F1F] mb-4">Luxury Rooms & Suites</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Wake up to the sound of waves in our meticulously designed rooms, offering breathtaking views and premium amenities.
             </p>
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A1A1A]"></div></div>
+            <div className="flex justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1F1F1F]"></div></div>
           ) : rooms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {rooms.map(room => <RoomCard key={room.id} room={room} />)}
             </div>
           ) : (
-            <p className="text-center text-gray-500">No rooms available at the moment.</p>
+            <p className="text-center text-[#6B6F72]">No rooms available at the moment.</p>
           )}
         </section>
 
         {/* Tents Section */}
         <section>
           <div className="text-center mb-16">
-            <h2 className="font-serif text-4xl text-[#1A1A1A] mb-4">Glamping Tents</h2>
+            <h2 className="font-serif text-4xl text-[#1F1F1F] mb-4">Glamping Tents</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Immerse yourself in nature without sacrificing comfort in our premium beachfront tents.
             </p>
           </div>
 
           {isLoading ? (
-             <div className="flex justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A1A1A]"></div></div>
+             <div className="flex justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1F1F1F]"></div></div>
           ) : tents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
               {tents.map(tent => <RoomCard key={tent.id} room={tent} isLarge />)}
             </div>
           ) : (
-            <p className="text-center text-gray-500">No tents available at the moment.</p>
+            <p className="text-center text-[#6B6F72]">No tents available at the moment.</p>
           )}
         </section>
       </div>
@@ -139,15 +139,15 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
           className="object-cover group-hover:scale-105 transition-transform duration-700"
         />
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
-          <span className="font-bold text-[#1A1A1A]">${Number(room.baseRateUsd).toFixed(2)}</span>
+          <span className="font-bold text-[#1F1F1F]">${Number(room.baseRateUsd).toFixed(2)}</span>
           <span className="text-sm text-gray-600"> / night</span>
         </div>
       </div>
       
       <div className="p-8 flex flex-col flex-grow">
-        <h3 className="font-serif text-2xl text-[#1A1A1A] mb-2">{room.name}</h3>
+        <h3 className="font-serif text-2xl text-[#1F1F1F] mb-2">{room.name}</h3>
         
-        <div className="flex items-center gap-4 text-gray-500 text-sm mb-6 pb-6 border-b border-gray-100">
+        <div className="flex items-center gap-4 text-[#6B6F72] text-sm mb-6 pb-6 border-b border-gray-100">
           <div className="flex items-center gap-1">
             <Users size={16} />
             <span>Up to {room.maxAdults + room.maxChildren} Guests</span>
@@ -173,7 +173,7 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
             const el = document.getElementById('booking-bar');
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }}
-          className="w-full py-4 text-center border-2 border-[#1A1A1A] text-[#1A1A1A] font-medium rounded-full hover:bg-[#1A1A1A] hover:text-white transition-colors uppercase tracking-widest text-sm"
+          className="w-full py-4 text-center border-2 border-[#1F1F1F] text-[#1F1F1F] font-medium rounded-full hover:bg-[#1B2418] hover:text-white transition-colors uppercase tracking-widest text-sm"
         >
           Check Availability
         </button>

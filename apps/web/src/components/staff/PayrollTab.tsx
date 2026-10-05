@@ -99,7 +99,7 @@ export function PayrollTab({ staff, isManager }: { staff: any[], isManager?: boo
         <div className="flex gap-4 items-center">
           <h3 className="font-bold">Payroll Period</h3>
           <input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} className="bg-[#141824] border border-[#1a1f2e] p-2 rounded text-sm outline-none" />
-          <span className="text-gray-500">to</span>
+          <span className="text-[#6B6F72]">to</span>
           <input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} className="bg-[#141824] border border-[#1a1f2e] p-2 rounded text-sm outline-none" />
         </div>
         <div className="flex gap-2">
@@ -115,11 +115,11 @@ export function PayrollTab({ staff, isManager }: { staff: any[], isManager?: boo
       </div>
 
       {loading ? (
-        <div className="p-8 text-center text-gray-400 no-print">Loading payroll data...</div>
+        <div className="p-8 text-center text-[#6B6F72]/80 no-print">Loading payroll data...</div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-[#1a1f2e] bg-[#0f121b] no-print">
           <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-[#141824] border-b border-[#1a1f2e] text-gray-400">
+            <thead className="bg-[#141824] border-b border-[#1a1f2e] text-[#6B6F72]/80">
               <tr>
                 <th className="p-3 font-medium">Staff</th>
                 <th className="p-3 font-medium">Gross Salary</th>
@@ -132,7 +132,7 @@ export function PayrollTab({ staff, isManager }: { staff: any[], isManager?: boo
             </thead>
             <tbody className="divide-y divide-[#1a1f2e]">
               {payslips.length === 0 ? (
-                <tr><td colSpan={7} className="p-8 text-center text-gray-500">No payslips for this period. Click Auto-Generate Drafts.</td></tr>
+                <tr><td colSpan={7} className="p-8 text-center text-[#6B6F72]">No payslips for this period. Click Auto-Generate Drafts.</td></tr>
               ) : (
                 payslips.map(ps => (
                   <tr key={ps.id} className="hover:bg-[#141824]/50">
@@ -142,7 +142,7 @@ export function PayrollTab({ staff, isManager }: { staff: any[], isManager?: boo
                     <td className="p-3 text-green-400 font-bold">${Number(ps.netPay || 0).toFixed(2)}</td>
                     <td className="p-3">{Number(ps.attendancePercent || 0).toFixed(0)}% ({ps.workedDays}/{ps.targetDays} days)</td>
                     <td className="p-3">
-                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${ps.status === 'PAID' ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-gray-400'}`}>
+                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${ps.status === 'PAID' ? 'bg-green-500/20 text-green-500' : 'bg-gray-500/20 text-[#6B6F72]/80'}`}>
                         {ps.status}
                       </span>
                     </td>
@@ -150,7 +150,7 @@ export function PayrollTab({ staff, isManager }: { staff: any[], isManager?: boo
                       {isManagerOrAdmin && (
                         <button onClick={() => setEditingPayslip(ps)} className="text-blue-400 hover:text-blue-300">Edit</button>
                       )}
-                      <button onClick={() => triggerPrint(ps)} className="text-gray-400 hover:text-white">Print</button>
+                      <button onClick={() => triggerPrint(ps)} className="text-[#6B6F72]/80 hover:text-white">Print</button>
                       {isManagerOrAdmin && ps.status !== 'PAID' && (
                         <button onClick={() => handleStatusUpdate(ps.id, 'PAID')} className="text-green-400 hover:text-green-300">Mark Paid</button>
                       )}

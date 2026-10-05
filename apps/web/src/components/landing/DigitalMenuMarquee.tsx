@@ -85,7 +85,7 @@ export const DigitalMenuMarquee = () => {
 
   return (
     <>
-    <section className="py-24 bg-[#F4F1EA] overflow-hidden border-t border-[#E8E1D7]">
+    <section className="py-24 bg-[#FAF9F4] overflow-hidden border-t border-[#E8E1D7]">
       <style>{`
         @keyframes marquee {
           0% { transform: translateX(0); }
@@ -101,7 +101,7 @@ export const DigitalMenuMarquee = () => {
       
       <div className="max-w-7xl mx-auto px-6 mb-12 text-center">
         <h2 className="text-sm tracking-[0.2em] text-[#F5A623] uppercase font-semibold mb-4">In-Room Dining & Bar</h2>
-        <h3 className="text-3xl md:text-5xl font-serif text-[#1A1A1A]">Order From Anywhere</h3>
+        <h3 className="text-3xl md:text-5xl font-serif text-[#1F1F1F]">Order From Anywhere</h3>
         <p className="text-gray-600 mt-4 max-w-2xl mx-auto">Explore our digital menu and order food or drinks directly to your room or table.</p>
       </div>
 
@@ -131,11 +131,11 @@ export const DigitalMenuMarquee = () => {
               
               <div className="p-5">
                 <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-serif text-lg text-[#1A1A1A] truncate pr-2">{item.name}</h4>
+                  <h4 className="font-serif text-lg text-[#1F1F1F] truncate pr-2">{item.name}</h4>
                   <span className="font-semibold text-[#F5A623]">$\{(Number(item.price)).toFixed(2)}</span>
                 </div>
-                <p className="text-sm text-gray-500 truncate">{item.description}</p>
-                <div className="mt-4 flex items-center text-xs uppercase tracking-widest text-[#F5A623] font-semibold group-hover:text-[#1A1A1A] transition-colors">
+                <p className="text-sm text-[#6B6F72] truncate">{item.description}</p>
+                <div className="mt-4 flex items-center text-xs uppercase tracking-widest text-[#F5A623] font-semibold group-hover:text-[#1F1F1F] transition-colors">
                   <ShoppingBag size={14} className="mr-2" />
                   Order Now
                 </div>
@@ -153,7 +153,7 @@ export const DigitalMenuMarquee = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h3 className="text-xl font-serif font-bold text-gray-900">Order {selectedItem.name}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition">
+              <button onClick={() => setIsModalOpen(false)} className="text-[#6B6F72]/80 hover:text-gray-600 transition">
                 <X size={24} />
               </button>
             </div>
@@ -170,7 +170,7 @@ export const DigitalMenuMarquee = () => {
                   </p>
                   <button 
                     onClick={() => setIsModalOpen(false)}
-                    className="bg-[#1A1A1A] text-white px-8 py-3 rounded hover:bg-gray-800 transition"
+                    className="bg-[#1B2418] text-white px-8 py-3 rounded hover:bg-gray-800 transition"
                   >
                     Close
                   </button>
@@ -197,7 +197,7 @@ export const DigitalMenuMarquee = () => {
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Primary Guest Name</label>
                     <input required type="text" value={guestName} onChange={e => setGuestName(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="Registered name on room" />
-                    <p className="text-[10px] text-gray-400 mt-1">Required for room charge verification.</p>
+                    <p className="text-[10px] text-[#6B6F72]/80 mt-1">Required for room charge verification.</p>
                   </div>
 
                   <div>
@@ -207,7 +207,7 @@ export const DigitalMenuMarquee = () => {
 
                   <div className="bg-gray-50 p-4 rounded text-sm text-gray-600 mt-6 border border-gray-100 flex justify-between items-center">
                     <span>Total Estimate:</span>
-                    <span className="text-lg font-bold text-[#1A1A1A]">${(Number(selectedItem.price) * parseInt(quantity || '1', 10)).toFixed(2)}</span>
+                    <span className="text-lg font-bold text-[#1F1F1F]">${(Number(selectedItem.price) * parseInt(quantity || '1', 10)).toFixed(2)}</span>
                   </div>
 
                   <button 

@@ -134,8 +134,8 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
         
         <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
-              <label className="block text-sm text-gray-400 mb-1 text-yellow-500 font-bold text-lg">From</label>
-              <label className="block text-xs text-gray-400 mb-1">Source Order / Table</label>
+              <label className="block text-sm text-[#6B6F72]/80 mb-1 text-yellow-500 font-bold text-lg">From</label>
+              <label className="block text-xs text-[#6B6F72]/80 mb-1">Source Order / Table</label>
               <select 
                 className="w-full bg-[#1e293b] border border-[#334155] text-white rounded p-3"
                 value={sourceOrderId}
@@ -153,8 +153,8 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1 text-yellow-500 font-bold text-lg">To</label>
-              <label className="block text-xs text-gray-400 mb-1">New Destination</label>
+              <label className="block text-sm text-[#6B6F72]/80 mb-1 text-yellow-500 font-bold text-lg">To</label>
+              <label className="block text-xs text-[#6B6F72]/80 mb-1">New Destination</label>
               <select 
                 className="w-full bg-[#1e293b] border border-[#334155] text-white rounded p-3"
                 value={targetTableId ? 'table_' + targetTableId : targetOrderId ? 'order_' + targetOrderId : ''}
@@ -195,7 +195,7 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
           <div className="mb-6">
             <h4 className="text-sm font-medium text-gray-300 mb-2">Select Items to Transfer</h4>
             <div className="bg-[#1e293b] rounded p-2">
-              {sourceOrder.items.length === 0 && <div className="text-gray-500 text-sm p-2">No items in this order.</div>}
+              {sourceOrder.items.length === 0 && <div className="text-[#6B6F72] text-sm p-2">No items in this order.</div>}
               {sourceOrder.items.map((item: any) => (
                 <div key={item.id} className="flex items-center gap-3 p-2 border-b border-[#334155] last:border-0">
                   <input 
@@ -204,7 +204,7 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
                     onChange={(e) => handleItemSelect(item.id, item.quantity, e.target.checked)}
                   />
                   <div className="flex-1 text-white text-sm">{item.menuItem.name}</div>
-                  <div className="text-sm text-gray-400">Total Qty: {item.quantity}</div>
+                  <div className="text-sm text-[#6B6F72]/80">Total Qty: {item.quantity}</div>
                   {!!selectedItems[item.id] && (
                     <input 
                       type="number" 

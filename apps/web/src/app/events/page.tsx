@@ -57,14 +57,14 @@ export default function EventsPage() {
       <div className="max-w-7xl mx-auto px-4 py-24">
         
         <div className="text-center mb-16">
-          <h2 className="font-serif text-4xl text-[#1A1A1A] mb-4">Our Venues</h2>
+          <h2 className="font-serif text-4xl text-[#1F1F1F] mb-4">Our Venues</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Discover the perfect setting for your next unforgettable gathering.
           </p>
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1A1A1A]"></div></div>
+          <div className="flex justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1F1F1F]"></div></div>
         ) : eventSpaces.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
             {eventSpaces.map(space => (
@@ -77,15 +77,15 @@ export default function EventsPage() {
                     className="object-cover"
                   />
                   <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
-                    <span className="font-bold text-[#1A1A1A]">${Number(space.pricePerHour).toFixed(2)}</span>
+                    <span className="font-bold text-[#1F1F1F]">${Number(space.pricePerHour).toFixed(2)}</span>
                     <span className="text-sm text-gray-600"> / hr</span>
                   </div>
                 </div>
                 
                 <div className="p-8 flex flex-col flex-grow">
-                  <h3 className="font-serif text-2xl text-[#1A1A1A] mb-4">{space.name}</h3>
+                  <h3 className="font-serif text-2xl text-[#1F1F1F] mb-4">{space.name}</h3>
                   
-                  <div className="flex items-center gap-4 text-gray-500 text-sm mb-6">
+                  <div className="flex items-center gap-4 text-[#6B6F72] text-sm mb-6">
                     <div className="flex items-center gap-1">
                       <Users size={16} />
                       <span>Up to {space.capacity} Guests</span>
@@ -100,7 +100,7 @@ export default function EventsPage() {
                           document.getElementById('booking-form')?.scrollIntoView({ behavior: 'smooth' });
                         }, 100);
                       }}
-                      className="w-full py-3 text-center border-2 border-[#1A1A1A] text-[#1A1A1A] font-medium rounded-full hover:bg-[#1A1A1A] hover:text-white transition-colors uppercase tracking-widest text-sm"
+                      className="w-full py-3 text-center border-2 border-[#1F1F1F] text-[#1F1F1F] font-medium rounded-full hover:bg-[#1B2418] hover:text-white transition-colors uppercase tracking-widest text-sm"
                     >
                       Book Venue
                     </button>
@@ -110,14 +110,14 @@ export default function EventsPage() {
             ))}
           </div>
         ) : (
-          <p className="text-center text-gray-500 mb-24">No event spaces available right now.</p>
+          <p className="text-center text-[#6B6F72] mb-24">No event spaces available right now.</p>
         )}
 
         {/* Booking Form Section */}
         {selectedSpace && (
           <div id="booking-form" className="max-w-3xl mx-auto bg-white rounded-3xl p-8 md:p-12 shadow-xl border border-gray-100">
-            <h2 className="font-serif text-3xl text-[#1A1A1A] mb-2">Book {selectedSpace.name}</h2>
-            <p className="text-gray-500 mb-8">Fill out the details below and our events team will get back to you shortly.</p>
+            <h2 className="font-serif text-3xl text-[#1F1F1F] mb-2">Book {selectedSpace.name}</h2>
+            <p className="text-[#6B6F72] mb-8">Fill out the details below and our events team will get back to you shortly.</p>
             
             <EventBookingForm spaceId={selectedSpace.id} onSuccess={() => setSelectedSpace(null)} />
           </div>
@@ -226,7 +226,7 @@ function EventBookingForm({ spaceId, onSuccess }: { spaceId: string, onSuccess: 
       <button 
         type="submit" 
         disabled={isSubmitting}
-        className="w-full py-4 bg-[#1A1A1A] text-white font-medium rounded-lg hover:bg-black transition-colors disabled:opacity-50"
+        className="w-full py-4 bg-[#1B2418] text-white font-medium rounded-lg hover:bg-black transition-colors disabled:opacity-50"
       >
         {isSubmitting ? 'Submitting...' : 'Submit Booking Request'}
       </button>

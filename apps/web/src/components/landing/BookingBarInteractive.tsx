@@ -100,34 +100,34 @@ export const BookingBarInteractive = () => {
             
             {/* Dates */}
             <div>
-              <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">Check-in — Check-out</label>
-              <div className="flex items-center gap-2 border-b border-[#1A1A1A] py-2">
-                <Calendar size={18} className="text-gray-400 shrink-0" />
+              <label className="block text-xs uppercase tracking-widest text-[#6B6F72]/80 mb-2">Check-in — Check-out</label>
+              <div className="flex items-center gap-2 border-b border-[#1F1F1F] py-2">
+                <Calendar size={18} className="text-[#6B6F72]/80 shrink-0" />
                 <input 
                   type="date" 
                   value={checkIn}
                   onChange={(e) => setCheckIn(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1A1A1A] text-sm" 
+                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm" 
                 />
-                <span className="text-gray-400">-</span>
+                <span className="text-[#6B6F72]/80">-</span>
                 <input 
                   type="date" 
                   value={checkOut}
                   onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1A1A1A] text-sm" 
+                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm" 
                 />
               </div>
             </div>
 
             {/* Guests */}
             <div>
-              <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">Guests</label>
-              <div className="flex items-center gap-3 border-b border-[#1A1A1A] py-2">
-                <Users size={18} className="text-gray-400" />
+              <label className="block text-xs uppercase tracking-widest text-[#6B6F72]/80 mb-2">Guests</label>
+              <div className="flex items-center gap-3 border-b border-[#1F1F1F] py-2">
+                <Users size={18} className="text-[#6B6F72]/80" />
                 <select 
                   value={guests}
                   onChange={(e) => setGuests(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1A1A1A]"
+                  className="w-full bg-transparent outline-none text-[#1F1F1F]"
                 >
                   <option value="1">1 Adult</option>
                   <option value="2">2 Adults</option>
@@ -139,13 +139,13 @@ export const BookingBarInteractive = () => {
 
             {/* Room */}
             <div>
-              <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2">Accommodation</label>
-              <div className="flex items-center gap-3 border-b border-[#1A1A1A] py-2">
-                <HomeIcon size={18} className="text-gray-400" />
+              <label className="block text-xs uppercase tracking-widest text-[#6B6F72]/80 mb-2">Accommodation</label>
+              <div className="flex items-center gap-3 border-b border-[#1F1F1F] py-2">
+                <HomeIcon size={18} className="text-[#6B6F72]/80" />
                 <select 
                   value={roomTypeId}
                   onChange={(e) => setRoomTypeId(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1A1A1A]"
+                  className="w-full bg-transparent outline-none text-[#1F1F1F]"
                 >
                   {roomTypes.map(rt => (
                     <option key={rt.id} value={rt.id}>{rt.name}</option>
@@ -158,7 +158,7 @@ export const BookingBarInteractive = () => {
           <div className="w-full md:w-auto flex-shrink-0">
             <button 
               onClick={handleCheckAvailability}
-              className="block w-full px-8 py-5 bg-[#1A1A1A] text-white uppercase tracking-widest text-sm text-center hover:bg-[#2B4B5C] transition-colors cursor-pointer"
+              className="block w-full px-8 py-5 bg-[#1B2418] text-white uppercase tracking-widest text-sm text-center hover:bg-[#2B4B5C] transition-colors cursor-pointer"
             >
               Book Now
             </button>
@@ -172,7 +172,7 @@ export const BookingBarInteractive = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h3 className="text-xl font-serif font-bold text-gray-900">Complete Your Booking</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition">
+              <button onClick={() => setIsModalOpen(false)} className="text-[#6B6F72]/80 hover:text-gray-600 transition">
                 <X size={24} />
               </button>
             </div>
@@ -189,7 +189,7 @@ export const BookingBarInteractive = () => {
                   </p>
                   <button 
                     onClick={() => setIsModalOpen(false)}
-                    className="bg-[#1A1A1A] text-white px-8 py-3 rounded hover:bg-gray-800 transition"
+                    className="bg-[#1B2418] text-white px-8 py-3 rounded hover:bg-gray-800 transition"
                   >
                     Close
                   </button>
