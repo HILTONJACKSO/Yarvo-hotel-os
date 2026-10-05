@@ -87,12 +87,6 @@ const Hero = () => {
 const IntroSection = () => {
   return (
     <section id="experience" className="px-6 py-24 md:py-40 max-w-7xl mx-auto flex flex-col items-center">
-      {/* Top Centered Heading to match design */}
-      <div className="text-center mb-16 md:mb-24">
-        <h2 className="text-4xl md:text-6xl lg:text-[72px] font-sans font-bold text-[#1A1A1A] leading-tight max-w-4xl mx-auto tracking-tight">
-          Kwalee's Rooms & Suites<br/>More Than Just A Stay.
-        </h2>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-20 items-center w-full">
         <div className="order-2 lg:order-1 flex flex-col items-start pt-4">
