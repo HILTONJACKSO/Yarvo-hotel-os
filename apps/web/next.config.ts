@@ -1,7 +1,13 @@
 import type { NextConfig } from 'next';
+import withSerwistInit from '@serwist/next';
+
+const withSerwist = withSerwistInit({
+  swSrc: 'src/sw.ts',
+  swDest: 'public/sw.js',
+  disable: process.env.NODE_ENV === 'development',
+});
 
 const nextConfig: NextConfig = {
-  // API URL for server-side requests (internal network)
   async rewrites() {
     return [
       {
@@ -10,7 +16,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Security headers
   async headers() {
     return [
       {
@@ -22,19 +27,15 @@ const nextConfig: NextConfig = {
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            value: 'camera=(), microphone=(), geolocation=()'
           },
         ],
       },
     ];
   },
-  // Disable x-powered-by header
   poweredByHeader: false,
-  // Strict mode for better development warnings
   reactStrictMode: true,
-  // Experimental features
   experimental: {
-    // Enable server actions (needed for form handling)
     serverActions: {
       allowedOrigins: ['localhost:3000', 'kwaleebeachresort.com', 'www.kwaleebeachresort.com'],
     },
@@ -49,5 +50,4 @@ const nextConfig: NextConfig = {
   output: 'standalone',
 };
 
-export default nextConfig;
-
+export default withSerwist(nextConfig);

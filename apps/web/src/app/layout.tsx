@@ -4,6 +4,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { AuthProvider } from '@/lib/auth-provider';
 import { ToastProvider } from '@/components/ui/toast-provider';
+import { SyncProvider } from '@/lib/sync-provider';
 import Script from 'next/script';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
@@ -39,7 +40,9 @@ export default function RootLayout({
       <body className="antialiased min-h-screen">
         <AuthProvider>
           <ToastProvider>
+            <SyncProvider>
             {children}
+          </SyncProvider>
           </ToastProvider>
         </AuthProvider>
         <Script

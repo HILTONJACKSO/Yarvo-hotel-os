@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { downloadLatestData } from '@/lib/sync';
 import { NewReservationModal } from '@/components/reservations/NewReservationModal';
 import { ManageReservationModal } from '@/components/reservations/ManageReservationModal';
 import { RoomCalendar } from '@/components/reservations/RoomCalendar';
@@ -35,30 +38,37 @@ export default function ReservationsPage() {
   const [manageReservation, setManageReservation] = useState<Reservation | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
-  const fetchReservations = (status = '') => {
-    setLoading(true);
-    const url = status ? `/api/v1/reservations?status=${status}` : '/api/v1/reservations';
-    fetch(url)
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to fetch');
-        if (data.data && Array.isArray(data.data)) {
-          setReservations(data.data);
-          setMeta(data.meta);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch reservations', err);
-        setLoading(false);
-      });
-  };
+  const dbReservations = useLiveQuery(
+    async () => {
+      if (statusFilter) {
+        return await db.reservations
+          .filter(res => res.status === statusFilter)
+          .reverse()
+          .sortBy('updatedAt');
+      }
+      return await db.reservations.reverse().sortBy('updatedAt');
+    },
+    [statusFilter]
+  );
 
   useEffect(() => {
-    if (viewMode === 'list') {
-      fetchReservations(statusFilter);
+    // When component mounts, if we are online, trigger a background fetch to ensure fresh data
+    if (navigator.onLine) {
+      downloadLatestData().finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
-  }, [statusFilter, viewMode]);
+  }, []);
+
+  useEffect(() => {
+    if (dbReservations) {
+      setReservations(dbReservations as unknown as Reservation[]);
+    }
+  }, [dbReservations]);
+
+  const fetchReservations = () => {
+    if (navigator.onLine) downloadLatestData();
+  };
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, string> = {
