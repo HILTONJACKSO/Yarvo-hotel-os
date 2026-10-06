@@ -53,6 +53,11 @@ services:
       - COOKIE_DOMAIN=.kwaleebeachresort.com
       - CORS_ORIGINS=https://kwaleebeachresort.com,https://www.kwaleebeachresort.com
       - PUBLIC_API_KEY=yarvo_pub_test_1234567890abcdef
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - HOTEL_EMAIL=${HOTEL_EMAIL}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
     ports:
       - "3001:3001"
 
