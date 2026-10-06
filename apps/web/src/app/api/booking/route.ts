@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: data.message || 'Booking failed' }, { status: res.status });
     }
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data: data.data || data });
   } catch (error) {
     console.error('Booking error:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });

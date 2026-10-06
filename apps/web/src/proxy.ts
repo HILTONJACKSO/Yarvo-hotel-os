@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Routes that DO NOT require authentication
-const PUBLIC_PATHS = ['/', '/login', '/api/', '/_next/', '/favicon.ico', '/logo.jpg', '/manifest.webmanifest', '/icon', '/sw.js', '/icon-512.jpg', '/uploads/', '/dining', '/stay', '/events', '/gallery'];
+const PUBLIC_PATHS = ['/', '/login', '/booking', '/api/', '/_next/', '/favicon.ico', '/logo.jpg', '/manifest.webmanifest', '/icon', '/sw.js', '/icon-512.jpg', '/uploads/', '/dining', '/stay', '/events', '/gallery'];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
