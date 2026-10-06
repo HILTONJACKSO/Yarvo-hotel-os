@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { downloadLatestData, syncOfflineMutations } from '@/lib/sync';
 import { AddGuestModal } from '@/components/guests/AddGuestModal';
 import { EditGuestModal } from '@/components/guests/EditGuestModal';
 import { useAuth } from '@/lib/auth-provider';
@@ -41,22 +44,37 @@ export default function GuestsPage() {
   const canDelete = isAdminOrCEO;
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const dbGuests = useLiveQuery(
+    async () => {
+      let collection = db.guests.toCollection();
+      if (search) {
+        const lowerSearch = search.toLowerCase();
+        return await db.guests.filter(g => 
+          g.firstName?.toLowerCase().includes(lowerSearch) ||
+          g.lastName?.toLowerCase().includes(lowerSearch) ||
+          g.email?.toLowerCase().includes(lowerSearch) ||
+          g.phone?.includes(lowerSearch)
+        ).reverse().sortBy('updatedAt');
+      }
+      return await db.guests.reverse().sortBy('updatedAt');
+    },
+    [search]
+  );
+
+  useEffect(() => {
+    if (dbGuests) {
+      setGuests(dbGuests as any[]);
+      setMeta({ page: 1, limit: 100, total: dbGuests.length, totalPages: 1 });
+      setLoading(false);
+    }
+  }, [dbGuests]);
+
   const fetchGuests = (searchQuery = '') => {
-    setLoading(true);
-    fetch(`/api/v1/guests?search=${encodeURIComponent(searchQuery)}`)
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to fetch');
-        if (data.data && Array.isArray(data.data)) {
-          setGuests(data.data);
-          setMeta(data.meta);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch guests', err);
-        setLoading(false);
-      });
+    if (navigator.onLine) {
+      downloadLatestData().finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -66,12 +84,21 @@ export default function GuestsPage() {
     const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this guest?')) return;
     try {
-      const res = await fetch(`${API_URL}/api/v1/guests/${id}`, {
+      // 1. Optimistic delete from local DB
+      await db.guests.delete(id);
+
+      // 2. Queue for sync
+      await db.syncQueue.add({
+        url: `${API_URL}/api/v1/guests/${id}`,
         method: 'DELETE',
-        credentials: 'include'
+        payload: {},
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      if (res.ok) {
-        fetchGuests(search);
+
+      if (navigator.onLine) {
+        syncOfflineMutations();
       }
     } catch (err) {
       console.error(err);

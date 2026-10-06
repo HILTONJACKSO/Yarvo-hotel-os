@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { db } from '@/lib/db';
+import { syncOfflineMutations } from '@/lib/sync';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -57,15 +59,24 @@ export function AddGuestModal({ isOpen, onClose, onSuccess }: Props) {
         nationality: data.nationality === '' ? undefined : data.nationality,
       };
 
-      const res = await fetch('/api/v1/guests', {
+      const tempId = crypto.randomUUID();
+      const newGuest = {
+        id: tempId,
+        ...payload,
+        updatedAt: new Date().toISOString()
+      };
+
+      await db.guests.add(newGuest as any);
+      await db.syncQueue.add({
+        url: '/api/v1/guests',
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        payload: payload,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Failed to add guest');
-      
+
+      if (navigator.onLine) syncOfflineMutations();
       onSuccess();
       onClose();
     } catch (err: any) {
