@@ -391,7 +391,8 @@ model Reservation {
   checkOutDate     DateTime          @db.Date
     estimatedArrivalTime String?   @db.VarChar(50)
   
-  adultsCount      Int               @default(1)
+  totalAmount      Decimal           @default(0) @db.Decimal(10, 2)
+    adultsCount      Int               @default(1)
   childrenCount    Int               @default(0)
   
   specialRequests  String?           @db.Text
@@ -404,6 +405,7 @@ model Reservation {
   updatedAt        DateTime          @updatedAt @db.Timestamptz(6)
 
   folio            Folio?
+    notificationLogs NotificationLog[]
 
   @@index([guestId])
   @@index([roomTypeId])
@@ -1040,3 +1042,23 @@ model Payslip {
   @@map("payslips")
 }
 
+
+
+// =============================================================================
+// NOTIFICATION LOGS
+// =============================================================================
+
+model NotificationLog {
+  id             String      @id @default(uuid()) @db.Uuid
+  reservationId  String?     @db.Uuid
+  reservation    Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  type           String      @db.VarChar(50) // EMAIL, WHATSAPP, SMS
+  recipient      String      @db.VarChar(255)
+  status         String      @db.VarChar(50) // SENT, FAILED, PENDING
+  errorMessage   String?     @db.Text
+  createdAt      DateTime    @default(now()) @db.Timestamptz(6)
+
+  @@index([reservationId])
+  @@index([type])
+  @@map("notification_logs")
+}

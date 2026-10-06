@@ -27,6 +27,11 @@ export class CreateBookingDto {
   @IsOptional()
   specialRequests?: string;
 
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  whatsapp?: string;
+
   @ApiProperty()
   @IsString()
   @IsNotEmpty()

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Calendar, Users, Home as HomeIcon, X, CheckCircle } from 'lucide-react';
 
 export const BookingBarInteractive = () => {
@@ -20,7 +21,11 @@ export const BookingBarInteractive = () => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [specialRequests, setSpecialRequests] = useState('');
   const [error, setError] = useState('');
+
+  const router = useRouter();
 
   // Set default dates
   useEffect(() => {
@@ -77,6 +82,7 @@ export const BookingBarInteractive = () => {
       
       if (data.success) {
         setIsSuccess(true);
+        router.push('/booking/' + data.data.confirmationCode);
         // Reset form
         setFirstName('');
         setLastName('');
@@ -223,7 +229,16 @@ export const BookingBarInteractive = () => {
                     <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="+1 234 567 8900" />
                   </div>
 
-                  <div className="bg-gray-50 p-4 rounded text-sm text-gray-600 mt-6 border border-gray-100">
+                  
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp Number (Optional)</label>
+                    <input type="tel" value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="+1 234 567 8900" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Special Requests</label>
+                    <textarea value={specialRequests} onChange={e => setSpecialRequests(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623] resize-none h-16" placeholder="Any special needs..."></textarea>
+                  </div>
+<div className="bg-gray-50 p-4 rounded text-sm text-gray-600 mt-6 border border-gray-100">
                     <p><strong>Check-in:</strong> {checkIn}</p>
                     <p><strong>Check-out:</strong> {checkOut}</p>
                     <p><strong>Guests:</strong> {guests} Adult{guests !== '1' ? 's' : ''}</p>

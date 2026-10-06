@@ -92,6 +92,7 @@ export class ReservationsService {
           roomType: true,
           room: true,
           folio: true,
+          notificationLogs: { orderBy: { createdAt: "desc" } },
         },
       }),
       this.prisma.reservation.count({ where }),
