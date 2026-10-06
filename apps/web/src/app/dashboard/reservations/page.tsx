@@ -110,7 +110,7 @@ export default function ReservationsPage() {
       <NewReservationModal 
         isOpen={isNewModalOpen} 
         onClose={() => setIsNewModalOpen(false)} 
-        onSuccess={() => fetchReservations(statusFilter)} 
+        onSuccess={() => fetchReservations()} 
       />
 
       <ManageReservationModal
@@ -118,7 +118,7 @@ export default function ReservationsPage() {
         onClose={() => setManageReservation(null)}
         onSuccess={() => {
           setManageReservation(null);
-          fetchReservations(statusFilter);
+          fetchReservations();
         }}
         reservation={manageReservation}
       />

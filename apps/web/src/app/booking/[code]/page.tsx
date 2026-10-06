@@ -19,7 +19,7 @@ async function getBooking(code: string) {
   }
 }
 
-export default async function BookingConfirmationPage({ params }: { params: { code: string } }) {
+export default async function BookingConfirmationPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   
   // Need to implement public booking fetching. 
