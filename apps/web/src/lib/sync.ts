@@ -44,7 +44,7 @@ export async function syncOfflineMutations() {
 export async function downloadLatestData() {
   try {
     // 1. Fetch Rooms
-    const roomsRes = await fetch('/api/rooms');
+    const roomsRes = await fetch('/api/v1/rooms');
     if (roomsRes.ok) {
       const data = await roomsRes.json();
       if (data.data) {
@@ -53,7 +53,7 @@ export async function downloadLatestData() {
     }
 
     // 2. Fetch Reservations
-    const resRes = await fetch('/api/reservations');
+    const resRes = await fetch('/api/v1/reservations');
     if (resRes.ok) {
       const data = await resRes.json();
       if (data.data) {
