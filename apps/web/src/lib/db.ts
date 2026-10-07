@@ -32,7 +32,7 @@ export interface Reservation { folio?: any; guest?: any; room?: any;
 export interface PosTable { id: string; number: string; capacity: number; isActive: boolean; updatedAt: string; }
 export interface PosCategory { id: string; name: string; isActive: boolean; updatedAt: string; }
 export interface PosMenuItem { recipes?: any[];  id: string; name: string; description?: string; price: number | string; categoryId: string; type: string; image?: string; isAvailable: boolean; updatedAt: string; }
-export interface PosOrder { table?: any; folio?: any; folioId?: string; user?: any;  id: string; orderNumber: string; tableId?: string; guestId?: string; status: string; totalAmount: number | string; destinationDept?: string; destinationType?: string; items: any[]; updatedAt: string; }
+export interface PosOrder { createdAt?: string; notes?: string | null;  table?: any; folio?: any; folioId?: string; user?: any;  id: string; orderNumber: string; tableId?: string; guestId?: string; status: string; totalAmount: number | string; destinationDept?: string; destinationType?: string; items: any[]; updatedAt: string; }
 
 
 export interface InventoryItem { id: string; name: string; category: string; unit: string; stockLevel: string; stockMain: string; stockKitchen: string; stockBar: string; stockHousekeeping: string; stockBoutique: string; minThreshold: string; costPerUnit: string; updatedAt?: string; }

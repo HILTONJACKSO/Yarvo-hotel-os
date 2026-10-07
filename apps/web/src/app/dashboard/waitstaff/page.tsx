@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -20,37 +23,14 @@ type PosOrderItem = {
 
 export default function WaitstaffPage() {
   const { showToast } = useToast();
-  const [items, setItems] = useState<PosOrderItem[]>([]);
-  const [servedItems, setServedItems] = useState<PosOrderItem[]>([]);
+  const dbOrders = useLiveQuery(() => db.posOrders.toArray()) || [];
+  const items = dbOrders.flatMap(o => (o.items || []).filter(i => i.status === 'PREPARED').map(i => ({ ...i, order: o })));
+  const servedItems = dbOrders.flatMap(o => (o.items || []).filter(i => i.status === 'SERVED' || i.status === 'RETURN_REQUESTED' || i.status === 'RETURNED').map(i => ({ ...i, order: o })));
   const [printItem, setPrintItem] = useState<PosOrderItem | null>(null);
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
 
-  const fetchItems = () => {
-    fetch(`${API_URL}/api/v1/pos/stats/waitstaff`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setStats(data?.data || data))
-      .catch(console.error);
-    fetch(`${API_URL}/api/v1/pos/ready-items`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setItems(data.data || data))
-      .catch(err => console.error(err));
-
-    fetch(`${API_URL}/api/v1/pos/served-orders`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
-        // Extract all served items from served orders
-        let served: PosOrderItem[] = [];
-        const orders = data.data || data;
-        orders.forEach((o: any) => {
-          o.items.forEach((i: any) => {
-            if (i.status === 'SERVED' || i.status === 'RETURN_REQUESTED' || i.status === 'RETURNED') {
-              served.push({ ...i, order: o });
-            }
-          });
-        });
-        setServedItems(served);
-      })
-      .catch(err => console.error(err));
+  const fetchItems = async () => {
+    if (navigator.onLine) await downloadLatestData();
   };
 
   useEffect(() => {
@@ -61,14 +41,32 @@ export default function WaitstaffPage() {
 
   const markServed = async (itemId: string) => {
     try {
-      await fetch(`${API_URL}/api/v1/pos/order-items/${itemId}/status`, {
+      const allOrders = await db.posOrders.toArray();
+      let foundOrder = null;
+      for (const order of allOrders) {
+         const hasItem = order.items?.some(i => i.id === itemId);
+         if (hasItem) {
+             foundOrder = order;
+             break;
+         }
+      }
+      
+      if (foundOrder) {
+          foundOrder.items = foundOrder.items.map(i => i.id === itemId ? { ...i, status: 'SERVED' } : i);
+          await db.posOrders.put(foundOrder);
+      }
+
+      await db.syncQueue.add({
+        url: `/api/v1/pos/order-items/${itemId}/status`,
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: 'SERVED' })
+        payload: { status: 'SERVED' },
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
+      if (navigator.onLine) syncOfflineMutations();
+
       showToast('Item served to customer', 'success', 'Success');
-      fetchItems();
     } catch (err) {
       showToast('Failed to update status', 'error');
     }
@@ -83,27 +81,51 @@ export default function WaitstaffPage() {
 
   const requestReturn = async (itemId: string) => {
     try {
-      const res = await fetch(`${API_URL}/api/v1/pos/order-items/${itemId}/return-request`, {
+      const allOrders = await db.posOrders.toArray();
+      let foundOrder = null;
+      for (const order of allOrders) {
+         const hasItem = order.items?.some(i => i.id === itemId);
+         if (hasItem) {
+             foundOrder = order;
+             break;
+         }
+      }
+      
+      if (foundOrder) {
+          foundOrder.items = foundOrder.items.map(i => {
+              if (i.id === itemId) {
+                  return { ...i, status: 'RETURN_REQUESTED', returnRequest: { id: 'temp_' + Date.now(), status: 'PENDING' } };
+              }
+              return i;
+          });
+          await db.posOrders.put(foundOrder);
+      }
+
+      await db.syncQueue.add({
+        url: `/api/v1/pos/order-items/${itemId}/return-request`,
         method: 'POST',
-        credentials: 'include'
+        payload: null,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      if (!res.ok) throw new Error("Failed to request return");
+      if (navigator.onLine) syncOfflineMutations();
+
       showToast('Return requested successfully', 'success', 'Success');
-      fetchItems();
     } catch (err) {
       showToast('Failed to request return', 'error');
     }
   };
 
 
-  const groupedReady = items.reduce((acc, item) => {
+  const groupedReady = items.reduce((acc: any, item: any) => {
     const oid = item.order?.id || 'unknown';
     if (!acc[oid]) acc[oid] = { order: item.order, items: [] };
     acc[oid].items.push(item);
     return acc;
   }, {} as Record<string, { order: any, items: PosOrderItem[] }>);
 
-  const groupedServed = servedItems.reduce((acc, item) => {
+  const groupedServed = servedItems.reduce((acc: any, item: any) => {
     const oid = item.order?.id || 'unknown';
     if (!acc[oid]) acc[oid] = { order: item.order, items: [] };
     acc[oid].items.push(item);
@@ -129,7 +151,7 @@ export default function WaitstaffPage() {
       
       <div className="orders-grid">
         {Object.values(groupedReady).length === 0 && <div className="no-orders">No items waiting for delivery.</div>}
-        {Object.values(groupedReady).map(group => (
+        {Object.values(groupedReady).map((group: any) => (
           <div key={group.order?.id || Math.random()} className="order-card">
             <div className="order-header">
               <span className="table-badge">
@@ -169,7 +191,7 @@ export default function WaitstaffPage() {
       <p className="subtitle">Items that have been delivered. You can request a return if needed.</p>
       <div className="orders-grid">
         {Object.values(groupedServed).length === 0 && <div className="no-orders">No recently served items.</div>}
-        {Object.values(groupedServed).map(group => (
+        {Object.values(groupedServed).map((group: any) => (
           <div key={group.order?.id || Math.random()} className="order-card">
             <div className="order-header">
               <span className="table-badge" style={{ background: 'hsl(142, 76%, 45%, 0.15)', color: 'hsl(142, 76%, 50%)' }}>

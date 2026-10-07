@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -24,22 +27,14 @@ type Order = {
 
 export default function KitchenPage() {
   const { showToast } = useToast();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const orders = useLiveQuery(() => db.posOrders.toArray()) || [];
   const [confirmingReturnId, setConfirmingReturnId] = useState<string | null>(null);
   const [kitchenNote, setKitchenNote] = useState('');
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
 
 
-  const fetchOrders = () => {
-        fetch(`${API_URL}/api/v1/pos/stats/kitchen`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setStats(data?.data || data))
-      .catch(console.error);
-
-    fetch(`${API_URL}/api/v1/pos/orders`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setOrders(data.data || data))
-      .catch(console.error);
+  const fetchOrders = async () => {
+    if (navigator.onLine) await downloadLatestData();
   };
 
   useEffect(() => {
@@ -50,13 +45,32 @@ export default function KitchenPage() {
 
   const updateStatus = async (itemId: string, newStatus: string) => {
     try {
-      await fetch(`${API_URL}/api/v1/pos/order-items/${itemId}/status`, {
+      // Find order that has this item
+      const allOrders = await db.posOrders.toArray();
+      let foundOrder = null;
+      for (const order of allOrders) {
+         const hasItem = order.items?.some(i => i.id === itemId);
+         if (hasItem) {
+             foundOrder = order;
+             break;
+         }
+      }
+      
+      if (foundOrder) {
+          foundOrder.items = foundOrder.items.map(i => i.id === itemId ? { ...i, status: newStatus } : i);
+          await db.posOrders.put(foundOrder);
+      }
+
+      await db.syncQueue.add({
+        url: `/api/v1/pos/order-items/${itemId}/status`,
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: newStatus })
+        payload: { status: newStatus },
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      fetchOrders();
+      if (navigator.onLine) syncOfflineMutations();
+
       showToast('Status updated', 'success', 'Success');
     } catch (err) {
       showToast('Failed to update status', 'error', 'Error');
@@ -65,17 +79,42 @@ export default function KitchenPage() {
 
   const confirmReturn = async (returnId: string) => {
     try {
-      const res = await fetch(`${API_URL}/api/v1/pos/returns/${returnId}/confirm`, {
+      // Find order that has this return
+      const allOrders = await db.posOrders.toArray();
+      let foundOrder = null;
+      let targetItemId = null;
+      for (const order of allOrders) {
+         const item = order.items?.find(i => i.returnRequest?.id === returnId);
+         if (item) {
+             foundOrder = order;
+             targetItemId = item.id;
+             break;
+         }
+      }
+      
+      if (foundOrder && targetItemId) {
+          foundOrder.items = foundOrder.items.map(i => {
+              if (i.id === targetItemId) {
+                  return { ...i, status: 'RETURNED', returnRequest: { ...i.returnRequest, status: 'CONFIRMED' } };
+              }
+              return i;
+          });
+          await db.posOrders.put(foundOrder);
+      }
+
+      await db.syncQueue.add({
+        url: `/api/v1/pos/returns/${returnId}/confirm`,
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ kitchenNote })
+        payload: { kitchenNote },
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      if (!res.ok) throw new Error("Failed to confirm");
+      if (navigator.onLine) syncOfflineMutations();
+
       showToast('Return confirmed and sent to manager', 'success', 'Success');
       setConfirmingReturnId(null);
       setKitchenNote('');
-      fetchOrders();
     } catch (err) {
       showToast('Failed to confirm return', 'error');
     }
@@ -111,7 +150,7 @@ export default function KitchenPage() {
             <div className="ticket-header">
               <span className="ticket-table">Table {order.table?.number || 'Takeout'}</span>
               <span className="ticket-id">
-                #{order.id.split('-')[0]} • {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                #{order.id.split('-')[0]} • {new Date(order.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
             <div style={{ fontSize: '0.8rem', color: 'hsl(215, 20%, 65%)', marginBottom: '12px', padding: '0 16px' }}>
