@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 
 type WorkOrder = {
@@ -16,7 +19,7 @@ type WorkOrder = {
 
 export default function MaintenancePage() {
   const { showToast } = useToast();
-  const [orders, setOrders] = useState<WorkOrder[]>([]);
+  const orders = useLiveQuery(() => db.workOrders.toArray()) || [];
   const [loading, setLoading] = useState(true);
 
   const [newDesc, setNewDesc] = useState('');
@@ -24,22 +27,9 @@ export default function MaintenancePage() {
   const [newRoomId, setNewRoomId] = useState(''); // Optional
 
   const fetchOrders = async () => {
-    setLoading(true);
     try {
-      const res = await fetch('/api/v1/work-orders');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setOrders(data);
-        } else if (data && Array.isArray(data.data)) {
-          setOrders(data.data);
-        } else {
-          console.error("API did not return an array", data);
-          setOrders([]);
-        }
-      } else {
-        console.error("API returned error", res.status);
-      }
+      setLoading(true);
+      if (navigator.onLine) await downloadLatestData();
     } catch (err) {
       console.error(err);
     } finally {
@@ -54,29 +44,42 @@ export default function MaintenancePage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/v1/work-orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const newOrder = {
+          id: 'temp_' + Date.now(),
           type: 'MAINTENANCE',
           priority: newPriority,
           description: newDesc,
           roomId: newRoomId || undefined,
-        }),
-      });
+          status: 'PENDING',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+      };
+      
+      await db.workOrders.put(newOrder as any);
 
-      if (res.ok) {
-        showToast('Work order created!', 'success', 'Success');
-        setNewDesc('');
-        setNewRoomId('');
-        setNewPriority('MEDIUM');
-        fetchOrders();
-      } else {
-        const err = await res.json();
-        showToast(`Failed: ${err.message}`, 'error', 'Error');
-      }
+      await db.syncQueue.add({
+        url: '/api/v1/work-orders',
+        method: 'POST',
+        payload: {
+          type: 'MAINTENANCE',
+          priority: newPriority,
+          description: newDesc,
+          roomId: newRoomId || undefined,
+        },
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
+      });
+      if (navigator.onLine) syncOfflineMutations();
+
+      showToast('Work order created (Offline)!', 'success', 'Success');
+      setNewDesc('');
+      setNewPriority('MEDIUM');
+      setNewRoomId('');
+      fetchOrders();
     } catch (err) {
       console.error(err);
+      showToast('Failed to create work order', 'error', 'Error');
     }
   };
 

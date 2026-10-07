@@ -91,6 +91,16 @@ export async function downloadLatestData() {
     if (invRes.ok) { const d = await invRes.json(); if (d.data) await db.inventory.bulkPut(d.data); }
     if (taxRes.ok) { const d = await taxRes.json(); if (d.data) await db.taxes.bulkPut(Array.isArray(d.data) ? d.data : []); }
     
+    
+    // 6. Fetch Work Orders
+    const woRes = await fetch('/api/v1/work-orders');
+    if (woRes.ok) {
+      const d = await woRes.json();
+      if (d.data || Array.isArray(d)) {
+        await db.workOrders.bulkPut(d.data || d);
+      }
+    }
+
     console.log('Background sync (download) complete.');
   } catch (err) {
     console.error('Failed to download latest data:', err);
