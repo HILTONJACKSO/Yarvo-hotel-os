@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
@@ -14,27 +17,14 @@ type Room = {
 
 export default function HousekeepingPage() {
   const { showToast } = useToast();
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(true);
+  const rooms = useLiveQuery(() => db.rooms.toArray()) || [];
+  const [loading, setLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{message: string, onConfirm: () => void} | null>(null);
 
   const fetchRooms = async () => {
-    setLoading(true);
     try {
-      const res = await fetch('/api/v1/rooms');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setRooms(data);
-        } else if (data && Array.isArray(data.data)) {
-          setRooms(data.data);
-        } else {
-          console.error("API did not return an array", data);
-          setRooms([]);
-        }
-      } else {
-        console.error("API returned error", res.status);
-      }
+      setLoading(true);
+      if (navigator.onLine) await downloadLatestData();
     } catch (err) {
       console.error(err);
     } finally {
@@ -51,15 +41,24 @@ export default function HousekeepingPage() {
       message: `Are you sure you want to mark Room ${number} as clean?`,
       onConfirm: async () => {
         try {
-          const res = await fetch(`/api/v1/rooms/${id}/clean`, {
-            method: 'PATCH',
-          });
-          if (res.ok) {
-            fetchRooms();
-          } else {
-            const err = await res.json();
-            showToast(`Failed: ${err.message}`, 'error', 'Error');
+          const room = await db.rooms.get(id);
+          if (room) {
+             (room as any).status = 'CLEAN';
+             await db.rooms.put(room);
           }
+          await db.syncQueue.add({
+            url: `/api/v1/rooms/${id}/clean`,
+            method: 'PATCH',
+            payload: null,
+            createdAt: Date.now(),
+            status: 'PENDING',
+            retryCount: 0
+          });
+          if (navigator.onLine) syncOfflineMutations();
+
+          showToast(`Room ${number} marked as clean`, 'success');
+          setConfirmAction(null);
+          fetchRooms();
         } catch (err) {
           console.error(err);
         }

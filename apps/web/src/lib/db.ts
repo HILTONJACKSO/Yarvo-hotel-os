@@ -8,7 +8,7 @@ export interface Room {
   status: string;
   condition: string;
   isActive: boolean;
-  notes?: string;
+  notes?: string; roomType?: any;
   updatedAt: string; // Used for sync
 }
 
