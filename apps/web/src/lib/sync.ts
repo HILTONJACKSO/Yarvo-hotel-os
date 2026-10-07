@@ -101,6 +101,16 @@ export async function downloadLatestData() {
       }
     }
 
+    
+    // 7. Fetch Folios
+    const foliosRes = await fetch('/api/v1/folios?status=OPEN');
+    if (foliosRes.ok) {
+      const d = await foliosRes.json();
+      if (d.data || Array.isArray(d)) {
+        await db.folios.bulkPut(d.data || d);
+      }
+    }
+
     console.log('Background sync (download) complete.');
   } catch (err) {
     console.error('Failed to download latest data:', err);

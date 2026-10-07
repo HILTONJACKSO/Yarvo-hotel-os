@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from "@/components/ui/toast-provider";
 import { useAuth } from "@/lib/auth-provider";
 import { ShoppingCart, Edit, Trash2, Receipt } from "lucide-react";
@@ -28,32 +31,20 @@ export default function BillingPage() {
 
   const fetchBills = async () => {
     try {
-      // Fetch open folios
-      const resFolios = await fetch("/api/v1/folios?status=OPEN");
-      if (!resFolios.ok) throw new Error("Failed to fetch folios");
-      const jsonFolios = await resFolios.json();
-      const folios = (jsonFolios.data || []).map((f: any) => ({ ...f, type: "FOLIO" }));
-
-      // Fetch POS served orders
-      const resPos = await fetch("/api/v1/pos/served-orders");
-      if (!resPos.ok) throw new Error("Failed to fetch pos orders");
-      const jsonPos = await resPos.json();
-      const allPos = jsonPos.data || [];
+      if (navigator.onLine) await downloadLatestData();
       
-      // Filter POS: We now show all active OPEN and SERVED orders immediately
+      const folios = (await db.folios.toArray()).filter((f: any) => f.status === 'OPEN').map((f: any) => ({ ...f, type: "FOLIO" }));
+      const allPos = await db.posOrders.toArray();
       const invoicedPos = allPos.filter((o: any) => o.status === "SERVED" || o.status === "OPEN");
       const posOrders = invoicedPos.map((o: any) => ({ ...o, type: "POS_ORDER" }));
 
-      // Calculate total pending POS
       const totalPosAmount = posOrders.reduce((sum: number, o: any) => sum + Number(o.totalAmount || 0), 0);
       setTotalPendingPOS(totalPosAmount);
       const totalRoomsAmount = folios.reduce((sum: number, f: any) => sum + Number(f.balance || 0), 0);
       setTotalPendingRooms(totalRoomsAmount);
 
-      // Combine
       setBills([...folios, ...posOrders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       
-      // Refresh selected bill if exists
       if (selectedBill) {
         if (selectedBill.type === "FOLIO") {
            selectFolio(selectedBill.id, false);
@@ -189,16 +180,22 @@ export default function BillingPage() {
 
   useEffect(() => {
     fetchBills();
-    const interval = setInterval(fetchBills, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    // Intentionally removed setInterval to avoid offline polling overload
+  }, [selectedBill]);
 
   const selectFolio = async (id: string, updateSelection = true) => {
     try {
-      const res = await fetch(`/api/v1/folios/${id}/statement`);
-      if (res.ok) {
-        const json = await res.json();
-        if (updateSelection) setSelectedBill({ ...json.data, type: "FOLIO" });
+      const folio = await db.folios.get(id);
+      if (folio && updateSelection) {
+         setSelectedBill({ ...folio, type: "FOLIO" });
+      }
+      if (navigator.onLine) {
+          const res = await fetch(`/api/v1/folios/${id}/statement`);
+          if (res.ok) {
+            const json = await res.json();
+            await db.folios.put(json.data);
+            if (updateSelection) setSelectedBill({ ...json.data, type: "FOLIO" });
+          }
       }
     } catch (err) {
       console.error(err);
