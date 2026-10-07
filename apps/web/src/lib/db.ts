@@ -35,7 +35,7 @@ export interface PosMenuItem { recipes?: any[];  id: string; name: string; descr
 export interface PosOrder { table?: any; folio?: any; folioId?: string; user?: any;  id: string; orderNumber: string; tableId?: string; guestId?: string; status: string; totalAmount: number | string; destinationDept?: string; destinationType?: string; items: any[]; updatedAt: string; }
 
 
-export interface InventoryItem { id: string; name: string; sku?: string; quantity: number; unit: string; minStockLevel: number; category: string; costPrice: number; sellingPrice?: number; updatedAt: string; }
+export interface InventoryItem { id: string; name: string; category: string; unit: string; stockLevel: string; stockMain: string; stockKitchen: string; stockBar: string; stockHousekeeping: string; stockBoutique: string; minThreshold: string; costPerUnit: string; updatedAt?: string; }
 export interface Tax { isActive?: boolean;  id: string; name: string; rate: number; isDefault: boolean; type: string; updatedAt: string; }
 
 export interface Guest { companyName?: string; nationality?: string; address?: string; 

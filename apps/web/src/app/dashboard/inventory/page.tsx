@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { useAuth } from '@/lib/auth-provider';
 import { Plus, Minus, Edit, ArrowRightLeft, Trash2, Search, PackagePlus } from 'lucide-react';
@@ -27,8 +30,8 @@ export default function InventoryPage() {
   const canEdit = user?.roles?.some(r => ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(r.toUpperCase())) || !user?.roles?.some(r => r.toUpperCase() === 'POS');
   
   const { showToast } = useToast();
-  const [items, setItems] = useState<InventoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const items = useLiveQuery(() => db.inventory.toArray()) || [];
+  const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -167,22 +170,8 @@ export default function InventoryPage() {
 
   const [newItem, setNewItem] = useState({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
 
-  const fetchItems = () => {
-    fetch(`${API_URL}/api/v1/inventory`, { credentials: 'include' })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch inventory');
-        return res.json();
-      })
-      .then(data => {
-        const result = data.data || data;
-        setItems(Array.isArray(result) ? result : []);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setItems([]);
-        setLoading(false);
-      });
+  const fetchItems = async () => {
+    if (navigator.onLine) await downloadLatestData();
   };
 
   useEffect(() => {
