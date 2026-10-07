@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { useAuth } from '@/lib/auth-provider';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type PosCategory = { id: string; name: string };
-type PosMenuItem = { id: string; name: string; price: string; isAvailable: boolean; categoryId: string; type: string; image?: string; recipes?: { inventoryItemId: string }[] };
+type PosMenuItem = { id: string; name: string; price: string | number; isAvailable: boolean; categoryId: string; type: string; image?: string; recipes?: { inventoryItemId: string }[] };
 type PosTable = { id: string; number: string; capacity: number; status: string };
 type Reservation = { id: string; folio: { id: string }; room: { number: string }; guest: { firstName: string; lastName: string } };
-type ServedOrder = { id: string; status: string; totalAmount: string; table?: PosTable; folioId?: string; folio?: { reservation: { guest: { firstName: string; lastName: string }; room: { number: string } } }; items: any[]; user?: { firstName: string; lastName: string } };
+type ServedOrder = { id: string; status: string; totalAmount: string | number; table?: PosTable; folioId?: string; folio?: { reservation: { guest: { firstName: string; lastName: string }; room: { number: string } } }; items: any[]; user?: { firstName: string; lastName: string } };
 
 export default function PosPage() {
   const { user } = useAuth();
@@ -18,10 +21,11 @@ export default function PosPage() {
   const canSettleOrders = user?.roles?.some((role: string) => ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'POS_CASHIER'].includes(role?.toUpperCase?.() || (role as any)?.name?.toUpperCase?.()));
   const canSeeDiscount = user?.roles?.some(role => ['ADMIN', 'SUPER_ADMIN', 'MANAGER', 'POS'].includes(role.toUpperCase()));
   const { showToast } = useToast();
-  const [categories, setCategories] = useState<PosCategory[]>([]);
-  const [menuItems, setMenuItems] = useState<PosMenuItem[]>([]);
-  const [tables, setTables] = useState<PosTable[]>([]);
-  const [inHouseGuests, setInHouseGuests] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const categories = useLiveQuery(() => db.posCategories.toArray()) || [];
+  const menuItems = useLiveQuery(() => db.posMenuItems.toArray()) || [];
+  const tables = useLiveQuery(() => db.posTables.toArray()) || [];
+  const inHouseGuests = useLiveQuery(() => db.reservations.toArray()) || [];
   const [inventoryItems, setInventoryItems] = useState<{id: string, name: string, category: string}[]>([]);
   
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
@@ -31,7 +35,7 @@ export default function PosPage() {
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [selectedFolioId, setSelectedFolioId] = useState<string | null>(null);
   const [selectedGuestId, setSelectedGuestId] = useState<string | null>(null);
-  const [guests, setGuests] = useState<any[]>([]);
+  const guests = useLiveQuery(() => db.guests.toArray()) || [];
   const [showCreateGuest, setShowCreateGuest] = useState(false);
   const [newGuest, setNewGuest] = useState({ firstName: '', lastName: '', companyName: '', address: '', phone: '', email: '', nationality: '' });
 
@@ -58,7 +62,7 @@ export default function PosPage() {
 
   // Cashier Settlement
   const [showSettleModal, setShowSettleModal] = useState(false);
-  const [servedOrders, setServedOrders] = useState<ServedOrder[]>([]);
+  const servedOrders = useLiveQuery(() => db.posOrders.filter(o => o.status === "SERVED").toArray()) || [];
   const [settleOrder, setSettleOrder] = useState<ServedOrder | null>(null);
   const [settleFolioId, setSettleFolioId] = useState<string | null>(null);
   
@@ -66,43 +70,21 @@ export default function PosPage() {
   const [paymentAmount, setPaymentAmount] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('PAYMENT_CASH');
   
-  const [taxes, setTaxes] = useState<any[]>([]);
+  const taxes = useLiveQuery(() => db.taxes.toArray()) || [];
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const fetchData = () => {
-    Promise.all([
-      fetch(`${API_URL}/api/v1/pos/categories`, { credentials: 'include' }).then(res => res.json()),
-      fetch(`${API_URL}/api/v1/pos/menu-items`, { credentials: 'include' }).then(res => res.json()),
-      fetch(`${API_URL}/api/v1/pos/tables`, { credentials: 'include' }).then(res => res.json()),
-      fetch(`${API_URL}/api/v1/inventory`, { credentials: 'include' }).then(res => res.json()),
-      fetch(`${API_URL}/api/v1/reservations?status=CHECKED_IN`, { credentials: 'include' }).then(res => res.json()),
-      fetch(`${API_URL}/api/v1/pos/served-orders`, { credentials: 'include' }).then(res => res.json()),
-      fetch(`${API_URL}/api/v1/taxes`, { credentials: 'include' }).then(res => res.json()),
-      fetch(`${API_URL}/api/v1/guests`, { credentials: 'include' }).then(res => res.json())
-    ]).then(([cats, items, tbls, invs, resvs, served, txs, gsts]) => {
-      setCategories(cats.data || cats);
-      setMenuItems(items.data || items);
-      setTables(tbls.data || tbls);
-      setTaxes(Array.isArray(txs.data) ? txs.data : (Array.isArray(txs) ? txs : []));
-      
-      const invData = invs.data || invs;
-      setInventoryItems(Array.isArray(invData) ? invData : []);
-
-      const resData = resvs.data || resvs;
-      setInHouseGuests(Array.isArray(resData) ? resData : []);
-
-      const servedData = served.data || served;
-      setServedOrders(Array.isArray(servedData) ? servedData : []);
-
-      const gstsData = gsts.data || gsts;
-      setGuests(Array.isArray(gstsData) ? gstsData : []);
-    }).catch(err => {
-      console.error(err);
-      showToast('Failed to load POS data', 'error', 'Error');
-    });
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      if (navigator.onLine) await downloadLatestData();
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addToCart = (item: PosMenuItem) => {

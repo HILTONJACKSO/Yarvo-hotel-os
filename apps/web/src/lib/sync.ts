@@ -61,8 +61,35 @@ export async function downloadLatestData() {
       }
     }
 
-    // 3. Fetch Guests (usually embedded or fetched separately)
-    // ...
+    // 3. Fetch Guests 
+    const guestRes = await fetch('/api/v1/guests?limit=1000');
+    if (guestRes.ok) {
+      const data = await guestRes.json();
+      if (data.data) {
+        await db.guests.bulkPut(data.data);
+      }
+    }
+
+    // 4. Fetch POS Data
+    const [ptRes, pcRes, pmRes, poRes] = await Promise.all([
+      fetch('/api/v1/pos/tables'),
+      fetch('/api/v1/pos/categories'),
+      fetch('/api/v1/pos/menu-items?limit=1000'),
+      fetch('/api/v1/pos/orders') // Currently active orders
+    ]);
+
+    if (ptRes.ok) { const d = await ptRes.json(); if (d.data) await db.posTables.bulkPut(d.data); }
+    if (pcRes.ok) { const d = await pcRes.json(); if (d.data) await db.posCategories.bulkPut(d.data); }
+    if (pmRes.ok) { const d = await pmRes.json(); if (d.data) await db.posMenuItems.bulkPut(d.data); }
+    if (poRes.ok) { const d = await poRes.json(); if (d.data) await db.posOrders.bulkPut(d.data); }
+
+    // 5. Fetch Inventory & Taxes
+    const [invRes, taxRes] = await Promise.all([
+      fetch('/api/v1/inventory?limit=1000'),
+      fetch('/api/v1/taxes')
+    ]);
+    if (invRes.ok) { const d = await invRes.json(); if (d.data) await db.inventory.bulkPut(d.data); }
+    if (taxRes.ok) { const d = await taxRes.json(); if (d.data) await db.taxes.bulkPut(Array.isArray(d.data) ? d.data : []); }
     
     console.log('Background sync (download) complete.');
   } catch (err) {
