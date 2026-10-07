@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import jsPDF from 'jspdf';
 import domtoimage from 'dom-to-image-more';
 import { useToast } from '@/components/ui/toast-provider';
@@ -52,24 +55,15 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
     }
   }, [isOpen]);
 
-  const fetchOrders = () => {
-    Promise.all([
-      fetch(`${API_URL}/api/v1/pos/orders`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_URL}/api/v1/pos/served-orders`, { credentials: 'include' }).then(r => r.json())
-    ]).then(([active, served]) => {
-      const activeData = active.data || active || [];
-      const servedData = served.data || served || [];
-      const combined = [...activeData, ...servedData];
-      const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
-      setActiveOrders(unique);
-    }).catch(console.error);
+  const fetchOrders = async () => {
+    const combined = await db.posOrders.toArray();
+    const unique = Array.from(new Map(combined.map((item: any) => [item.id, item])).values());
+    setActiveOrders(unique);
   };
 
-  const fetchTables = () => {
-    fetch(`${API_URL}/api/v1/pos/tables`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setTables(data.data || data || []))
-      .catch(console.error);
+  const fetchTables = async () => {
+    const data = await db.posTables.toArray();
+    setTables(data || []);
   };
 
   const sourceOrder = activeOrders.find(o => o.id === sourceOrderId);
@@ -98,24 +92,22 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
 
     setIsTransferring(true);
     try {
-      const res = await fetch(`${API_URL}/api/v1/pos/orders/transfer`, {
+      await db.syncQueue.add({
+        url: `/api/v1/pos/orders/transfer`,
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
+        payload: {
           sourceOrderId,
           targetTableId: targetTableId || undefined,
           targetOrderId: targetOrderId || undefined,
           items: itemsToTransfer
-        })
+        },
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
+      if (navigator.onLine) syncOfflineMutations();
 
-      if (!res.ok) {
-        const err = await res.json().catch(()=>({}));
-        throw new Error(err.message || 'Transfer failed');
-      }
-
-      showToast('Items transferred successfully', 'success');
+      showToast('Items transferred successfully (Offline)', 'success');
       onTransferSuccess();
       onClose();
     } catch (e: any) {
@@ -245,8 +237,8 @@ const TransferModal = ({ isOpen, onClose, onTransferSuccess, API_URL }: any) => 
 export default function CashierPage() {
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const { showToast } = useToast();
-  const [orders, setOrders] = useState<PosOrder[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<PosOrder | null>(null);
+  const orders: any[] = useLiveQuery(() => db.posOrders.toArray())?.filter(o => o.status === 'SERVED' || o.status === 'BILLED_TO_ROOM' || o.status === 'PAID') || [];
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [printMode, setPrintMode] = useState<'RECEIPT' | 'INVOICE'>('RECEIPT');
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -316,19 +308,8 @@ export default function CashierPage() {
 
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
 
-  const fetchOrders = () => {
-    fetch(`${API_URL}/api/v1/pos/stats/cashier`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setStats(data?.data || data))
-      .catch(console.error);
-
-    fetch(`${API_URL}/api/v1/pos/served-orders`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
-        const result = data.data || data;
-        setOrders(Array.isArray(result) ? result : []);
-      })
-      .catch(err => console.error(err));
+  const fetchOrders = async () => {
+    if (navigator.onLine) await downloadLatestData();
   };
 
   useEffect(() => {
@@ -474,7 +455,7 @@ export default function CashierPage() {
     }
     
     printViaIframe('INVOICE');
-    setSelectedOrder(prev => prev ? { ...prev, invoicePrintCount: (prev.invoicePrintCount || 0) + 1 } : null);
+    setSelectedOrder((prev: any) => prev ? { ...prev, invoicePrintCount: (prev.invoicePrintCount || 0) + 1 } : null);
     try {
       await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/increment-print`, { method: 'POST', credentials: 'include' });
       fetchOrders();
@@ -501,7 +482,7 @@ export default function CashierPage() {
     }
     
     printViaIframe('RECEIPT');
-    setSelectedOrder(prev => prev ? { ...prev, receiptPrintCount: (prev.receiptPrintCount || 0) + 1 } : null);
+    setSelectedOrder((prev: any) => prev ? { ...prev, receiptPrintCount: (prev.receiptPrintCount || 0) + 1 } : null);
     try {
       await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/increment-receipt-print`, { method: 'POST', credentials: 'include' });
       fetchOrders();
@@ -579,7 +560,7 @@ export default function CashierPage() {
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         pdf.save(`${isInvoice ? 'Invoice' : 'Receipt'}_${selectedOrder.id.substring(0,8)}.pdf`);
         const endpoint = isInvoice ? 'increment-print' : 'increment-receipt-print';
-        setSelectedOrder(prev => prev ? { ...prev, [isInvoice ? 'invoicePrintCount' : 'receiptPrintCount']: (prev[isInvoice ? 'invoicePrintCount' : 'receiptPrintCount'] || 0) + 1 } : null);
+        setSelectedOrder((prev: any) => prev ? { ...prev, [isInvoice ? 'invoicePrintCount' : 'receiptPrintCount']: (prev[isInvoice ? 'invoicePrintCount' : 'receiptPrintCount'] || 0) + 1 } : null);
         await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/${endpoint}`, { method: 'POST', credentials: 'include' });
         fetchOrders();
       } catch (err) {
@@ -604,19 +585,24 @@ export default function CashierPage() {
     }
 
     setIsProcessing(true);
-    try {      const body = { payments, discountAmount: calculatedDiscount };
-
-      const res = await fetch(`${API_URL}/api/v1/pos/orders/${orderId}/checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body)
-      });
-      
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(json.message || 'Failed to checkout');
+    try {
+      const order = await db.posOrders.get(orderId);
+      if (order) {
+          order.status = 'PAID';
+          order.discountAmount = calculatedDiscount;
+          await db.posOrders.put(order);
       }
+      
+      await db.syncQueue.add({
+        url: `/api/v1/pos/orders/${orderId}/checkout`,
+        method: 'POST',
+        payload: { payments, discountAmount: calculatedDiscount },
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
+      });
+      if (navigator.onLine) syncOfflineMutations();
+
       showToast('Payment processed successfully', 'success', 'Paid');
       setSelectedOrder(null);
       fetchOrders();
@@ -717,7 +703,7 @@ export default function CashierPage() {
             </div>
             
             <div className="receipt">
-                {selectedOrder.items.map(item => {
+                {selectedOrder.items.map((item: any) => {
                   const isReturned = item.status === 'RETURNED';
                   return (
                   <div key={item.id} className={`receipt-item ${isReturned ? 'text-rose-400' : ''}`}>
@@ -865,7 +851,7 @@ export default function CashierPage() {
                 
                 <div className="divider"></div>
                 
-                {selectedOrder.items.map((item) => {
+                {selectedOrder.items.map((item: any) => {
                   const isReturned = item.status === 'RETURNED';
                   const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
                   const displayPrice = isReturned 
@@ -917,7 +903,7 @@ export default function CashierPage() {
                 
                 <div className="divider"></div>
                 
-                {selectedOrder.items.map((item) => {
+                {selectedOrder.items.map((item: any) => {
                   const isReturned = item.status === 'RETURNED';
                   const displayName = isReturned ? `(Returned) ${item.menuItem.name}` : item.menuItem.name;
                   const displayPrice = isReturned 
