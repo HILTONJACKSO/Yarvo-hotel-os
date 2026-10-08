@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { AddRoomModal } from '@/components/rooms/AddRoomModal';
 import { Modal } from '@/components/ui/Modal';
 import { AlertCircle, Trash2 } from 'lucide-react';
@@ -42,23 +45,17 @@ export default function RoomsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const fetchRooms = () => {
+  const fetchRooms = async () => {
     setLoading(true);
-    fetch('/api/v1/rooms')
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to fetch');
-        if (data.data && Array.isArray(data.data)) {
-          setRooms(data.data);
-        } else if (Array.isArray(data)) {
-          setRooms(data);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch rooms', err);
-        setLoading(false);
-      });
+    try {
+      if (navigator.onLine) await downloadLatestData();
+      const allRooms = await db.rooms.toArray();
+      setRooms(allRooms as any[]);
+    } catch (err) {
+      console.error('Failed to fetch rooms', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -70,11 +67,17 @@ export default function RoomsPage() {
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      const res = await fetch(`/api/v1/rooms/${roomToDelete.id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.message || 'Failed to delete room');
-      }
+      await db.rooms.delete(roomToDelete.id);
+      await db.syncQueue.add({
+        url: `/api/v1/rooms/${roomToDelete.id}`,
+        method: 'DELETE',
+        payload: null,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
+      });
+      if (navigator.onLine) syncOfflineMutations();
+
       setRoomToDelete(null);
       fetchRooms();
     } catch (err: any) {

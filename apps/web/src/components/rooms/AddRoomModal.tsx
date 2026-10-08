@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { db } from '@/lib/db';
+import { syncOfflineMutations } from '@/lib/sync';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Modal } from '../ui/Modal';
@@ -47,11 +49,8 @@ export function AddRoomModal({ isOpen, onClose, onSuccess, initialData }: Props)
     const fetchRoomTypes = async () => {
       setLoadingData(true);
       try {
-        const res = await fetch('/api/v1/room-types');
-        if (res.ok) {
-          const json = await res.json();
-          setRoomTypes(json.data || []);
-        }
+        const types = await db.roomTypes.toArray();
+        setRoomTypes(types || []);
       } catch (err) {
         console.error('Failed to load room types', err);
       } finally {
@@ -80,25 +79,48 @@ export function AddRoomModal({ isOpen, onClose, onSuccess, initialData }: Props)
     try {
       const url = initialData ? `/api/v1/rooms/${initialData.id}` : '/api/v1/rooms';
       const method = initialData ? 'PATCH' : 'POST';
-      
       const { status, ...submitData } = data;
+
+      const roomTypeId = submitData.roomTypeId;
+      const roomType = await db.roomTypes.get(roomTypeId);
       
-      const res = await fetch(url, {
+      const newRoom = {
+          id: initialData ? initialData.id : 'temp_' + Date.now(),
+          number: submitData.number,
+          floor: submitData.floor,
+          notes: submitData.notes,
+          status: status || initialData?.status || 'AVAILABLE',
+          roomType: roomType,
+          roomTypeId: roomTypeId,
+          condition: initialData ? initialData.condition : 'CLEAN',
+          isActive: initialData ? initialData.isActive : true,
+          createdAt: initialData ? initialData.createdAt : new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+      };
+      
+      await db.rooms.put(newRoom);
+      
+      await db.syncQueue.add({
+        url,
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData),
+        payload: submitData,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
       
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || `Failed to ${initialData ? 'edit' : 'add'} room`);
-      
       if (initialData && data.status && data.status !== initialData.status) {
-        await fetch(`/api/v1/rooms/${initialData.id}/status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: data.status, reason: 'Manually changed from Rooms Dashboard' })
+        await db.syncQueue.add({
+            url: `/api/v1/rooms/${initialData.id}/status`,
+            method: 'PATCH',
+            payload: { status: data.status, reason: 'Manually changed from Rooms Dashboard' },
+            createdAt: Date.now(),
+            status: 'PENDING',
+            retryCount: 0
         });
       }
+
+      if (navigator.onLine) syncOfflineMutations();
       
       onSuccess();
       onClose();

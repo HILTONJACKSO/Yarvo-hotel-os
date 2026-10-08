@@ -111,6 +111,16 @@ export async function downloadLatestData() {
       }
     }
 
+    
+    // 8. Fetch Room Types
+    const roomTypesRes = await fetch('/api/v1/room-types');
+    if (roomTypesRes.ok) {
+      const d = await roomTypesRes.json();
+      if (d.data || Array.isArray(d)) {
+        await db.roomTypes.bulkPut(d.data || d);
+      }
+    }
+
     console.log('Background sync (download) complete.');
   } catch (err) {
     console.error('Failed to download latest data:', err);
