@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -117,10 +120,13 @@ function GeneralSettings({ showToast }: { showToast: any }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/v1/properties`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setProperty(data.data || data))
-      .catch(err => console.error(err));
+    db.properties.toArray().then(arr => { if (arr.length > 0) setProperty(arr[0] as any); });
+    if (navigator.onLine) {
+      fetch(`${API_URL}/api/v1/properties`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => { const p = data.data || data; setProperty(p); if (p) db.properties.put(p as any); })
+        .catch(err => console.error(err));
+    }
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -143,18 +149,18 @@ function GeneralSettings({ showToast }: { showToast: any }) {
     };
 
     try {
-      const res = await fetch(`${API_URL}/api/v1/properties/${property.id}`, {
+      await db.properties.put({ ...property, ...payload, id: property.id } as any);
+      await db.syncQueue.add({
+        url: `/api/v1/properties/${property.id}`,
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'include',
+        payload,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      if (res.ok) {
-        showToast('Settings saved successfully.', 'success', 'Saved');
-      } else {
-        const err = await res.json();
-        showToast(`Failed to save: ${err.message}`, 'error', 'Error');
-      }
+      if (navigator.onLine) syncOfflineMutations();
+
+      showToast('Settings saved successfully.', 'success', 'Saved');
     } catch (err) {
       showToast('An unexpected error occurred.', 'error', 'Error');
     }
@@ -229,18 +235,19 @@ function RoomTypesSettings({ showToast }: { showToast: any }) {
     fetchTaxes();
   }, []);
 
-  const fetchRoomTypes = () => {
-    fetch(`${API_URL}/api/v1/room-types`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setTypes(Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : [])))
-      .catch(err => console.error(err));
+  const fetchRoomTypes = async () => {
+    try {
+      const allTypes = await db.roomTypes.toArray();
+      setTypes(allTypes as any[]);
+      if (navigator.onLine) await downloadLatestData();
+    } catch(err) { console.error(err); }
   };
   
-  const fetchTaxes = () => {
-    fetch(`${API_URL}/api/v1/taxes`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setTaxes(Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : [])))
-      .catch(err => console.error(err));
+  const fetchTaxes = async () => {
+    try {
+      const allTaxes = await db.taxes.toArray();
+      setTaxes(allTaxes as any[]);
+    } catch(err) { console.error(err); }
   };
 
   const handleOpenNew = () => {
@@ -266,24 +273,29 @@ function RoomTypesSettings({ showToast }: { showToast: any }) {
     };
 
     try {
-      const url = editingType ? `${API_URL}/api/v1/room-types/${editingType.id}` : `${API_URL}/api/v1/room-types`;
+      const newRt = {
+          id: editingType ? editingType.id : 'temp_' + Date.now(),
+          ...payload,
+          taxes: taxes.filter(t => taxIds.includes(t.id))
+      };
+      await db.roomTypes.put(newRt as any);
+
+      const url = editingType ? `/api/v1/room-types/${editingType.id}` : `/api/v1/room-types`;
       const method = editingType ? 'PATCH' : 'POST';
       
-      const res = await fetch(url, {
+      await db.syncQueue.add({
+        url,
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'include',
+        payload,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      
-      if (res.ok) {
-        showToast(editingType ? 'Room type updated successfully.' : 'Room type created successfully.', 'success', 'Success');
-        setShowModal(false);
-        fetchRoomTypes();
-      } else {
-        const err = await res.json();
-        showToast(`Failed to save room type: ${err.message}`, 'error', 'Error');
-      }
+      if (navigator.onLine) syncOfflineMutations();
+
+      showToast(editingType ? 'Room type updated successfully.' : 'Room type created successfully.', 'success', 'Success');
+      setShowModal(false);
+      fetchRoomTypes();
     } catch (err) {
       showToast('An error occurred.', 'error', 'Error');
     }
@@ -421,11 +433,11 @@ function TaxesSettings({ showToast }: { showToast: any }) {
     fetchTaxes();
   }, []);
 
-  const fetchTaxes = () => {
-    fetch(`${API_URL}/api/v1/taxes`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setTaxes(Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : [])))
-      .catch(err => console.error(err));
+  const fetchTaxes = async () => {
+    try {
+      const allTaxes = await db.taxes.toArray();
+      setTaxes(allTaxes as any[]);
+    } catch(err) { console.error(err); }
   };
 
   const handleOpenNew = () => {
@@ -445,24 +457,29 @@ function TaxesSettings({ showToast }: { showToast: any }) {
     };
 
     try {
-      const url = editingTax ? `${API_URL}/api/v1/taxes/${editingTax.id}` : `${API_URL}/api/v1/taxes`;
+      const newTax = {
+          id: editingTax ? editingTax.id : 'temp_' + Date.now(),
+          ...payload,
+          isActive: editingTax ? editingTax.isActive : true
+      };
+      await db.taxes.put(newTax as any);
+
+      const url = editingTax ? `/api/v1/taxes/${editingTax.id}` : `/api/v1/taxes`;
       const method = editingTax ? 'PUT' : 'POST';
       
-      const res = await fetch(url, {
+      await db.syncQueue.add({
+        url,
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'include',
+        payload,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      
-      if (res.ok) {
-        showToast(editingTax ? 'Tax updated successfully.' : 'Tax created successfully.', 'success', 'Success');
-        setShowModal(false);
-        fetchTaxes();
-      } else {
-        const err = await res.json();
-        showToast(`Failed to save tax: ${err.message}`, 'error', 'Error');
-      }
+      if (navigator.onLine) syncOfflineMutations();
+
+      showToast(editingTax ? 'Tax updated successfully.' : 'Tax created successfully.', 'success', 'Success');
+      setShowModal(false);
+      fetchTaxes();
     } catch (err) {
       showToast('An error occurred.', 'error', 'Error');
     }
@@ -471,16 +488,19 @@ function TaxesSettings({ showToast }: { showToast: any }) {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this tax?')) return;
     try {
-      const res = await fetch(`${API_URL}/api/v1/taxes/${id}`, {
+      await db.taxes.delete(id);
+      await db.syncQueue.add({
+        url: `/api/v1/taxes/${id}`,
         method: 'DELETE',
-        credentials: 'include',
+        payload: null,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      if (res.ok) {
-        showToast('Tax deleted.', 'success');
-        fetchTaxes();
-      } else {
-        showToast('Failed to delete tax.', 'error');
-      }
+      if (navigator.onLine) syncOfflineMutations();
+
+      showToast('Tax deleted.', 'success');
+      fetchTaxes();
     } catch (err) {
       showToast('An error occurred.', 'error');
     }

@@ -97,6 +97,19 @@ export interface PosOrder { createdAt?: string; notes?: string | null; discountA
 
 
 export interface InventoryItem { id: string; name: string; category: string; unit: string; stockLevel: string; stockMain: string; stockKitchen: string; stockBar: string; stockHousekeeping: string; stockBoutique: string; minThreshold: string; costPerUnit: string; updatedAt?: string; }
+export interface Property {
+  id: string;
+  name: string;
+  legalName: string;
+  address: string;
+  city: string;
+  country: string;
+  phone: string;
+  email: string;
+  website: string;
+  taxId: string;
+}
+
 export interface Tax { isActive?: boolean;  id: string; name: string; rate: number; isDefault: boolean; type: string; updatedAt: string; }
 
 export interface Guest { companyName?: string; nationality?: string; address?: string; 
@@ -125,6 +138,7 @@ export class KwaleeLocalDatabase extends Dexie {
   reservations!: Table<Reservation, string>;
   guests!: Table<Guest, string>;
   inventory!: Table<InventoryItem, string>;
+  properties!: Table<Property, string>;
   taxes!: Table<Tax, string>;
 
   posTables!: Table<PosTable, string>;
@@ -146,6 +160,7 @@ export class KwaleeLocalDatabase extends Dexie {
       reservations: 'id, confirmationCode, guestId, roomId, status, checkInDate, checkOutDate, updatedAt',
       guests: 'id, email, phone, updatedAt',
       inventory: 'id, name, category, updatedAt',
+      properties: 'id, name',
       taxes: 'id, name, isDefault, updatedAt',
       posTables: 'id, number, updatedAt',
       posCategories: 'id, name, updatedAt',

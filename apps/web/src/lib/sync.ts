@@ -138,6 +138,16 @@ export async function downloadLatestData() {
       }
     }
 
+    
+    // 10. Fetch Property
+    const propsRes = await fetch('/api/v1/properties');
+    if (propsRes.ok) {
+      const d = await propsRes.json();
+      if (d.data || d) {
+        await db.properties.put(d.data || d);
+      }
+    }
+
     console.log('Background sync (download) complete.');
   } catch (err) {
     console.error('Failed to download latest data:', err);
