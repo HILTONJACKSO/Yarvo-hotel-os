@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Building2, Search, Plus, Edit2, Trash2, MapPin, Phone, Mail, FileText, CheckCircle2 } from 'lucide-react';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useAuth } from '@/lib/auth-provider';
 
 type Company = {
@@ -36,10 +38,9 @@ export default function CompaniesPage() {
 
   const fetchCompanies = async () => {
     try {
-      const res = await fetch('/api/v1/companies');
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
-      setCompanies(data.data || []);
+      const offlineComps = await db.companies.toArray();
+      setCompanies(offlineComps as any[]);
+      if (navigator.onLine) await downloadLatestData();
     } catch (err) {
       console.error(err);
     } finally {
@@ -53,23 +54,29 @@ export default function CompaniesPage() {
 
   const handleSave = async () => {
     try {
+      const newComp = {
+        id: selectedCompany ? selectedCompany.id : 'temp_' + Date.now(),
+        ...formData,
+        balance: selectedCompany ? selectedCompany.balance : 0
+      };
+      await db.companies.put(newComp as any);
+      
       const url = selectedCompany 
         ? `/api/v1/companies/${selectedCompany.id}`
         : '/api/v1/companies';
         
-      const res = await fetch(url, {
+      await db.syncQueue.add({
+        url,
         method: selectedCompany ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        payload: formData,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
+      if (navigator.onLine) syncOfflineMutations();
 
-      if (res.ok) {
-        setIsModalOpen(false);
-        fetchCompanies();
-      } else {
-        const error = await res.json();
-        alert(error.message || 'Failed to save company');
-      }
+      setIsModalOpen(false);
+      fetchCompanies();
     } catch (err) {
       console.error(err);
     }

@@ -5,6 +5,8 @@ import jsPDF from 'jspdf';
 import domtoimage from 'dom-to-image-more';
 import { useAuth } from '@/lib/auth-provider';
 import { Plus, Receipt, Search, Filter, Trash2 } from 'lucide-react';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
 
@@ -25,14 +27,27 @@ export default function ExpensesPage() {
 
   const fetchExpenses = useCallback(async (start?: string, end?: string) => {
     try {
-      let query = '';
-      if (start && end) query = `?start=${start}&end=${end}`;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/expenses${query}`, {
-        credentials: 'include'
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setExpenses(data.data);
+      let offlineExps = await db.expenses.toArray();
+      if (start && end) {
+        const dStart = new Date(start).getTime();
+        const dEnd = new Date(end).getTime() + 86400000;
+        offlineExps = offlineExps.filter(ex => {
+          const t = new Date(ex.date).getTime();
+          return t >= dStart && t < dEnd;
+        });
+      }
+      setExpenses(offlineExps as any[]);
+      
+      if (navigator.onLine) {
+        let query = '';
+        if (start && end) query = `?start=${start}&end=${end}`;
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/expenses${query}`, {
+          credentials: 'include'
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setExpenses(data.data);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -91,21 +106,24 @@ export default function ExpensesPage() {
         ...formData,
         amount: parseFloat(formData.amount),
       };
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/expenses`, {
+      const newExp = { id: 'temp_' + Date.now(), ...payload };
+      await db.expenses.put(newExp as any);
+      
+      await db.syncQueue.add({
+        url: '/api/v1/expenses',
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'include'
+        payload,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      if (res.ok) {
-        setIsModalOpen(false);
-        setFormData({
-          amount: '', category: 'UTILITIES', date: new Date().toISOString().split('T')[0], description: '', referenceCode: ''
-        });
-        fetchExpenses();
-      } else {
-        alert('Failed to record expense');
-      }
+      if (navigator.onLine) syncOfflineMutations();
+
+      setIsModalOpen(false);
+      setFormData({
+        amount: '', category: 'UTILITIES', date: new Date().toISOString().split('T')[0], description: '', referenceCode: ''
+      });
+      fetchExpenses();
     } catch (err) {
       console.error(err);
     }
@@ -114,13 +132,18 @@ export default function ExpensesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this expense?')) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/expenses/${id}`, {
+      await db.expenses.delete(id);
+      await db.syncQueue.add({
+        url: `/api/v1/expenses/${id}`,
         method: 'DELETE',
-        credentials: 'include'
+        payload: null,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      if (res.ok) {
-        fetchExpenses();
-      }
+      if (navigator.onLine) syncOfflineMutations();
+
+      fetchExpenses();
     } catch (err) {
       console.error(err);
     }

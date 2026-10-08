@@ -110,6 +110,27 @@ export interface Property {
   taxId: string;
 }
 
+export interface Company {
+  id: string;
+  name: string;
+  contactName: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  taxId: string | null;
+  balance: number;
+  isActive: boolean;
+}
+
+export interface Expense {
+  id: string;
+  amount: number;
+  category: string;
+  date: string | Date;
+  description: string;
+  referenceCode: string;
+}
+
 export interface Tax { isActive?: boolean;  id: string; name: string; rate: number; isDefault: boolean; type: string; updatedAt: string; }
 
 export interface Guest { companyName?: string; nationality?: string; address?: string; 
@@ -139,6 +160,8 @@ export class KwaleeLocalDatabase extends Dexie {
   guests!: Table<Guest, string>;
   inventory!: Table<InventoryItem, string>;
   properties!: Table<Property, string>;
+  companies!: Table<Company, string>;
+  expenses!: Table<Expense, string>;
   taxes!: Table<Tax, string>;
 
   posTables!: Table<PosTable, string>;
@@ -161,6 +184,8 @@ export class KwaleeLocalDatabase extends Dexie {
       guests: 'id, email, phone, updatedAt',
       inventory: 'id, name, category, updatedAt',
       properties: 'id, name',
+      companies: 'id, name, isActive',
+      expenses: 'id, date, category',
       taxes: 'id, name, isDefault, updatedAt',
       posTables: 'id, number, updatedAt',
       posCategories: 'id, name, updatedAt',

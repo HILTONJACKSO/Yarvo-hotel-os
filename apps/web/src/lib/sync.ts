@@ -148,6 +148,22 @@ export async function downloadLatestData() {
       }
     }
 
+    
+    // 11. Fetch Companies
+    const compRes = await fetch('/api/v1/companies');
+    if (compRes.ok) {
+      const d = await compRes.json();
+      if (d.data) await db.companies.bulkPut(d.data);
+    }
+
+    
+    // 12. Fetch Expenses
+    const expRes = await fetch('/api/v1/expenses');
+    if (expRes.ok) {
+      const d = await expRes.json();
+      if (d.data) await db.expenses.bulkPut(d.data);
+    }
+
     console.log('Background sync (download) complete.');
   } catch (err) {
     console.error('Failed to download latest data:', err);
