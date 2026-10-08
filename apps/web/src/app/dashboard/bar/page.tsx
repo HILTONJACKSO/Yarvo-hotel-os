@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -29,32 +32,67 @@ export default function BarPage() {
   const [kitchenNote, setKitchenNote] = useState('');
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
 
-  const fetchOrders = () => {
-        fetch(`${API_URL}/api/v1/pos/stats/bar`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setStats(data?.data || data))
-      .catch(console.error);
+  const fetchOrders = async () => {
+    try {
+      if (navigator.onLine) await downloadLatestData();
+      const allOrders = await db.posOrders.toArray();
+      setOrders(allOrders);
 
-    fetch(`${API_URL}/api/v1/pos/orders`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setOrders(data.data || data))
-      .catch(console.error);
+      // Compute stats
+      const today = new Date().toISOString().split('T')[0];
+      const todayOrders = allOrders.filter(o => o.createdAt.startsWith(today));
+      let totalBarOrders = 0;
+      let totalBarRev = 0;
+      todayOrders.forEach((o: any) => {
+        let hasBar = false;
+        (o.items || []).forEach((item: any) => {
+          if (item.menuItem?.type === 'DRINK' || item.menuItem?.type === 'BAR') {
+            hasBar = true;
+            if (item.status === 'SERVED') {
+               totalBarRev += (item.quantity || 1) * Number(item.menuItem.price || 0);
+            }
+          }
+        });
+        if (hasBar) totalBarOrders++;
+      });
+      setStats({ totalOrders: totalBarOrders, totalRevenue: totalBarRev });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Poll every 10s
-    return () => clearInterval(interval);
   }, []);
 
   const updateStatus = async (itemId: string, newStatus: string) => {
     try {
-      await fetch(`${API_URL}/api/v1/pos/order-items/${itemId}/status`, {
+      const allOrders = await db.posOrders.toArray();
+      let foundOrder = null;
+      let targetItem = null;
+      for (const order of allOrders) {
+         const it = order.items.find((i: any) => i.id === itemId);
+         if (it) {
+            targetItem = it;
+            foundOrder = order;
+            break;
+         }
+      }
+      if (foundOrder && targetItem) {
+          targetItem.status = newStatus;
+          await db.posOrders.put(foundOrder);
+      }
+      
+      await db.syncQueue.add({
+        url: `/api/v1/pos/order-items/${itemId}/status`,
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: newStatus })
+        payload: { status: newStatus },
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
+      if (navigator.onLine) syncOfflineMutations();
+
       fetchOrders();
       showToast('Status updated', 'success', 'Success');
     } catch (err) {
@@ -64,13 +102,16 @@ export default function BarPage() {
 
   const confirmReturn = async (returnId: string) => {
     try {
-      const res = await fetch(`${API_URL}/api/v1/pos/returns/${returnId}/confirm`, {
+      await db.syncQueue.add({
+        url: `/api/v1/pos/returns/${returnId}/confirm`,
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ kitchenNote })
+        payload: { kitchenNote },
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      if (!res.ok) throw new Error("Failed to confirm");
+      if (navigator.onLine) syncOfflineMutations();
+
       showToast('Return confirmed and sent to manager', 'success', 'Success');
       setConfirmingReturnId(null);
       setKitchenNote('');
