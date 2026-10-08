@@ -32,6 +32,36 @@ export interface Reservation { folio?: any; guest?: any; room?: any;
 export interface PosTable { id: string; number: string; capacity: number; isActive: boolean; updatedAt: string; }
 export interface PosCategory { id: string; name: string; isActive: boolean; updatedAt: string; }
 export interface PosMenuItem { recipes?: any[];  id: string; name: string; description?: string; price: number | string; categoryId: string; type: string; image?: string; isAvailable: boolean; updatedAt: string; }
+export interface EventSpace {
+  id: string;
+  name: string;
+  capacity: number;
+  pricePerHour: number | string;
+  pricePerDay: number | string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface EventBooking {
+  id: string;
+  spaceId: string;
+  space?: any;
+  guestName: string;
+  guestEmail: string;
+  guestPhone: string;
+  eventType: string;
+  attendeesCount: number;
+  startTime: string;
+  endTime: string;
+  status: string;
+  totalAmount: number | string;
+  amountPaid: number | string;
+  specialRequests?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface RoomType {
   id: string;
   name: string;
@@ -100,6 +130,8 @@ export class KwaleeLocalDatabase extends Dexie {
   posTables!: Table<PosTable, string>;
   posCategories!: Table<PosCategory, string>;
   posMenuItems!: Table<PosMenuItem, string>;
+  eventSpaces!: Table<EventSpace, string>;
+  eventBookings!: Table<EventBooking, string>;
   roomTypes!: Table<RoomType, string>;
   folios!: Table<Folio, string>;
   workOrders!: Table<WorkOrder, string>;

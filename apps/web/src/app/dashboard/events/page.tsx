@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useRouter } from 'next/navigation';
 import { Calendar, Clock, MapPin, Users, DollarSign, Search, Plus, CreditCard } from 'lucide-react';
 import { useAuth } from '@/lib/auth-provider';
@@ -48,20 +51,21 @@ export default function EventsPage() {
   }, []);
 
   const fetchData = async () => {
-    fetch(`${API_URL}/api/v1/events/stats/daily`, { credentials: 'include' }).then(res => res.json()).then(data => setStats(data?.data || data)).catch(console.error);
-
     setLoading(true);
     try {
-      const [spacesRes, bookingsRes] = await Promise.all([
-        fetch(`${API_URL}/api/v1/events/spaces`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/v1/events/bookings`, { credentials: 'include' })
-      ]);
-      
-      const spacesData = await spacesRes.json();
-      const bookingsData = await bookingsRes.json();
-      
-      setSpaces(Array.isArray(spacesData.data) ? spacesData.data : (Array.isArray(spacesData) ? spacesData : []));
-      setBookings(Array.isArray(bookingsData.data) ? bookingsData.data : (Array.isArray(bookingsData) ? bookingsData : []));
+      if (navigator.onLine) {
+        fetch(`${API_URL}/api/v1/events/stats/daily`, { credentials: 'include' })
+          .then(res => res.json())
+          .then(data => setStats(data?.data || data))
+          .catch(console.error);
+        await downloadLatestData();
+      }
+
+      const allSpaces = await db.eventSpaces.toArray();
+      const allBookings = await db.eventBookings.toArray();
+
+      setSpaces(allSpaces as any[]);
+      setBookings(allBookings as any[]);
     } catch (err) {
       console.error('Failed to fetch events data', err);
     } finally {
@@ -561,18 +565,29 @@ function SpaceModal({ space, onClose, onSave }: any) {
     e.preventDefault();
     const payload = { name, capacity: Number(capacity), pricePerHour: Number(pricePerHour), pricePerDay: Number(pricePerDay), isActive };
 
-    const url = space ? `${API_URL}/api/v1/events/spaces/${space.id}` : `${API_URL}/api/v1/events/spaces`;
+    const url = space ? `/api/v1/events/spaces/${space.id}` : `/api/v1/events/spaces`;
     const method = space ? 'PUT' : 'POST';
 
     try {
-      const res = await fetch(url, {
+      const newSpace = {
+          id: space ? space.id : 'temp_' + Date.now(),
+          ...payload,
+          createdAt: space ? space.createdAt : new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+      };
+      await db.eventSpaces.put(newSpace as any);
+
+      await db.syncQueue.add({
+        url,
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'include'
+        payload,
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
       });
-      if (res.ok) onSave();
-      else alert('Failed to save space');
+      if (navigator.onLine) syncOfflineMutations();
+
+      onSave();
     } catch (err) {
       console.error(err);
       alert('Error saving space');

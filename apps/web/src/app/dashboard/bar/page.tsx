@@ -18,10 +18,10 @@ type OrderItem = {
 
 type Order = {
   id: string;
-  table: { number: string } | null;
+  table?: { number: string } | null;
   items: OrderItem[];
   user?: { firstName: string; lastName: string };
-  createdAt: string;
+  createdAt?: string;
   notes?: string | null;
 };
 
@@ -40,7 +40,7 @@ export default function BarPage() {
 
       // Compute stats
       const today = new Date().toISOString().split('T')[0];
-      const todayOrders = allOrders.filter(o => o.createdAt.startsWith(today));
+      const todayOrders = allOrders.filter(o => (o.createdAt || "").startsWith(today));
       let totalBarOrders = 0;
       let totalBarRev = 0;
       todayOrders.forEach((o: any) => {
@@ -151,7 +151,7 @@ export default function BarPage() {
             <div className="ticket-header">
               <span className="ticket-table">Table {order.table?.number || 'Takeout'}</span>
               <span className="ticket-id">
-                #{order.id.split('-')[0]} • {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                #{order.id.split('-')[0]} • {new Date(order.createdAt || "").toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
             <div style={{ fontSize: '0.8rem', color: 'hsl(215, 20%, 65%)', marginBottom: '12px', padding: '0 16px' }}>

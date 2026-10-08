@@ -121,6 +121,23 @@ export async function downloadLatestData() {
       }
     }
 
+    
+    // 9. Fetch Event Spaces and Bookings
+    const spacesRes = await fetch('/api/v1/events/spaces');
+    if (spacesRes.ok) {
+      const d = await spacesRes.json();
+      if (d.data || Array.isArray(d)) {
+        await db.eventSpaces.bulkPut(d.data || d);
+      }
+    }
+    const bookingsRes = await fetch('/api/v1/events/bookings');
+    if (bookingsRes.ok) {
+      const d = await bookingsRes.json();
+      if (d.data || Array.isArray(d)) {
+        await db.eventBookings.bulkPut(d.data || d);
+      }
+    }
+
     console.log('Background sync (download) complete.');
   } catch (err) {
     console.error('Failed to download latest data:', err);
