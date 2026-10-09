@@ -102,10 +102,11 @@ export default function BarPage() {
 
   const confirmReturn = async (returnId: string) => {
     try {
+      const allOrders = await db.posOrders.toArray();
       let targetItemId = null;
       let foundOrder = null;
-      for (const order of orders) {
-         const item = order.items?.find(i => i.returnRequest?.id === returnId);
+      for (const order of allOrders) {
+         const item = (order as any).items?.find((i: any) => i.returnRequest?.id === returnId);
          if (item) {
              foundOrder = order;
              targetItemId = item.id;
@@ -114,9 +115,9 @@ export default function BarPage() {
       }
       
       if (foundOrder && targetItemId) {
-          foundOrder.items = foundOrder.items.map(i => {
+          (foundOrder as any).items = (foundOrder as any).items.map((i: any) => {
               if (i.id === targetItemId) {
-                  return { ...i, status: 'RETURN_REQUESTED', returnRequest: { ...i.returnRequest, status: 'PENDING_APPROVAL' } };
+                  return { ...i, status: 'RETURN_REQUESTED', returnRequest: { ...(i.returnRequest || {}), status: 'PENDING_APPROVAL' } };
               }
               return i;
           });
