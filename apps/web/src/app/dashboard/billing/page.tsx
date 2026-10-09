@@ -102,7 +102,7 @@ export default function BillingPage() {
       <html><head><title>Bill ${mode}</title></head>
       <body style="margin:0; padding:20px; font-family:'Courier New', Courier, monospace; color:#000; background:#fff; max-width: 380px; margin: 0 auto;">
         <div style="text-align:center; margin-bottom:20px;">
-          <img src="/kwalee-logo.png" style="max-width:120px; margin-bottom:10px;" />
+          <img src="https://kwaleebeachresort.com/kwalee-logo.png" style="max-width:120px; margin-bottom:10px;" />
           <div style="font-size:20px; font-weight:bold; margin-bottom:4px; color:#000;">KWALEE BEACH RESORT</div>
           <div style="font-size:12px; color:#000;">www.kwaleebeachresort.com</div>
           <div style="font-size:12px; color:#000;">info@kwaleebeachresort.com</div>

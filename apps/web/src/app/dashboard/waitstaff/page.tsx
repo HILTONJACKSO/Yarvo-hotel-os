@@ -24,7 +24,7 @@ type PosOrderItem = {
 export default function WaitstaffPage() {
   const { showToast } = useToast();
   const dbOrders = useLiveQuery(() => db.posOrders.toArray()) || [];
-  const items = dbOrders.flatMap(o => (o.items || []).filter(i => i.status === 'PREPARED').map(i => ({ ...i, order: o })));
+  const items = dbOrders.flatMap(o => (o.items || []).filter(i => i.status === 'READY').map(i => ({ ...i, order: o })));
   const servedItems = dbOrders.flatMap(o => (o.items || []).filter(i => i.status === 'SERVED' || i.status === 'RETURN_REQUESTED' || i.status === 'RETURNED').map(i => ({ ...i, order: o })));
   const [printItem, setPrintItem] = useState<PosOrderItem | null>(null);
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });

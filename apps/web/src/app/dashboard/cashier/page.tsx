@@ -386,7 +386,7 @@ export default function CashierPage() {
         </head>
         <body>
           <div class="header-container">
-            <img src="/kwalee-logo.png" alt="Logo" />
+            <img src="https://kwaleebeachresort.com/kwalee-logo.png" alt="Logo" />
             <div class="header-title">KWALEE BEACH RESORT</div>
             <div class="header-info">www.kwaleebeachresort.com</div>
             <div class="header-info">+231 774 340 843 / +231 881 774 350</div>
@@ -835,7 +835,7 @@ export default function CashierPage() {
             <div className="print-only-container">
               <div id="kwalee-receipt" className="kwalee-receipt">
                 <div className="header-container">
-                  <img src="/kwalee-logo.png" alt="Logo" style={{ maxWidth: '120px', marginBottom: '10px', display: 'block', margin: '0 auto' }} />
+                  <img src="https://kwaleebeachresort.com/kwalee-logo.png" alt="Logo" style={{ maxWidth: '120px', marginBottom: '10px', display: 'block', margin: '0 auto' }} />
                   <div className="header-title">KWALEE BEACH RESORT</div>
                   <div className="header-info">www.kwaleebeachresort.com</div>
                   <div className="header-info">+231 774 340 843 / +231 881 774 350</div>
@@ -887,7 +887,7 @@ export default function CashierPage() {
 
               <div id="kwalee-invoice" className="kwalee-receipt">
                 <div className="header-container">
-                  <img src="/kwalee-logo.png" alt="Logo" style={{ maxWidth: '120px', marginBottom: '10px', display: 'block', margin: '0 auto' }} />
+                  <img src="https://kwaleebeachresort.com/kwalee-logo.png" alt="Logo" style={{ maxWidth: '120px', marginBottom: '10px', display: 'block', margin: '0 auto' }} />
                   <div className="header-title">KWALEE BEACH RESORT</div>
                   <div className="header-info">www.kwaleebeachresort.com</div>
                   <div className="header-info">+231 774 340 843 / +231 881 774 350</div>
