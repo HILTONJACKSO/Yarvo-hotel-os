@@ -178,7 +178,7 @@ export class KwaleeLocalDatabase extends Dexie {
 
   constructor() {
     super('KwaleeLocalDB');
-    this.version(3).stores({
+    this.version(4).stores({
       rooms: 'id, roomTypeId, status, updatedAt',
       reservations: 'id, confirmationCode, guestId, roomId, status, checkInDate, checkOutDate, updatedAt',
       guests: 'id, email, phone, updatedAt',
@@ -191,6 +191,11 @@ export class KwaleeLocalDatabase extends Dexie {
       posCategories: 'id, name, updatedAt',
       posMenuItems: 'id, categoryId, type, updatedAt',
       posOrders: 'id, tableId, guestId, status, updatedAt',
+      eventSpaces: 'id, name',
+      eventBookings: 'id, spaceId, status',
+      roomTypes: 'id, name',
+      folios: 'id, reservationId, status',
+      workOrders: 'id, type, status, priority',
       syncQueue: '++id, status, createdAt',
     });
   }
