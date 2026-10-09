@@ -24,6 +24,9 @@ export const BookingBarInteractive = () => {
   const [whatsapp, setWhatsapp] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
   const [error, setError] = useState('');
+  const [activities, setActivities] = useState<any[]>([]);
+  const [selectedActivities, setSelectedActivities] = useState<{activityId: string, quantity: number}[]>([]);
+
 
   const router = useRouter();
 
@@ -46,6 +49,16 @@ export const BookingBarInteractive = () => {
         }
       })
       .catch(err => console.error('Failed to fetch room types', err));
+    // Fetch activities
+    fetch('/api/activities')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setActivities(data.data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch activities', err));
+
   }, []);
 
   const handleCheckAvailability = () => {
@@ -72,6 +85,7 @@ export const BookingBarInteractive = () => {
         roomTypeId,
         adultsCount: parseInt(guests, 10),
         childrenCount: 0,
+        activities: selectedActivities.filter(a => a.quantity > 0),
       };
 
       const res = await fetch('/api/booking', {
@@ -240,6 +254,40 @@ export const BookingBarInteractive = () => {
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Special Requests</label>
                     <textarea value={specialRequests} onChange={e => setSpecialRequests(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623] resize-none h-16" placeholder="Any special needs..."></textarea>
                   </div>
+                    {activities.length > 0 && (
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Enhance Your Stay (Optional)</label>
+                        <div className="space-y-3">
+                          {activities.map(act => {
+                            const selected = selectedActivities.find(a => a.activityId === act.id);
+                            const qty = selected ? selected.quantity : 0;
+                            return (
+                              <div key={act.id} className="flex justify-between items-center border border-gray-200 p-3 rounded">
+                                <div>
+                                  <p className="text-sm font-medium text-gray-800">{act.name} <span className="text-xs text-[#F5A623] ml-1">${Number(act.price).toFixed(2)}</span></p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button type="button" onClick={() => {
+                                    if (qty > 0) {
+                                      setSelectedActivities(prev => prev.map(p => p.activityId === act.id ? { ...p, quantity: p.quantity - 1 } : p));
+                                    }
+                                  }} className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200">-</button>
+                                  <span className="text-sm w-4 text-center">{qty}</span>
+                                  <button type="button" onClick={() => {
+                                    if (qty === 0) {
+                                      setSelectedActivities([...selectedActivities, { activityId: act.id, quantity: 1 }]);
+                                    } else {
+                                      setSelectedActivities(prev => prev.map(p => p.activityId === act.id ? { ...p, quantity: p.quantity + 1 } : p));
+                                    }
+                                  }} className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200">+</button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
 <div className="bg-gray-50 p-4 rounded text-sm text-gray-600 mt-6 border border-gray-100">
                     <p><strong>Check-in:</strong> {checkIn}</p>
                     <p><strong>Check-out:</strong> {checkOut}</p>

@@ -27,6 +27,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
 import { NightAuditModule } from './modules/night-audit/night-audit.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
+import { ActivitiesModule } from './modules/activities/activities.module';
 import { TaxesModule } from './modules/taxes/taxes.module';
 import { EventsModule } from './modules/events/events.module';
 import { StaffModule } from './modules/staff/staff.module';
@@ -135,6 +136,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
     NightAuditModule,
 
     TicketsModule,
+    ActivitiesModule,
 
     TaxesModule,
 

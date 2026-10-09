@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import DashboardLoading from './loading';
 
 import { 
+  Compass,
   Home, 
   CalendarCheck, 
   Users, 
@@ -51,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Sparkles, label: 'Housekeeping', href: '/dashboard/housekeeping', id: 'nav-housekeeping', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk', 'housekeeping'] },
   { icon: Wrench, label: 'Maintenance', href: '/dashboard/maintenance', id: 'nav-maintenance', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'front_desk'] },
   { type: 'divider' },
+  { icon: Compass, label: 'Tours & Events', href: '/dashboard/tours-events', id: 'nav-tours-events', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'front_desk'] },
   { icon: Ticket, label: 'Tickets', href: '/dashboard/tickets', id: 'nav-tickets', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk', 'ticketing_staff'] },
   { icon: CalendarDays, label: 'Events', href: '/dashboard/events', id: 'nav-events', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'front_desk', 'staff_waiter'] },
   { type: 'divider' },

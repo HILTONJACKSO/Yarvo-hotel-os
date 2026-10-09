@@ -6,6 +6,10 @@ import { CreateEventBookingDto } from './dto/create-event-booking.dto';
 
 @Injectable()
 export class PublicService {
+  async getActivities() {
+    return this.prisma.activity.findMany({ where: { isActive: true } });
+  }
+
   private readonly logger = new Logger(PublicService.name);
 
   constructor(private prisma: PrismaService) {}
@@ -120,7 +124,24 @@ export class PublicService {
 
     // 4. Calculate total amount
     const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24));
-    const totalAmount = Number(roomType.baseRateUsd) * nights;
+    let totalAmount = Number(roomType.baseRateUsd) * nights;
+    
+    // 4.5. Process Activities
+    const activityItems = [];
+    if (dto.activities && dto.activities.length > 0) {
+      for (const act of dto.activities) {
+        const activity = await this.prisma.activity.findUnique({ where: { id: act.activityId } });
+        if (activity) {
+          const actTotal = Number(activity.price) * act.quantity;
+          totalAmount += actTotal;
+          activityItems.push({
+            activityId: activity.id,
+            quantity: act.quantity,
+            totalPrice: actTotal
+          });
+        }
+      }
+    }
 
     // 5. Create confirmed reservation
     const reservation = await this.prisma.reservation.create({
@@ -136,11 +157,15 @@ export class PublicService {
         specialRequests: dto.specialRequests,
         status: 'CONFIRMED',
         totalAmount: totalAmount,
+        activities: {
+          create: activityItems
+        }
       },
       include: {
         roomType: true,
         room: true,
-        guest: true
+        guest: true,
+        activities: { include: { activity: true } }
       }
     });
 

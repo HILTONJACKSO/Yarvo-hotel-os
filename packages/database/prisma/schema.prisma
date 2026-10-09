@@ -405,6 +405,7 @@ model Reservation {
   updatedAt        DateTime          @updatedAt @db.Timestamptz(6)
 
   folio            Folio?
+  activities       BookingActivity[]
     notificationLogs NotificationLog[]
 
   @@index([guestId])
@@ -1061,4 +1062,36 @@ model NotificationLog {
   @@index([reservationId])
   @@index([type])
   @@map("notification_logs")
+}
+
+model Activity {
+  id          String   @id @default(uuid()) @db.Uuid
+  type        String   @db.VarChar(50) // "TOUR" or "EVENT"
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  price       Decimal  @db.Decimal(10, 2)
+  image       String?  @db.Text
+  isActive    Boolean  @default(true)
+  
+  bookings    BookingActivity[]
+
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  @@map("activities")
+}
+
+model BookingActivity {
+  id            String   @id @default(uuid()) @db.Uuid
+  reservationId String   @db.Uuid
+  activityId    String   @db.Uuid
+  quantity      Int      @default(1)
+  totalPrice    Decimal  @db.Decimal(10, 2)
+  
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  activity      Activity    @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("booking_activities")
 }

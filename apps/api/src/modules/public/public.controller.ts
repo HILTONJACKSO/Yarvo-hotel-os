@@ -76,4 +76,10 @@ export class PublicController {
     return { data: await this.publicService.createEventBooking(createEventBookingDto) };
   }
 
+  @Get('activities')
+  @ApiOperation({ summary: 'Get all active activities (tours/events)' })
+  @ApiResponse({ status: 200, description: 'List of activities.' })
+  async getActivities() {
+    return this.publicService.getActivities();
+  }
 }
