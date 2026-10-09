@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Modal } from '../ui/Modal';
+import { MultiImageUpload } from '../ui/MultiImageUpload';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 const schema = z.object({
@@ -25,6 +26,7 @@ interface Props {
 
 export function AddRoomTypeModal({ isOpen, onClose, onSuccess }: Props) {
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
 
   const {
     register,
@@ -43,6 +45,7 @@ export function AddRoomTypeModal({ isOpen, onClose, onSuccess }: Props) {
     if (isOpen) {
       reset();
       setSubmitError(null);
+      setImages([]);
     }
   }, [isOpen, reset]);
 

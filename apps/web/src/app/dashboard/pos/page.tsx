@@ -6,10 +6,11 @@ import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { useAuth } from '@/lib/auth-provider';
+import { MultiImageUpload } from '@/components/ui/MultiImageUpload';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 type PosCategory = { id: string; name: string };
-type PosMenuItem = { id: string; name: string; price: string | number; isAvailable: boolean; categoryId: string; type: string; image?: string; recipes?: { inventoryItemId: string }[] };
+type PosMenuItem = { id: string; name: string; price: string | number; isAvailable: boolean; categoryId: string; type: string; image?: string; images?: string[]; recipes?: { inventoryItemId: string }[] };
 type PosTable = { id: string; number: string; capacity: number; status: string };
 type Reservation = { id: string; folio: { id: string }; room: { number: string }; guest: { firstName: string; lastName: string } };
 type ServedOrder = { id: string; status: string; totalAmount: string | number; table?: PosTable; folioId?: string; folio?: { reservation: { guest: { firstName: string; lastName: string }; room: { number: string } } }; items: any[]; user?: { firstName: string; lastName: string } };
@@ -56,7 +57,7 @@ export default function PosPage() {
   const [categoryToDelete, setCategoryToDelete] = useState<PosCategory | null>(null);
 
   const [showAddMenuItem, setShowAddMenuItem] = useState(false);
-  const [newMenuItem, setNewMenuItem] = useState<{name: string, price: number, categoryId: string, type: string, inventoryItemId: string, image: string, taxIds: string[]}>({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', taxIds: [] });
+  const [newMenuItem, setNewMenuItem] = useState<{name: string, price: number, categoryId: string, type: string, inventoryItemId: string, image: string, images: string[], taxIds: string[]}>({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', images: [], taxIds: [] });
   const [editMenuItemId, setEditMenuItemId] = useState<string | null>(null);
   const [menuItemToDelete, setMenuItemToDelete] = useState<PosMenuItem | null>(null);
 
@@ -199,7 +200,7 @@ export default function PosPage() {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(newMenuItem) });
       if (!res.ok) throw new Error('Failed to save menu item');
       showToast(`Menu Item ${editMenuItemId ? 'updated' : 'added'}`, 'success', 'Success');
-      setShowAddMenuItem(false); setNewMenuItem({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', taxIds: [] }); setEditMenuItemId(null);
+      setShowAddMenuItem(false); setNewMenuItem({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', images: [], taxIds: [] }); setEditMenuItemId(null);
       fetchData();
     } catch (err) { showToast('Failed to save menu item', 'error', 'Error'); }
   };
@@ -229,7 +230,8 @@ export default function PosPage() {
       categoryId: item.categoryId,
       type: item.type,
       inventoryItemId: item.recipes?.[0]?.inventoryItemId || '',
-      image: item.image || '',
+        image: item.image || '',
+        images: item.images ? (Array.isArray(item.images) ? item.images : []) : [],
       taxIds: (item as any).taxes?.map((t: any) => t.id) || []
     });
     setShowAddMenuItem(true);
@@ -800,7 +802,11 @@ export default function PosPage() {
                   {availableInventoryItems.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
                 </select>
               </div>
-              <div className="form-group">
+                            <div className="form-group">
+                <label>Images</label>
+                <MultiImageUpload images={newMenuItem.images} onChange={(images: string[]) => setNewMenuItem({...newMenuItem, images, image: images.length > 0 ? images[0] : ''})} />
+              </div>
+<div className="form-group">
                 <label>Taxes</label>
                 <select className="form-select" multiple style={{ height: '80px' }} value={newMenuItem.taxIds} onChange={e => {
                   const options = e.target.options;
@@ -814,7 +820,7 @@ export default function PosPage() {
                 </select>
                 <small style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.75rem' }}>Hold Ctrl/Cmd to select multiple</small>
               </div>
-              <div className="modal-actions"><button type="button" className="btn-cancel" onClick={() => { setShowAddMenuItem(false); setEditMenuItemId(null); setNewMenuItem({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', taxIds: [] }); }}>Cancel</button><button type="submit" className="btn-primary">Save</button></div>
+              <div className="modal-actions"><button type="button" className="btn-cancel" onClick={() => { setShowAddMenuItem(false); setEditMenuItemId(null); setNewMenuItem({ name: '', price: 0, categoryId: '', type: 'FOOD', inventoryItemId: '', image: '', images: [], taxIds: [] }); }}>Cancel</button><button type="submit" className="btn-primary">Save</button></div>
             </form>
           </div>
         </div>

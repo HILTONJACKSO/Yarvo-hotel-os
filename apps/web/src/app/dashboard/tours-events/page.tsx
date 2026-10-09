@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, MapPin, Compass, Calendar, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-provider';
+import { MultiImageUpload } from '@/components/ui/MultiImageUpload';
 
 type Activity = {
   id: string;
@@ -11,6 +12,7 @@ type Activity = {
   description: string;
   price: string | number;
   image: string;
+  images?: string[];
   isActive: boolean;
 };
 
@@ -27,6 +29,7 @@ export default function ToursEventsPage() {
     description: '',
     price: '',
     image: '',
+    images: [] as string[],
     isActive: true
   });
 
@@ -92,11 +95,12 @@ export default function ToursEventsPage() {
         description: item.description || '',
         price: item.price.toString(),
         image: item.image || '',
+        images: item.images || [],
         isActive: item.isActive
       });
     } else {
       setSelectedItem(null);
-      setFormData({ type: 'TOUR', name: '', description: '', price: '', image: '', isActive: true });
+      setFormData({ type: 'TOUR', name: '', description: '', price: '', image: '', images: [], isActive: true });
     }
     setIsModalOpen(true);
   };
@@ -166,14 +170,14 @@ export default function ToursEventsPage() {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 rounded-xl w-full max-w-md border border-slate-700 shadow-xl">
+          <div className="bg-slate-900 rounded-xl w-full max-w-md border border-slate-700 shadow-xl max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-slate-800">
               <h2 className="text-xl font-bold text-slate-100">
                 {selectedItem ? 'Edit Activity' : 'Create Activity'}
               </h2>
             </div>
             
-            <form onSubmit={handleSave} className="p-6 space-y-4">
+            <form onSubmit={handleSave} className="p-6 space-y-4 overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">Type</label>
                 <select 
@@ -207,12 +211,12 @@ export default function ToursEventsPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Image URL</label>
-                <input 
-                  type="text"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
-                  value={formData.image}
-                  onChange={e => setFormData({...formData, image: e.target.value})}
+                <label className="block text-sm font-medium text-slate-300 mb-1">Images</label>
+                <MultiImageUpload 
+                  images={formData.images} 
+                  onChange={(images) => {
+                    setFormData({...formData, images, image: images.length > 0 ? images[0] : ''});
+                  }} 
                 />
               </div>
 

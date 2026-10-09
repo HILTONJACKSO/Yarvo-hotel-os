@@ -584,8 +584,8 @@ model PosMenuItem {
   isAvailable Boolean       @default(true)
   type        String        @default("FOOD") // FOOD, DRINK, BAR
   image       String?       @db.Text
-  
-  orderItems  PosOrderItem[]
+    images      Json          @default("[]")
+    orderItems  PosOrderItem[]
   recipes     InventoryRecipe[]
   taxes       Tax[]
   
@@ -1071,7 +1071,8 @@ model Activity {
   description String?  @db.Text
   price       Decimal  @db.Decimal(10, 2)
   image       String?  @db.Text
-  isActive    Boolean  @default(true)
+    images      Json     @default("[]")
+    isActive    Boolean  @default(true)
   
   bookings    BookingActivity[]
 
@@ -1095,3 +1096,4 @@ model BookingActivity {
 
   @@map("booking_activities")
 }
+
