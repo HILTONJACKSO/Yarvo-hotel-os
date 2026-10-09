@@ -103,7 +103,7 @@ export default function BarPage() {
   const confirmReturn = async (returnId: string) => {
     try {
       await db.syncQueue.add({
-        url: `/api/v1/pos/returns/${returnId}/confirm`,
+        url: `/api/v1/pos/order-items/${targetItemId}/confirm-return`,
         method: 'POST',
         payload: { kitchenNote },
         createdAt: Date.now(),
@@ -125,7 +125,7 @@ export default function BarPage() {
   const barOrders = orders
     .map(o => ({
       ...o,
-      items: o.items.filter(i => (i.menuItem.type === 'DRINK' || i.menuItem.type === 'BAR') && i.status !== 'SERVED' && i.status !== 'RETURNED')
+      items: o.items.filter(i => (i.menuItem.type === 'DRINK' || i.menuItem.type === 'BAR') && i.status !== 'SERVED' && i.status !== 'RETURNED' && i.returnRequest?.status !== 'PENDING_APPROVAL')
     }))
     .filter(o => o.items.length > 0);
 

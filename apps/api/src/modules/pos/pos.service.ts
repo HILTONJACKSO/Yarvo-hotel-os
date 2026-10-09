@@ -767,6 +767,24 @@ export class PosService {
     });
   }
 
+
+  async confirmReturnByItemId(itemId: string, userId: string, kitchenNote: string) {
+    const returnReq = await this.prisma.posReturnRequest.findFirst({ 
+      where: { orderItemId: itemId },
+      orderBy: { createdAt: 'desc' }
+    });
+    if (!returnReq) throw new Error("Return request not found");
+    
+    return this.prisma.posReturnRequest.update({
+      where: { id: returnReq.id },
+      data: {
+        confirmedById: userId,
+        kitchenNote,
+        status: 'PENDING_APPROVAL'
+      }
+    });
+  }
+
   async confirmReturn(returnId: string, userId: string, kitchenNote: string) {
     const returnReq = await this.prisma.posReturnRequest.findUnique({ where: { id: returnId } });
     if (!returnReq) throw new Error("Return request not found");

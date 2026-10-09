@@ -107,7 +107,7 @@ export default function KitchenPage() {
       if (foundOrder && targetItemId) {
           foundOrder.items = foundOrder.items.map(i => {
               if (i.id === targetItemId) {
-                  return { ...i, status: 'RETURNED', returnRequest: { ...i.returnRequest, status: 'CONFIRMED' } };
+                  return { ...i, status: 'RETURN_REQUESTED', returnRequest: { ...i.returnRequest, status: 'PENDING_APPROVAL' } };
               }
               return i;
           });
@@ -115,7 +115,7 @@ export default function KitchenPage() {
       }
 
       await db.syncQueue.add({
-        url: `/api/v1/pos/returns/${returnId}/confirm`,
+        url: `/api/v1/pos/order-items/${targetItemId}/confirm-return`,
         method: 'POST',
         payload: { kitchenNote },
         createdAt: Date.now(),
@@ -136,7 +136,7 @@ export default function KitchenPage() {
   const kitchenOrders = orders
     .map(o => ({
       ...o,
-      items: o.items.filter(i => i.menuItem.type === 'FOOD' && i.status !== 'SERVED' && i.status !== 'RETURNED')
+      items: o.items.filter(i => i.menuItem.type === 'FOOD' && i.status !== 'SERVED' && i.status !== 'RETURNED' && i.returnRequest?.status !== 'PENDING_APPROVAL')
     }))
     .filter(o => o.items.length > 0);
 

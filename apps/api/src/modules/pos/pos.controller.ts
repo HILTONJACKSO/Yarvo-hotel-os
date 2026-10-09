@@ -165,6 +165,13 @@ export class PosController {
     return this.posService.getReturnRequests(start, end);
   }
 
+
+  @Post('order-items/:itemId/confirm-return')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'BAR', 'CASHIER', 'FRONT_DESK')
+  confirmReturnByItemId(@Param('itemId') itemId: string, @Body('kitchenNote') kitchenNote: string, @Req() req: any) {
+    return this.posService.confirmReturnByItemId(itemId, req.user.id, kitchenNote);
+  }
+
   @Post('returns/:returnId/confirm')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'BAR', 'CASHIER', 'FRONT_DESK')
   confirmReturn(@Param('returnId') returnId: string, @Body('kitchenNote') kitchenNote: string, @Req() req: any) {
