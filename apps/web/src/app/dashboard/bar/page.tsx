@@ -102,6 +102,27 @@ export default function BarPage() {
 
   const confirmReturn = async (returnId: string) => {
     try {
+      let targetItemId = null;
+      let foundOrder = null;
+      for (const order of orders) {
+         const item = order.items?.find(i => i.returnRequest?.id === returnId);
+         if (item) {
+             foundOrder = order;
+             targetItemId = item.id;
+             break;
+         }
+      }
+      
+      if (foundOrder && targetItemId) {
+          foundOrder.items = foundOrder.items.map(i => {
+              if (i.id === targetItemId) {
+                  return { ...i, status: 'RETURN_REQUESTED', returnRequest: { ...i.returnRequest, status: 'PENDING_APPROVAL' } };
+              }
+              return i;
+          });
+          await db.posOrders.put(foundOrder);
+      }
+
       await db.syncQueue.add({
         url: `/api/v1/pos/order-items/${targetItemId}/confirm-return`,
         method: 'POST',
