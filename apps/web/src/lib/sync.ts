@@ -17,6 +17,7 @@ export async function syncOfflineMutations() {
           'Content-Type': 'application/json',
           // Assuming token is in cookies, fetch will send it automatically if credentials included
         },
+          credentials: 'include',
         body: mutation.payload ? JSON.stringify(mutation.payload) : undefined,
       });
 

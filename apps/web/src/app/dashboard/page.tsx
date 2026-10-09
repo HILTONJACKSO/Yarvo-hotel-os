@@ -46,6 +46,10 @@ export default function DashboardPage() {
     else setGreeting('evening');
 
     const fetchMetrics = async () => {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        setLoading(false);
+        return;
+      }
       try {
         const [metRes, revRes, actRes] = await Promise.all([
           fetch('/api/v1/analytics/dashboard'),
