@@ -30,7 +30,19 @@ export default function WaitstaffPage() {
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
 
   const fetchItems = async () => {
-    if (navigator.onLine) await downloadLatestData();
+    if (navigator.onLine) {
+      await downloadLatestData();
+      try {
+        const res = await fetch('/api/v1/pos/stats/waitstaff');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data) setStats(data.data);
+          else if (data.totalOrders !== undefined) setStats(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+      }
+    }
   };
 
   useEffect(() => {

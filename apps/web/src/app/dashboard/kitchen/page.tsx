@@ -34,7 +34,19 @@ export default function KitchenPage() {
 
 
   const fetchOrders = async () => {
-    if (navigator.onLine) await downloadLatestData();
+    if (navigator.onLine) {
+      await downloadLatestData();
+      try {
+        const res = await fetch('/api/v1/pos/stats/kitchen');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data) setStats(data.data);
+          else if (data.totalOrders !== undefined) setStats(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+      }
+    }
   };
 
   useEffect(() => {

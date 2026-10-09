@@ -71,17 +71,19 @@ export async function downloadLatestData() {
     }
 
     // 4. Fetch POS Data
-    const [ptRes, pcRes, pmRes, poRes] = await Promise.all([
+    const [ptRes, pcRes, pmRes, poRes, psRes] = await Promise.all([
       fetch('/api/v1/pos/tables'),
       fetch('/api/v1/pos/categories'),
       fetch('/api/v1/pos/menu-items?limit=1000'),
-      fetch('/api/v1/pos/orders') // Currently active orders
+      fetch('/api/v1/pos/orders'), // Currently active orders
+      fetch('/api/v1/pos/served-orders') // Served orders for cashier
     ]);
 
     if (ptRes.ok) { const d = await ptRes.json(); if (d.data) await db.posTables.bulkPut(d.data); }
     if (pcRes.ok) { const d = await pcRes.json(); if (d.data) await db.posCategories.bulkPut(d.data); }
     if (pmRes.ok) { const d = await pmRes.json(); if (d.data) await db.posMenuItems.bulkPut(d.data); }
     if (poRes.ok) { const d = await poRes.json(); if (d.data) await db.posOrders.bulkPut(d.data); }
+    if (psRes.ok) { const d = await psRes.json(); if (d.data) await db.posOrders.bulkPut(d.data); }
 
     // 5. Fetch Inventory & Taxes
     const [invRes, taxRes] = await Promise.all([
