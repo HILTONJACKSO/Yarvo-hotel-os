@@ -469,6 +469,10 @@ enum LineItemCategory {
   PAYMENT_BANK
   PAYMENT_MOBILE
   PAYMENT_CORPORATE
+  TOUR
+  EVENT
+  PACKAGE
+  ACTIVITY
   OTHER
 
   @@map("line_item_category")

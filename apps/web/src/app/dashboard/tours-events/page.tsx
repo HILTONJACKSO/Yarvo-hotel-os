@@ -111,7 +111,7 @@ export default function ToursEventsPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
             <Compass className="text-amber-500" />
-            Tours & Events Management
+            Tours, Events, Packages & Activities Management
           </h1>
           <p className="text-slate-400">Manage activities offered to guests</p>
         </div>

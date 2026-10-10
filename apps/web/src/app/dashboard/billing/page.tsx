@@ -468,7 +468,7 @@ export default function BillingPage() {
                   <form onSubmit={handlePostCharge} className="flex-1 bg-slate-800 border border-slate-700 p-5 rounded-xl flex flex-col gap-3">
                     <h4 className="font-bold text-slate-200">Post Charge</h4>
                     <select value={chargeCategory} onChange={(e) => setChargeCategory(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none">
-                      <option value="ROOM">Room Rate</option><option value="F_AND_B">Food & Beverage</option><option value="LAUNDRY">Laundry</option><option value="SPA">Spa</option><option value="TAX">GST / Tax</option><option value="OTHER">Other</option>
+                      <option value="ROOM">Room Rate</option><option value="F_AND_B">Food & Beverage</option><option value="LAUNDRY">Laundry</option><option value="SPA">Spa</option><option value="TOUR">Tour</option><option value="EVENT">Event</option><option value="PACKAGE">Package</option><option value="ACTIVITY">Activity</option><option value="TAX">GST / Tax</option><option value="OTHER">Other</option>
                     </select>
                     <input type="text" placeholder="Description" required value={chargeDesc} onChange={e => setChargeDesc(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none" />
                     <input type="number" step="0.01" min="0.01" placeholder="Amount ($)" required value={chargeAmount} onChange={e => setChargeAmount(e.target.value)} className="bg-slate-900 border border-slate-700 text-white p-2.5 rounded-lg outline-none" />

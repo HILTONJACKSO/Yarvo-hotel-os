@@ -312,13 +312,24 @@ export class ReservationsService {
       if (nights < 1) nights = 1;
 
       const baseRate = Number(reservation.roomType.baseRateUsd);
-      const roomChargeTotal = nights * baseRate;
+      let roomChargeTotal = nights * baseRate;
+
+      // Calculate activities total
+      const activities = await tx.bookingActivity.findMany({
+        where: { reservationId: id },
+        include: { activity: true }
+      });
+      
+      let activitiesTotal = 0;
+      for (const act of activities) {
+        activitiesTotal += Number(act.totalPrice);
+      }
 
       const folio = await tx.folio.create({
         data: {
           reservationId: id,
           status: 'OPEN',
-          balance: roomChargeTotal,
+          balance: roomChargeTotal + activitiesTotal,
         },
       });
 
@@ -332,6 +343,20 @@ export class ReservationsService {
           createdById: userId,
         }
       });
+
+      for (const act of activities) {
+        const catMap = { 'TOUR': 'TOUR', 'EVENT': 'EVENT', 'PACKAGE': 'PACKAGE', 'ACTIVITY': 'ACTIVITY' };
+        await tx.folioLineItem.create({
+          data: {
+            folioId: folio.id,
+            type: 'CHARGE',
+            category: (catMap as any)[act.activity.type] || 'OTHER',
+            amount: Number(act.totalPrice),
+            description: `${act.activity.type.charAt(0).toUpperCase() + act.activity.type.slice(1).toLowerCase()}: ${act.activity.name} (Qty: ${act.quantity})`,
+            createdById: userId,
+          }
+        });
+      }
 
       return updatedRes;
     });
