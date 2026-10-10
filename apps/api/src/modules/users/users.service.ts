@@ -59,11 +59,33 @@ export class UsersService {
       where: { email: createUserDto.email },
     });
 
-    if (existingUser) {
-      throw new BadRequestException('User with this email already exists');
-    }
-
     const passwordHash = await argon2.hash(createUserDto.password);
+
+    if (existingUser) {
+      if (existingUser.deletedAt) {
+        // User was soft-deleted, let's reactivate and update them
+        return this.prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            isActive: true,
+            deletedAt: null,
+            firstName: createUserDto.firstName,
+            lastName: createUserDto.lastName,
+            passwordHash,
+            roles: { set: createUserDto.roleIds.map((id) => ({ id })) },
+          },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            roles: true,
+          }
+        });
+      } else {
+        throw new BadRequestException('User with this email already exists');
+      }
+    }
 
     return this.prisma.user.create({
       data: {
