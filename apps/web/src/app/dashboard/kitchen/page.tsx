@@ -34,7 +34,8 @@ export default function KitchenPage() {
 
 
   const fetchOrders = async () => {
-    if (navigator.onLine) {
+    const pendingCount = await db.syncQueue.count();
+    if (navigator.onLine && pendingCount === 0) {
       await downloadLatestData();
       try {
         const res = await fetch('/api/v1/pos/stats/kitchen');

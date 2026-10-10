@@ -27,7 +27,7 @@ export default function PosPage() {
   const menuItems = useLiveQuery(() => db.posMenuItems.toArray()) || [];
   const tables = useLiveQuery(() => db.posTables.toArray()) || [];
   const inHouseGuests = useLiveQuery(() => db.reservations.toArray()) || [];
-  const [inventoryItems, setInventoryItems] = useState<{id: string, name: string, category: string}[]>([]);
+  const inventoryItems = useLiveQuery(() => db.inventory.toArray()) || [];
   
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');

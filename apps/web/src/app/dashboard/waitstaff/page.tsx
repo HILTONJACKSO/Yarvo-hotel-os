@@ -30,7 +30,8 @@ export default function WaitstaffPage() {
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
 
   const fetchItems = async () => {
-    if (navigator.onLine) {
+    const pendingCount = await db.syncQueue.count();
+    if (navigator.onLine && pendingCount === 0) {
       await downloadLatestData();
       try {
         const res = await fetch('/api/v1/pos/stats/waitstaff');
@@ -116,7 +117,7 @@ export default function WaitstaffPage() {
       await db.syncQueue.add({
         url: `/api/v1/pos/order-items/${itemId}/return-request`,
         method: 'POST',
-        payload: null,
+        payload: { reason: 'Guest return request' },
         createdAt: Date.now(),
         status: 'PENDING',
         retryCount: 0

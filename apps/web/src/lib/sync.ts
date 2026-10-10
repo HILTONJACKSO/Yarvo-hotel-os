@@ -11,17 +11,31 @@ export async function syncOfflineMutations() {
     try {
       console.log(`Syncing mutation: ${mutation.method} ${mutation.url}`);
       
+      const headers: Record<string, string> = {};
+      let body: string | undefined = undefined;
+
+      if (mutation.payload !== undefined && mutation.payload !== null) {
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify(mutation.payload);
+      } else if (['POST', 'PATCH', 'PUT'].includes(mutation.method)) {
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify({});
+      }
+
       const res = await fetch(mutation.url, {
         method: mutation.method,
-        headers: {
-          'Content-Type': 'application/json',
-          // Assuming token is in cookies, fetch will send it automatically if credentials included
-        },
-          credentials: 'include',
-        body: mutation.payload ? JSON.stringify(mutation.payload) : undefined,
+        headers,
+        credentials: 'include',
+        body,
       });
 
       if (!res.ok) {
+        // If it's a 4xx error (like Bad Request or Not Found), don't block the whole queue forever
+        if (res.status >= 400 && res.status < 500) {
+          console.error(`Discarding invalid mutation ${mutation.id} due to ${res.status}`);
+          await db.syncQueue.delete(mutation.id!);
+          continue;
+        }
         throw new Error(`Server returned ${res.status}`);
       }
 

@@ -75,7 +75,7 @@ export class PosService {
     });
   }
 
-  async createMenuItem(data: { categoryId: string; name: string; description?: string; price: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }) {
+  async createMenuItem(data: { categoryId: string; name: string; description?: string; price: number; type?: string; inventoryItemId?: string; image?: string; images?: string[]; taxIds?: string[] }) {
     return this.prisma.$transaction(async (tx) => {
       const item = await tx.posMenuItem.create({ 
         data: {
@@ -85,6 +85,7 @@ export class PosService {
           price: data.price,
           type: data.type || 'FOOD',
           image: data.image,
+          images: data.images || [],
           taxes: data.taxIds ? {
             connect: data.taxIds.map(id => ({ id }))
           } : undefined
@@ -105,7 +106,7 @@ export class PosService {
     });
   }
 
-  async updateMenuItem(id: string, data: { categoryId?: string; name?: string; description?: string; price?: number; type?: string; inventoryItemId?: string; image?: string; taxIds?: string[] }, userId?: string) {
+  async updateMenuItem(id: string, data: { categoryId?: string; name?: string; description?: string; price?: number; type?: string; inventoryItemId?: string; image?: string; images?: string[]; taxIds?: string[] }, userId?: string) {
     return this.prisma.$transaction(async (tx) => {
       const oldRecord = await tx.posMenuItem.findUnique({ where: { id }, include: { taxes: true } });
       // First update the core fields
@@ -118,6 +119,7 @@ export class PosService {
           price: data.price,
           type: data.type,
           image: data.image,
+          images: data.images,
           taxes: data.taxIds ? {
             set: data.taxIds.map(taxId => ({ id: taxId }))
           } : undefined
