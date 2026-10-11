@@ -52,6 +52,41 @@ export default function WaitstaffPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const deliverAll = async (orderId: string, itemsToDeliver: any[]) => {
+    if (!itemsToDeliver || itemsToDeliver.length === 0) return;
+    try {
+      const itemIds = itemsToDeliver.map((i: any) => i.id);
+
+      // 1. Atomically update Dexie IndexedDB in ONE operation
+      const allOrders = await db.posOrders.toArray();
+      const targetOrder = allOrders.find(o => o.id === orderId || o.items?.some(i => itemIds.includes(i.id)));
+      if (targetOrder) {
+        targetOrder.items = (targetOrder.items || []).map(i => itemIds.includes(i.id) ? { ...i, status: 'SERVED' } : i);
+        if (targetOrder.items.every(i => ['SERVED', 'RETURNED'].includes(i.status))) {
+          targetOrder.status = 'SERVED';
+        }
+        await db.posOrders.put(targetOrder);
+      }
+
+      // 2. Queue the atomic deliver-all batch mutation
+      const finalOrderId = targetOrder?.id || orderId;
+      await db.syncQueue.add({
+        url: `/api/v1/pos/orders/${finalOrderId}/deliver-all`,
+        method: 'POST',
+        payload: { itemIds },
+        createdAt: Date.now(),
+        status: 'PENDING',
+        retryCount: 0
+      });
+
+      if (navigator.onLine) syncOfflineMutations();
+
+      showToast('All items marked as delivered', 'success', 'Success');
+    } catch (err) {
+      showToast('Failed to update status', 'error');
+    }
+  };
+
   const markServed = async (itemId: string) => {
     try {
       const allOrders = await db.posOrders.toArray();
@@ -65,7 +100,10 @@ export default function WaitstaffPage() {
       }
       
       if (foundOrder) {
-          foundOrder.items = foundOrder.items.map(i => i.id === itemId ? { ...i, status: 'SERVED' } : i);
+          foundOrder.items = (foundOrder.items || []).map(i => i.id === itemId ? { ...i, status: 'SERVED' } : i);
+          if (foundOrder.items.every(i => ['SERVED', 'RETURNED'].includes(i.status))) {
+            foundOrder.status = 'SERVED';
+          }
           await db.posOrders.put(foundOrder);
       }
 
@@ -193,7 +231,7 @@ export default function WaitstaffPage() {
             </div>
             <div className="order-footer">
               <button className="btn-primary w-full" onClick={() => {
-                group.items.forEach((i: any) => markServed(i.id));
+                deliverAll(group.order?.id, group.items);
               }}>Deliver All Items</button>
             </div>
           </div>

@@ -1,57 +1,86 @@
 import { db } from './db';
 
+let isSyncing = false;
+
 // This function will be called whenever the app comes online
 export async function syncOfflineMutations() {
-  const pendingMutations = await db.syncQueue
-    .where('status')
-    .equals('PENDING')
-    .sortBy('createdAt');
+  if (isSyncing) return;
+  isSyncing = true;
 
-  for (const mutation of pendingMutations) {
-    try {
-      console.log(`Syncing mutation: ${mutation.method} ${mutation.url}`);
-      
-      const headers: Record<string, string> = {};
-      let body: string | undefined = undefined;
+  try {
+    const pendingMutations = await db.syncQueue
+      .where('status')
+      .equals('PENDING')
+      .sortBy('createdAt');
 
-      if (mutation.payload !== undefined && mutation.payload !== null) {
-        headers['Content-Type'] = 'application/json';
-        body = JSON.stringify(mutation.payload);
-      } else if (['POST', 'PATCH', 'PUT'].includes(mutation.method)) {
-        headers['Content-Type'] = 'application/json';
-        body = JSON.stringify({});
-      }
+    for (const mutation of pendingMutations) {
+      try {
+        console.log(`Syncing mutation: ${mutation.method} ${mutation.url}`);
+        
+        const headers: Record<string, string> = {};
+        let body: string | undefined = undefined;
 
-      const res = await fetch(mutation.url, {
-        method: mutation.method,
-        headers,
-        credentials: 'include',
-        body,
-      });
-
-      if (!res.ok) {
-        // If it's a 4xx error (like Bad Request or Not Found), don't block the whole queue forever
-        if (res.status >= 400 && res.status < 500) {
-          console.error(`Discarding invalid mutation ${mutation.id} due to ${res.status}`);
-          await db.syncQueue.delete(mutation.id!);
-          continue;
+        if (mutation.payload !== undefined && mutation.payload !== null) {
+          headers['Content-Type'] = 'application/json';
+          body = JSON.stringify(mutation.payload);
+        } else if (['POST', 'PATCH', 'PUT'].includes(mutation.method)) {
+          headers['Content-Type'] = 'application/json';
+          body = JSON.stringify({});
         }
-        throw new Error(`Server returned ${res.status}`);
-      }
 
-      // Success, remove from queue
-      await db.syncQueue.delete(mutation.id!);
-      
-    } catch (err: any) {
-      console.error('Sync failed for mutation:', mutation, err);
-      // Increment retry count
-      await db.syncQueue.update(mutation.id!, {
-        retryCount: mutation.retryCount + 1,
-        error: err.message,
-      });
-      // Stop syncing this batch if we hit a network error to preserve order
-      break; 
+        let res = await fetch(mutation.url, {
+          method: mutation.method,
+          headers,
+          credentials: 'include',
+          body,
+        });
+
+        // If 401 Unauthorized, try to refresh session token and retry once
+        if (res.status === 401) {
+          try {
+            const refreshRes = await fetch('/api/v1/auth/refresh', {
+              method: 'POST',
+              credentials: 'include',
+            });
+            if (refreshRes.ok) {
+              res = await fetch(mutation.url, {
+                method: mutation.method,
+                headers,
+                credentials: 'include',
+                body,
+              });
+            }
+          } catch (e) {
+            console.error('Failed to auto-refresh session during sync:', e);
+          }
+        }
+
+        if (!res.ok) {
+          // If it's a 4xx error (like Bad Request or Not Found, but NOT 401 Unauthorized), discard it
+          if (res.status !== 401 && res.status >= 400 && res.status < 500) {
+            console.error(`Discarding invalid mutation ${mutation.id} due to ${res.status}`);
+            await db.syncQueue.delete(mutation.id!);
+            continue;
+          }
+          throw new Error(`Server returned ${res.status}`);
+        }
+
+        // Success, remove from queue
+        await db.syncQueue.delete(mutation.id!);
+        
+      } catch (err: any) {
+        console.error('Sync failed for mutation:', mutation, err);
+        // Increment retry count
+        await db.syncQueue.update(mutation.id!, {
+          retryCount: mutation.retryCount + 1,
+          error: err.message,
+        });
+        // Stop syncing this batch if we hit a network error to preserve order
+        break; 
+      }
     }
+  } finally {
+    isSyncing = false;
   }
 }
 

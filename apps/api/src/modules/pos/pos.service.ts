@@ -257,6 +257,7 @@ export class PosService {
         table: true,
         guest: true,
         user: { select: { firstName: true, lastName: true } },
+        folio: { include: { reservation: { include: { room: true, guest: true } } } },
         items: {
           include: { menuItem: true, returnRequest: true },
         },
@@ -284,7 +285,7 @@ export class PosService {
         guest: true,
         user: { select: { firstName: true, lastName: true } },
         folio: { include: { reservation: { include: { room: true, guest: true } } } },
-        items: { include: { menuItem: true } }
+        items: { include: { menuItem: true, returnRequest: true } }
       },
       orderBy: { updatedAt: 'asc' }
     });
@@ -597,6 +598,36 @@ export class PosService {
     }
 
     return item;
+  }
+
+  async deliverAllOrderItems(orderId: string) {
+    // 1. Update all pending/preparing/ready items to SERVED
+    await this.prisma.posOrderItem.updateMany({
+      where: {
+        orderId,
+        status: { in: ['READY', 'PREPARING', 'PENDING'] }
+      },
+      data: { status: 'SERVED' }
+    });
+
+    // 2. Check if all items in the order are now SERVED or RETURNED
+    const order = await this.prisma.posOrder.findUnique({
+      where: { id: orderId },
+      include: { items: { include: { menuItem: { include: { taxes: true } } } } }
+    });
+
+    if (order) {
+      const allServed = order.items.every(i => ['SERVED', 'RETURNED'].includes(i.status));
+      if (allServed) {
+        await this.prisma.posOrder.update({
+          where: { id: orderId },
+          data: { status: 'SERVED' }
+        });
+        await this.recalculateOrderTotal(orderId);
+      }
+    }
+
+    return { success: true };
   }
 
   async checkoutOrder(orderId: string, data: { payments?: { method: string; amount: number }[], folioId?: string, discountAmount?: number, discountReason?: string }) {

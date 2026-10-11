@@ -132,6 +132,12 @@ export class PosController {
     return this.posService.updateOrderItemStatus(itemId, status);
   }
 
+  @Post('orders/:id/deliver-all')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'WAITSTAFF', 'CASHIER')
+  deliverAllOrderItems(@Param('id') id: string) {
+    return this.posService.deliverAllOrderItems(id);
+  }
+
   @Post('orders/:id/checkout')
   checkoutOrder(@Param('id') id: string, @Body() data: { payments?: { method: string; amount: number }[], folioId?: string, discountAmount?: number, discountReason?: string }) {
     return this.posService.checkoutOrder(id, data);

@@ -60,7 +60,7 @@ export class AuthController {
     res.setCookie('accessToken', accessToken, {
       ...cookieBase,
       path: '/',
-      maxAge: 15 * 60, // 15 minutes
+      maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
     res.setCookie('refreshToken', refreshToken, {
@@ -151,7 +151,7 @@ export class AuthController {
       domain: process.env.COOKIE_DOMAIN || undefined 
     };
 
-    res.setCookie('accessToken', accessToken, { ...cookieBase, path: '/', maxAge: 15 * 60 });
+    res.setCookie('accessToken', accessToken, { ...cookieBase, path: '/', maxAge: 7 * 24 * 60 * 60 });
     res.setCookie('refreshToken', newRefreshToken, {
       ...cookieBase,
       path: '/api/v1/auth/refresh',

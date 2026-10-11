@@ -48,7 +48,7 @@ export class AuthService {
     // Use signAsync with explicit options per token type
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: '1d' as any,
+      expiresIn: '7d' as any,
     });
 
     const refreshToken = this.jwtService.sign(payload, {
