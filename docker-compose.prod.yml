@@ -1,39 +1,41 @@
 version: '3.9'
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Yarvo Hotel PMS — Production Docker Compose
+#  Bella Casa / Kwalee Beach Resort — Production Docker Compose
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
-  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  # ── PostgreSQL 18 ──────────────────────────────────────────────────────────
   db:
-    image: postgres:16-alpine
-    container_name: yarvo-db
+    image: postgres:18-alpine
+    container_name: bellacasa-db-prod
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-yarvo}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-yarvo}
+      POSTGRES_USER: ${POSTGRES_USER:-bellacasa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-BellaCasa@DB2026}
+      POSTGRES_DB: ${POSTGRES_DB:-bellacasa}
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - yarvo_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-yarvo} -d ${POSTGRES_DB:-yarvo}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bellacasa} -d ${POSTGRES_DB:-bellacasa}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - yarvo_net
 
   # ── Redis ───────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: yarvo-redis
+    container_name: bellacasa-redis-prod
     restart: always
-    command: redis-server --requirepass ${REDIS_PASSWORD} --loglevel warning
+    command: redis-server --requirepass ${REDIS_PASSWORD:-BellaCasa@Redis2026} --loglevel warning
     volumes:
-      - yarvo_redis_data:/data
+      - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-BellaCasa@Redis2026}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -45,7 +47,7 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: yarvo-api
+    container_name: bellacasa-api
     restart: always
     depends_on:
       db:
@@ -56,36 +58,34 @@ services:
       - NODE_ENV=production
       - API_PORT=3001
       - API_HOST=0.0.0.0
-      - FRONTEND_URL=${FRONTEND_URL:-https://yarvohotel.com}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-yarvo}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-yarvo}
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL:-https://kwaleebeachresort.com}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-bellacasa}:${POSTGRES_PASSWORD:-BellaCasa@DB2026}@db:5432/${POSTGRES_DB:-bellacasa}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:-bellacasa_jwt_secret_access_2026}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-bellacasa_jwt_secret_refresh_2026}
       - JWT_ACCESS_EXPIRES_IN=15m
       - JWT_REFRESH_EXPIRES_IN=7d
-      - COOKIE_SECRET=${COOKIE_SECRET}
+      - COOKIE_SECRET=${COOKIE_SECRET:-bellacasa_cookie_secret_2026}
       - COOKIE_SECURE=${COOKIE_SECURE:-true}
-      - COOKIE_SAME_SITE=${COOKIE_SAME_SITE:-lax}
-      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-.yarvohotel.com}
-      - CORS_ORIGINS=${CORS_ORIGINS:-https://yarvohotel.com,https://www.yarvohotel.com,http://72.61.15.24:3050,http://localhost:3000}
-      - PUBLIC_API_KEY=${PUBLIC_API_KEY}
+      - COOKIE_SAME_SITE=${COOKIE_SAME_SITE:-strict}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-.kwaleebeachresort.com}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://kwaleebeachresort.com,https://www.kwaleebeachresort.com}
+      - PUBLIC_API_KEY=${PUBLIC_API_KEY:-yarvo_pub_prod_kwalee_7890abcdef}
       - RATE_LIMIT_TTL=60000
       - RATE_LIMIT_MAX=100
       - AUTH_RATE_LIMIT_TTL=900000
-      - AUTH_RATE_LIMIT_MAX=10
-      - STORAGE_PROVIDER=local
-      - STORAGE_LOCAL_PATH=./uploads
-      - LOG_LEVEL=info
-      - LOG_FORMAT=json
-      - SWAGGER_ENABLED=false
+      - AUTH_RATE_LIMIT_MAX=5
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-BellaCasa@Redis2026}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}
       - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
       - HOTEL_EMAIL=${HOTEL_EMAIL}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
     ports:
-      - "${API_PORT:-3051}:3001"
+      - "3001:3001"
     volumes:
-      - yarvo_uploads:/app/uploads
+      - uploads:/app/uploads
     networks:
       - yarvo_net
 
@@ -95,32 +95,32 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://yarvohotel.com}
-    container_name: yarvo-web
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.kwaleebeachresort.com}
+    container_name: bellacasa-web
     restart: always
     depends_on:
       - api
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://yarvohotel.com}
-      - NEXT_PUBLIC_APP_NAME="Yarvo Hotel PMS"
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.kwaleebeachresort.com}
+      - NEXT_PUBLIC_APP_NAME="Kwalee Beach Resort"
       - INTERNAL_API_URL=http://api:3001
-      - PUBLIC_API_KEY=${PUBLIC_API_KEY}
+      - PUBLIC_API_KEY=${PUBLIC_API_KEY:-yarvo_pub_prod_kwalee_7890abcdef}
       - PORT=3000
     ports:
-      - "${WEB_PORT:-3050}:3000"
+      - "3000:3000"
     volumes:
-      - yarvo_uploads:/app/apps/web/public/uploads
+      - uploads:/app/apps/web/public/uploads
     networks:
       - yarvo_net
 
 volumes:
-  yarvo_postgres_data:
-    name: yarvohotel_yarvo_postgres_data
-  yarvo_redis_data:
-    name: yarvohotel_yarvo_redis_data
-  yarvo_uploads:
-    name: yarvohotel_yarvo_uploads
+  postgres_data:
+    name: bellacasa_bellacasa_postgres_data
+  redis_data:
+    name: bellacasa_bellacasa_redis_data
+  uploads:
+    name: bellacasa_bellacasa_uploads
 
 networks:
   yarvo_net:
