@@ -6,52 +6,31 @@ import { Navbar } from "../components/landing/Navbar";
 import { Footer } from "../components/landing/Footer";
 import { BookingBarInteractive } from "../components/landing/BookingBarInteractive";
 import { 
-  Menu, X, MapPin, Phone, Mail, Instagram, Facebook, 
-  ChevronRight, ChevronLeft, Heart, Star, Calendar, Users, Home as HomeIcon, Check
+  MapPin, ChevronRight, ChevronLeft, Heart, Star
 } from "lucide-react";
-import Image from "next/image";
+import { 
+  WebsiteContent, 
+  HeroSectionContent, 
+  AboutSectionContent, 
+  EventsSectionContent, 
+  EventInquiryContent, 
+  MomentsGalleryContent, 
+  FinalCTAContent, 
+  CoverflowSlide, 
+  TestimonialsContent 
+} from "@/types/cms";
+import { DEFAULT_CMS_CONTENT, mergeWithDefaultContent } from "@/lib/default-cms-content";
 
 // ==========================================
-// 1. CONSTANTS & THEME
-// ==========================================
-const THEME = {
-  colors: {
-    ivory: "#FAF9F4",
-    charcoal: "#1A1A1A",
-    sand: "#E8E1D7",
-    ocean: "#2B4B5C",
-    green: "#4A5D4E",
-  }
-};
-
-const placeholder = (keyword: string, width = 1600, height = 900) => 
-  `https://images.unsplash.com/photo-${keyword}?auto=format&fit=crop&w=${width}&q=80`;
-
-const IMAGES = {
-  hero: "1611892440504-42a792e24d32", 
-  intro: "1582719508461-905c673771fd",
-  beach: "1507525428034-b723cf961d3e", 
-  pool: "1499793983690-e29da59ef1c2", // Fixed broken pool ID
-  bar: "1514362545857-3bc16c4c7d1b",
-  dining: "1544148103-0773bf10d330",
-  events: "1499793983690-e29da59ef1c2", // Hopefully this one works too
-  rooms: {
-    r1: "1582719508461-905c673771fd", 
-    r2: "1631049307264-da0ec9d70304", 
-  },
-  sunset: "1507525428034-b723cf961d3e"
-};
-
-// ==========================================
-// 2. COMPONENTS
+// 1. COMPONENTS
 // ==========================================
 
-const Hero = () => {
+const Hero = ({ data }: { data: HeroSectionContent }) => {
   return (
     <section className="relative min-h-[100svh] w-full flex flex-col justify-center pt-32 pb-32 px-6 md:px-12">
       <div className="absolute inset-0 z-0">
         <img 
-          src={placeholder(IMAGES.hero)} 
+          src={data.bgImage || DEFAULT_CMS_CONTENT.hero.bgImage} 
           alt="Kwalee Beach Resort" 
           className="w-full h-full object-cover"
         />
@@ -61,20 +40,26 @@ const Hero = () => {
       <div className="relative z-10 max-w-4xl text-white">
         <div className="flex items-center space-x-3 mb-6 text-xs md:text-sm tracking-[0.2em] uppercase">
           <MapPin size={16} />
-          <span>Liberia • West African Coast</span>
+          <span>{data.subtitle || "Liberia • West African Coast"}</span>
         </div>
-        <h1 className="text-4xl md:text-5xl lg:text-7xl font-serif leading-[1.1] mb-8">
-          WHERE THE OCEAN<br className="hidden md:block" /> MEETS YOUR ESCAPE.
+        <h1 className="text-4xl md:text-5xl lg:text-7xl font-serif leading-[1.1] mb-8 whitespace-pre-line">
+          {data.title || "WHERE THE OCEAN\nMEETS YOUR ESCAPE."}
         </h1>
         <p className="text-base md:text-lg lg:text-xl font-sans font-light max-w-2xl mb-10 opacity-90 leading-relaxed">
-          Discover the beauty of Kwalee Beach Resort — where the beach, pool, dining, events and coastal atmosphere come together for an unforgettable experience.
+          {data.description || "Discover the beauty of Kwalee Beach Resort — where the beach, pool, dining, events and coastal atmosphere come together for an unforgettable experience."}
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
-          <Link href="#book" className="px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm text-center hover:bg-[#E8E1D7] transition-colors">
-            Book Your Stay
+          <Link 
+            href={data.bookButtonLink || "#book"} 
+            className="px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm text-center hover:bg-[#E8E1D7] transition-colors"
+          >
+            {data.bookButtonText || "Book Your Stay"}
           </Link>
-          <Link href="#experience" className="px-8 py-4 border border-white text-white uppercase tracking-widest text-sm text-center hover:bg-white hover:text-[#1F1F1F] transition-colors">
-            Explore the Resort
+          <Link 
+            href={data.exploreButtonLink || "#experience"} 
+            className="px-8 py-4 border border-white text-white uppercase tracking-widest text-sm text-center hover:bg-white hover:text-[#1F1F1F] transition-colors"
+          >
+            {data.exploreButtonText || "Explore the Resort"}
           </Link>
         </div>
       </div>
@@ -82,25 +67,25 @@ const Hero = () => {
   );
 };
 
-
-
-const IntroSection = () => {
+const IntroSection = ({ data }: { data: AboutSectionContent }) => {
   return (
     <section id="experience" className="px-6 py-24 md:py-40 max-w-7xl mx-auto flex flex-col items-center">
-
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-20 items-center w-full">
         <div className="order-2 lg:order-1 flex flex-col items-start pt-4">
           <span className="px-4 py-1.5 rounded-lg border border-gray-200 text-sm font-semibold tracking-wide text-gray-800 mb-8 uppercase shadow-sm">
-            About Us
+            {data.badge || "About Us"}
           </span>
-          <h3 className="text-4xl md:text-5xl font-sans font-medium text-[#1F1F1F] leading-[1.15] mb-6 tracking-tight">
-            A Place to Slow Down.<br/>Stay Better, Travel Happier.
+          <h3 className="text-4xl md:text-5xl font-sans font-medium text-[#1F1F1F] leading-[1.15] mb-6 tracking-tight whitespace-pre-line">
+            {data.title || "A Place to Slow Down.\nStay Better, Travel Happier."}
           </h3>
           <p className="text-gray-600 text-base md:text-lg mb-10 leading-relaxed max-w-md">
-            Escape to a coastal destination where days are shaped by the rhythm of the ocean, warm hospitality, good food, refreshing swims and unforgettable moments by the beach.
+            {data.description || "Escape to a coastal destination where days are shaped by the rhythm of the ocean, warm hospitality, good food, refreshing swims and unforgettable moments by the beach."}
           </p>
-          <Link href="#gallery" className="bg-[#F5A623] text-white px-8 py-3.5 rounded-md font-medium hover:bg-[#D08C1D] transition-colors shadow-md">
-            Read More
+          <Link 
+            href={data.buttonLink || "#gallery"} 
+            className="bg-[#F5A623] text-white px-8 py-3.5 rounded-md font-medium hover:bg-[#D08C1D] transition-colors shadow-md"
+          >
+            {data.buttonText || "Read More"}
           </Link>
         </div>
         
@@ -108,20 +93,22 @@ const IntroSection = () => {
           {/* Main Large Horizontal Image */}
           <div className="absolute top-0 right-0 w-[85%] aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl z-10 group cursor-pointer">
             <img 
-              src={placeholder(IMAGES.rooms.r1)} 
-              alt="Room" 
+              src={data.mainImage || DEFAULT_CMS_CONTENT.about.mainImage} 
+              alt={data.mainImageTitle || "Room"} 
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
-            <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-5 py-3 rounded-xl shadow-lg">
-              <h4 className="font-bold text-lg text-gray-900">Ocean Room</h4>
-              <p className="text-sm text-gray-600 font-medium mt-0.5">Wake up to the sound of waves</p>
-            </div>
+            {(data.mainImageTitle || data.mainImageSubtitle) && (
+              <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-5 py-3 rounded-xl shadow-lg">
+                <h4 className="font-bold text-lg text-gray-900">{data.mainImageTitle}</h4>
+                <p className="text-sm text-gray-600 font-medium mt-0.5">{data.mainImageSubtitle}</p>
+              </div>
+            )}
           </div>
           
           {/* Second Overlapping Horizontal Image */}
           <div className="absolute bottom-0 left-0 w-[60%] aspect-video rounded-2xl overflow-hidden shadow-xl z-20 group cursor-pointer border-4 border-white bg-gray-100">
             <img 
-              src={placeholder(IMAGES.pool)} 
+              src={data.secondaryImage || DEFAULT_CMS_CONTENT.about.secondaryImage} 
               alt="Pool" 
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
@@ -162,7 +149,7 @@ const ServicesSection = () => {
       features: "2 Bed • 2 Bath",
       price: "$35/night",
       rating: "4.8",
-      img: placeholder(IMAGES.rooms.r1)
+      img: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80"
     },
     {
       name: "Family Triple Tent",
@@ -170,7 +157,7 @@ const ServicesSection = () => {
       features: "3 Bed • 2 Bath",
       price: "$45/night",
       rating: "4.8",
-      img: placeholder(IMAGES.rooms.r2)
+      img: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80"
     },
     {
       name: "Deluxe Family Suite",
@@ -178,7 +165,7 @@ const ServicesSection = () => {
       features: "4 Bed • 3 Bath",
       price: "$120/night",
       rating: "4.9",
-      img: placeholder(IMAGES.hero)
+      img: "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80"
     }
   ];
 
@@ -202,16 +189,6 @@ const ServicesSection = () => {
         </div>
 
         <div className="relative group">
-          {/* Arrow Left */}
-          <button className="absolute -left-6 top-[40%] -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-600 hover:text-black transition opacity-0 group-hover:opacity-100 hidden md:flex border border-gray-100 cursor-pointer">
-            <ChevronLeft size={24} />
-          </button>
-          
-          {/* Arrow Right */}
-          <button className="absolute -right-6 top-[40%] -translate-y-1/2 z-10 w-12 h-12 bg-[#F5A623] rounded-full shadow-lg flex items-center justify-center text-white hover:bg-[#D08C1D] transition opacity-0 group-hover:opacity-100 hidden md:flex cursor-pointer">
-            <ChevronRight size={24} />
-          </button>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {rooms.map((room, idx) => (
               <Link href="/stay" key={idx} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col group cursor-pointer transition-shadow hover:shadow-xl">
@@ -249,72 +226,48 @@ const ServicesSection = () => {
   );
 };
 
-
-const CoverflowTestimonialsSection = () => {
+const CoverflowTestimonialsSection = ({ 
+  slides, 
+  testimonials 
+}: { 
+  slides: CoverflowSlide[]; 
+  testimonials: TestimonialsContent; 
+}) => {
   const [activeIndex, setActiveIndex] = useState(2);
   const [isHovered, setIsHovered] = useState(false);
   const [testimonialIndex, setTestimonialIndex] = useState(0);
 
-  const slides = [
-    { id: 0, image: placeholder(IMAGES.beach), title: "Ocean Breeze", subtitle: "Relaxation at its best." },
-    { id: 1, image: placeholder(IMAGES.bar), title: "Evening Cocktails", subtitle: "Toast to the sunset." },
-    { id: 2, image: placeholder(IMAGES.dining), title: "Festive Grand\nInterior", subtitle: "Adventure is never far away." },
-    { id: 3, image: placeholder(IMAGES.events), title: "Unforgettable\nEvents", subtitle: "Celebrate your moments." },
-    { id: 4, image: placeholder(IMAGES.hero), title: "Luxury Suites", subtitle: "Stay in comfort." },
-  ];
-
-  const testimonials = [
-    {
-      rating: "4.80",
-      reviews: "2,898 review",
-      text: "Brilliant staff and exceptional customer service. The place is fantastic. Great facilities and atmosphere. Buffet breakfast daily is very generous.",
-      author: "Karar Mahmud",
-      source: "TripAdvisor",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-    },
-    {
-      rating: "5.00",
-      reviews: "1,204 review",
-      text: "An unforgettable experience! The oceanfront tents were amazing and the service was absolutely top-notch. Highly recommended for couples.",
-      author: "Sarah Jenkins",
-      source: "Google Reviews",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-    },
-    {
-      rating: "4.90",
-      reviews: "856 review",
-      text: "The dining experience was out of this world. Fresh seafood and perfectly crafted cocktails. We will definitely be coming back next year.",
-      author: "Michael Chen",
-      source: "Booking.com",
-      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-    }
-  ];
+  const slideList = slides && slides.length > 0 ? slides : DEFAULT_CMS_CONTENT.coverflow;
+  const reviewList = testimonials?.items && testimonials.items.length > 0 
+    ? testimonials.items 
+    : DEFAULT_CMS_CONTENT.testimonials.items;
 
   useEffect(() => {
-    if (isHovered) return;
+    if (isHovered || slideList.length === 0) return;
     const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % slides.length);
+      setActiveIndex((prev) => (prev + 1) % slideList.length);
     }, 3000);
     return () => clearInterval(timer);
-  }, [isHovered]);
+  }, [isHovered, slideList.length]);
 
   const getPositionStyles = (index: number) => {
-    const diff = (index - activeIndex + slides.length) % slides.length;
+    const total = slideList.length;
+    const diff = (index - activeIndex + total) % total;
     if (diff === 0) {
       return "z-20 left-[50%] -translate-x-[50%] w-[65%] md:w-[45%] lg:w-[35%] opacity-100 scale-100 shadow-2xl border-[8px] border-white/10 blur-0";
-    } else if (diff === 1 || diff === slides.length - 4) {
+    } else if (diff === 1 || diff === total - 4) {
       return "z-10 left-[75%] -translate-x-[50%] w-[35%] md:w-[25%] lg:w-[22%] opacity-80 scale-90 blur-[1px] shadow-lg hidden sm:block";
-    } else if (diff === 2 || diff === slides.length - 3) {
+    } else if (diff === 2 || diff === total - 3) {
       return "z-0 left-[95%] -translate-x-[50%] w-[25%] md:w-[20%] opacity-40 scale-75 blur-[2px] hidden sm:block";
-    } else if (diff === 3 || diff === slides.length - 2) {
+    } else if (diff === 3 || diff === total - 2) {
       return "z-0 left-[5%] -translate-x-[50%] w-[25%] md:w-[20%] opacity-40 scale-75 blur-[2px] hidden sm:block";
-    } else if (diff === 4 || diff === slides.length - 1) {
+    } else if (diff === 4 || diff === total - 1) {
       return "z-10 left-[25%] -translate-x-[50%] w-[35%] md:w-[25%] lg:w-[22%] opacity-80 scale-90 blur-[1px] shadow-lg hidden sm:block";
     }
     return "hidden";
   };
 
-  const currentTestimonial = testimonials[testimonialIndex];
+  const currentTestimonial = reviewList[testimonialIndex % reviewList.length];
 
   return (
     <section className="py-24 bg-[#FAF9F4] px-6 border-t border-gray-100 overflow-hidden">
@@ -326,17 +279,18 @@ const CoverflowTestimonialsSection = () => {
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          {slides.map((slide, idx) => {
-            const diff = (idx - activeIndex + slides.length) % slides.length;
+          {slideList.map((slide, idx) => {
+            const diff = (idx - activeIndex + slideList.length) % slideList.length;
             const isCenter = diff === 0;
             return (
               <div 
-                key={slide.id}
+                key={slide.id || idx}
                 onClick={() => setActiveIndex(idx)}
                 className={`absolute aspect-[3/4] rounded-xl overflow-hidden transition-all duration-700 cursor-pointer group ${getPositionStyles(idx)}`}
               >
                 <img 
                   src={slide.image} 
+                  alt={slide.title}
                   className={`w-full h-full object-cover transition-all duration-700 ${isCenter ? 'brightness-75 group-hover:brightness-90' : 'brightness-100'}`} 
                 />
                 {isCenter && (
@@ -350,101 +304,116 @@ const CoverflowTestimonialsSection = () => {
           })}
         </div>
 
-                {/* Testimonials Redesign */}
-        <div className="max-w-6xl w-full flex flex-col lg:flex-row justify-between gap-16 lg:gap-20 mt-12 bg-white p-10 md:p-16 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
-          {/* Left Side */}
-          <div className="lg:w-[35%] flex flex-col">
-            <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-4 block">Testimonials</span>
-            <h2 className="text-3xl md:text-5xl font-serif text-[#1F1F1F] leading-[1.1] mb-6">
-              What Our<br/>Guests Say
-            </h2>
-            <p className="text-[#6B6F72] text-sm leading-relaxed max-w-sm mb-12 font-light">
-              Experience Kwalee Beach Resort through the eyes of those who have stayed with us. We take pride in delivering unforgettable moments and exceptional coastal hospitality.
-            </p>
-            
-            <div className="flex items-center gap-4 mt-auto">
-              <button 
-                onClick={() => setTestimonialIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length)}
-                className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#F5A623] hover:text-white hover:border-[#F5A623] transition-all shadow-sm cursor-pointer"
-              >
-                <ChevronLeft size={20} strokeWidth={1.5} />
-              </button>
-              <button 
-                onClick={() => setTestimonialIndex((prev) => (prev + 1) % testimonials.length)}
-                className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#F5A623] hover:text-white hover:border-[#F5A623] transition-all shadow-sm cursor-pointer"
-              >
-                <ChevronRight size={20} strokeWidth={1.5} />
-              </button>
+        {/* Testimonials */}
+        {currentTestimonial && (
+          <div className="max-w-6xl w-full flex flex-col lg:flex-row justify-between gap-16 lg:gap-20 mt-12 bg-white p-10 md:p-16 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+            {/* Left Side */}
+            <div className="lg:w-[35%] flex flex-col">
+              <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-4 block">
+                {testimonials.badge || "Testimonials"}
+              </span>
+              <h2 className="text-3xl md:text-5xl font-serif text-[#1F1F1F] leading-[1.1] mb-6 whitespace-pre-line">
+                {testimonials.title || "What Our\nGuests Say"}
+              </h2>
+              <p className="text-[#6B6F72] text-sm leading-relaxed max-w-sm mb-12 font-light">
+                {testimonials.description || "Experience Kwalee Beach Resort through the eyes of those who have stayed with us. We take pride in delivering unforgettable moments and exceptional coastal hospitality."}
+              </p>
               
-              <div className="flex items-center ml-8 hidden sm:flex">
-                <div className="flex -space-x-3">
-                  <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
-                  <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
-                  <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
-                </div>
-                <div className="ml-4 flex flex-col">
-                  <span className="text-sm font-bold text-gray-900 leading-tight">4.8/5</span>
-                  <span className="text-[10px] uppercase tracking-wider text-[#6B6F72]/80 font-bold">from 2,800+ reviews</span>
+              <div className="flex items-center gap-4 mt-auto">
+                <button 
+                  onClick={() => setTestimonialIndex((prev) => (prev - 1 + reviewList.length) % reviewList.length)}
+                  className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#F5A623] hover:text-white hover:border-[#F5A623] transition-all shadow-sm cursor-pointer"
+                  aria-label="Previous review"
+                >
+                  <ChevronLeft size={20} strokeWidth={1.5} />
+                </button>
+                <button 
+                  onClick={() => setTestimonialIndex((prev) => (prev + 1) % reviewList.length)}
+                  className="w-12 h-12 rounded-full border border-gray-200 text-gray-600 flex items-center justify-center hover:bg-[#F5A623] hover:text-white hover:border-[#F5A623] transition-all shadow-sm cursor-pointer"
+                  aria-label="Next review"
+                >
+                  <ChevronRight size={20} strokeWidth={1.5} />
+                </button>
+                
+                <div className="flex items-center ml-8 hidden sm:flex">
+                  <div className="flex -space-x-3">
+                    <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
+                    <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
+                    <img className="w-10 h-10 rounded-full border-[3px] border-white object-cover shadow-sm" src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Guest"/>
+                  </div>
+                  <div className="ml-4 flex flex-col">
+                    <span className="text-sm font-bold text-gray-900 leading-tight">
+                      {testimonials.ratingScore || "4.8/5"}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-[#6B6F72]/80 font-bold">
+                      {testimonials.ratingCount || "from 2,800+ reviews"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Right Side */}
-          <div className="lg:w-[60%] flex flex-col justify-center relative">
-            <div className="absolute -top-6 -left-6 text-[#F5A623] opacity-10 pointer-events-none">
-              <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14.017 21L16.41 14.904C16.634 14.303 16.746 13.682 16.746 13.044V3H23V12.784C23 15.65 21.848 18.232 19.544 21H14.017ZM3 21L5.393 14.904C5.617 14.303 5.729 13.682 5.729 13.044V3H12V12.784C12 15.65 10.848 18.232 8.544 21H3Z" />
-              </svg>
-            </div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center gap-1 mb-8">
-                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
-                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
-                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
-                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
-                 <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
+            {/* Right Side */}
+            <div className="lg:w-[60%] flex flex-col justify-center relative">
+              <div className="absolute -top-6 -left-6 text-[#F5A623] opacity-10 pointer-events-none">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14.017 21L16.41 14.904C16.634 14.303 16.746 13.682 16.746 13.044V3H23V12.784C23 15.65 21.848 18.232 19.544 21H14.017ZM3 21L5.393 14.904C5.617 14.303 5.729 13.682 5.729 13.044V3H12V12.784C12 15.65 10.848 18.232 8.544 21H3Z" />
+                </svg>
               </div>
               
-              <h4 className="text-xl md:text-3xl font-serif text-[#1F1F1F] leading-relaxed mb-10 transition-opacity duration-300 min-h-[120px] italic">
-                "{currentTestimonial.text}"
-              </h4>
-              
-              <div className="flex items-center gap-5 pt-6 border-t border-gray-100">
-                 <img className="w-14 h-14 rounded-full object-cover transition-all duration-300 shadow-sm" src={currentTestimonial.avatar} alt={currentTestimonial.author} />
-                 <div>
-                   <h5 className="font-bold text-base text-gray-900 tracking-wide">{currentTestimonial.author}</h5>
-                   <p className="text-xs text-[#6B6F72]/80 mt-1 uppercase tracking-widest">
-                     Via {currentTestimonial.source}
-                   </p>
-                 </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-1 mb-8">
+                   <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
+                   <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
+                   <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
+                   <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
+                   <Star size={16} className="fill-[#F5A623] text-[#F5A623]" />
+                </div>
+                
+                <h4 className="text-xl md:text-3xl font-serif text-[#1F1F1F] leading-relaxed mb-10 transition-opacity duration-300 min-h-[120px] italic">
+                  "{currentTestimonial.text}"
+                </h4>
+                
+                <div className="flex items-center gap-5 pt-6 border-t border-gray-100">
+                   <img 
+                     className="w-14 h-14 rounded-full object-cover transition-all duration-300 shadow-sm" 
+                     src={currentTestimonial.avatar} 
+                     alt={currentTestimonial.author} 
+                   />
+                   <div>
+                     <h5 className="font-bold text-base text-gray-900 tracking-wide">{currentTestimonial.author}</h5>
+                     <p className="text-xs text-[#6B6F72]/80 mt-1 uppercase tracking-widest">
+                       Via {currentTestimonial.source}
+                     </p>
+                   </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
 };
 
-const EventsSection = () => {
+const EventsSection = ({ data }: { data: EventsSectionContent }) => {
   return (
     <section id="events" className="py-24 md:py-40 bg-[#1B2418] text-white">
       <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-12 gap-16">
-        
         <div className="lg:col-span-5 flex flex-col justify-center">
-          <span className="text-xs uppercase tracking-[0.2em] text-[#E8E1D7] block mb-6">Events & Gatherings</span>
-          <h2 className="text-4xl md:text-6xl font-serif leading-[1.1] mb-8">
-            YOUR MOMENT.<br/>YOUR PEOPLE.<br/>YOUR BEACH.
+          <span className="text-xs uppercase tracking-[0.2em] text-[#E8E1D7] block mb-6">
+            {data.badge || "Events & Gatherings"}
+          </span>
+          <h2 className="text-4xl md:text-6xl font-serif leading-[1.1] mb-8 whitespace-pre-line">
+            {data.title || "YOUR MOMENT.\nYOUR PEOPLE.\nYOUR BEACH."}
           </h2>
           <p className="text-lg font-light leading-relaxed mb-12 opacity-80">
-            From birthdays and private celebrations to corporate gatherings, parties and special occasions, Kwalee Beach Resort provides a memorable coastal setting for events.
+            {data.description || "From birthdays and private celebrations to corporate gatherings, parties and special occasions, Kwalee Beach Resort provides a memorable coastal setting for events."}
           </p>
           
           <ul className="space-y-4 mb-12">
-            {["Birthdays", "Weddings & Celebrations", "Private Parties", "Corporate Events", "Beach Gatherings"].map(item => (
-              <li key={item} className="flex items-center gap-4 text-lg font-serif">
+            {(data.highlights || []).map((item, idx) => (
+              <li key={idx} className="flex items-center gap-4 text-lg font-serif">
                 <div className="w-1.5 h-1.5 bg-[#E8E1D7] rounded-full" />
                 {item}
               </li>
@@ -452,17 +421,20 @@ const EventsSection = () => {
           </ul>
           
           <div>
-            <Link href="#inquiry" className="inline-block px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors">
-              Plan Your Event
+            <Link 
+              href={data.buttonLink || "#inquiry"} 
+              className="inline-block px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors"
+            >
+              {data.buttonText || "Plan Your Event"}
             </Link>
           </div>
         </div>
 
-        <div className="lg:col-span-7 relative h-[600px] lg:h-auto">
+        <div className="lg:col-span-7 relative h-[450px] lg:h-auto min-h-[400px]">
           <img 
-            src={placeholder(IMAGES.events)} 
+            src={data.image || DEFAULT_CMS_CONTENT.events.image} 
             alt="Events at Kwalee" 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover rounded-sm"
           />
         </div>
       </div>
@@ -470,18 +442,25 @@ const EventsSection = () => {
   );
 };
 
-const EventInquiryForm = () => {
+const EventInquiryForm = ({ data }: { data: EventInquiryContent }) => {
+  const whatsappDigits = (data.whatsappNumber || "+231777000000").replace(/[^0-9]/g, '');
+
   return (
     <section id="inquiry" className="py-24 md:py-32 px-6 relative bg-[#FAF9F4]">
-      {/* Decorative background elements */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-white"></div>
       
       <div className="max-w-4xl mx-auto relative z-10">
         <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-gray-100 p-8 md:p-16">
           <div className="text-center mb-12">
-            <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-4 block">Plan With Us</span>
-            <h2 className="text-3xl md:text-5xl font-serif mb-4 text-[#1F1F1F]">Event Inquiry</h2>
-            <p className="text-[#6B6F72] font-light max-w-lg mx-auto">Tell us about your upcoming event and our dedicated team will get in touch to bring your vision to life.</p>
+            <span className="text-xs font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-4 block">
+              {data.badge || "Plan With Us"}
+            </span>
+            <h2 className="text-3xl md:text-5xl font-serif mb-4 text-[#1F1F1F]">
+              {data.title || "Event Inquiry"}
+            </h2>
+            <p className="text-[#6B6F72] font-light max-w-lg mx-auto">
+              {data.description || "Tell us about your upcoming event and our dedicated team will get in touch to bring your vision to life."}
+            </p>
           </div>
           
           <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
@@ -525,11 +504,16 @@ const EventInquiryForm = () => {
             
             <div className="flex flex-col sm:flex-row gap-4 pt-6">
               <button type="submit" className="flex-1 px-8 py-4 bg-[#1B2418] text-white uppercase tracking-widest text-xs font-bold rounded-xl shadow-lg shadow-black/10 hover:bg-[#F5A623] hover:shadow-[#F5A623]/20 hover:-translate-y-0.5 transition-all duration-300">
-                Send Request
+                {data.submitButtonText || "Send Request"}
               </button>
-              <Link href="https://wa.me/23100000000" target="_blank" rel="noopener noreferrer" className="flex-1 px-8 py-4 border border-gray-200 bg-white text-[#1F1F1F] uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:border-[#25D366] hover:text-[#25D366] transition-all duration-300">
-                Chat on WhatsApp
-              </Link>
+              <a 
+                href={`https://wa.me/${whatsappDigits}`} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="flex-1 px-8 py-4 border border-gray-200 bg-white text-[#1F1F1F] uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:border-[#25D366] hover:text-[#25D366] transition-all duration-300"
+              >
+                {data.whatsappButtonText || "Chat on WhatsApp"}
+              </a>
             </div>
           </form>
         </div>
@@ -538,30 +522,36 @@ const EventInquiryForm = () => {
   );
 };
 
-const GallerySection = () => {
+const GallerySection = ({ data }: { data: MomentsGalleryContent }) => {
+  const images = data.images && data.images.length > 0 ? data.images : DEFAULT_CMS_CONTENT.gallery.images;
+
   return (
     <section id="gallery" className="py-24 bg-[#FAF9F4] px-6">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-3xl md:text-5xl font-serif text-center mb-16">MOMENTS AT KWALEE</h2>
+        <h2 className="text-3xl md:text-5xl font-serif text-center mb-16 tracking-wide">
+          {data.title || "MOMENTS AT KWALEE"}
+        </h2>
         <div className="columns-1 sm:columns-2 md:columns-3 gap-6 space-y-6">
-          <img src={placeholder("1507525428034-b723cf961d3e", 600, 800)} className="w-full rounded-sm" alt="Gallery" />
-          <img src={placeholder("1576013462273-d1a460851ec0", 600, 600)} className="w-full rounded-sm" alt="Gallery" />
-          <img src={placeholder("1544148103-0773bf10d330", 600, 900)} className="w-full rounded-sm" alt="Gallery" />
-          <img src={placeholder("1514362545857-3bc16c4c7d1b", 600, 500)} className="w-full rounded-sm" alt="Gallery" />
-          <img src={placeholder("1511795409834-ef04bbd61620", 600, 700)} className="w-full rounded-sm" alt="Gallery" />
-          <img src={placeholder("1582719508461-905c673771fd", 600, 600)} className="w-full rounded-sm" alt="Gallery" />
+          {images.map((imgUrl, idx) => (
+            <img 
+              key={idx} 
+              src={imgUrl} 
+              className="w-full rounded-sm object-cover shadow-sm hover:shadow-lg transition-shadow duration-300" 
+              alt={`Gallery moment ${idx + 1}`} 
+            />
+          ))}
         </div>
       </div>
     </section>
   );
-}
+};
 
-const FinalCTA = () => {
+const FinalCTA = ({ data }: { data: FinalCTAContent }) => {
   return (
     <section className="relative h-[80vh] flex items-center justify-center text-center px-6">
       <div className="absolute inset-0 z-0">
         <img 
-          src={placeholder(IMAGES.sunset)} 
+          src={data.bgImage || DEFAULT_CMS_CONTENT.finalCta.bgImage} 
           alt="Sunset at Kwalee" 
           className="w-full h-full object-cover"
         />
@@ -569,16 +559,24 @@ const FinalCTA = () => {
       </div>
       
       <div className="relative z-10 max-w-2xl text-white">
-        <h2 className="text-5xl md:text-7xl font-serif mb-8 leading-[1.1]">
-          YOUR ESCAPE<br/>STARTS HERE.
+        <h2 className="text-5xl md:text-7xl font-serif mb-8 leading-[1.1] whitespace-pre-line">
+          {data.title || "YOUR ESCAPE\nSTARTS HERE."}
         </h2>
-        <p className="text-xl font-light mb-12 opacity-90">Come for the beach. Stay for the experience.</p>
+        <p className="text-xl font-light mb-12 opacity-90">
+          {data.subtitle || "Come for the beach. Stay for the experience."}
+        </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="#book" className="px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors">
-            Book Your Stay
+          <Link 
+            href={data.button1Link || "#book"} 
+            className="px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors"
+          >
+            {data.button1Text || "Book Your Stay"}
           </Link>
-          <Link href="#inquiry" className="px-8 py-4 border border-white text-white uppercase tracking-widest text-sm hover:bg-white hover:text-[#1F1F1F] transition-colors">
-            Plan An Event
+          <Link 
+            href={data.button2Link || "#inquiry"} 
+            className="px-8 py-4 border border-white text-white uppercase tracking-widest text-sm hover:bg-white hover:text-[#1F1F1F] transition-colors"
+          >
+            {data.button2Text || "Plan An Event"}
           </Link>
         </div>
       </div>
@@ -586,68 +584,85 @@ const FinalCTA = () => {
   );
 };
 
+// ==========================================
+// 2. MAIN LANDING PAGE
+// ==========================================
 export default function LandingPage() {
+  const [content, setContent] = useState<WebsiteContent>(DEFAULT_CMS_CONTENT);
+
+  useEffect(() => {
+    fetch('/api/cms', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          setContent(mergeWithDefaultContent(json.data));
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load live CMS content:', err);
+      });
+  }, []);
+
   return (
     <main className="font-sans text-[#1F1F1F] bg-[#FAF9F4] selection:bg-[#E8E1D7] selection:text-[#1F1F1F]">
-      <Navbar />
-      <Hero />
+      <Navbar general={content.general} />
+      <Hero data={content.hero} />
       <BookingBarInteractive />
-      <IntroSection />
+      <IntroSection data={content.about} />
       
       <FeatureSection 
         id="beach"
-        label="The Beach"
-        title="YOUR PLACE BY THE OCEAN."
-        text="Whether you're looking for a quiet afternoon by the water, time with friends or an unforgettable celebration, the beach is at the heart of the Kwalee experience."
-        image={placeholder(IMAGES.beach)}
-        cta="Explore the Beach"
-        ctaHref="/#gallery"
+        label={content.features.beach.label}
+        title={content.features.beach.title}
+        text={content.features.beach.description}
+        image={content.features.beach.image}
+        cta={content.features.beach.cta}
+        ctaHref={content.features.beach.ctaHref}
       />
       
       <FeatureSection 
         id="pool"
-        label="The Pool"
-        title="TAKE A DIP. STAY A LITTLE LONGER."
-        text="Take a refreshing swim, relax beside the water and spend the afternoon doing absolutely nothing. Enjoy poolside service, comfortable loungers, and perfect coastal temperatures."
-        image={placeholder(IMAGES.pool)}
+        label={content.features.pool.label}
+        title={content.features.pool.title}
+        text={content.features.pool.description}
+        image={content.features.pool.image}
         reverse={true}
+        cta={content.features.pool.cta}
+        ctaHref={content.features.pool.ctaHref}
       />
       
       <FeatureSection 
         id="bar"
-        label="The Bar"
-        title="GOOD DRINKS. GOOD PEOPLE. GOOD TIMES."
-        text="Cold drinks, good company and the perfect setting for sunset. Our coastal bar offers signature cocktails, mocktails, and a curated selection of beverages."
-        image={placeholder(IMAGES.bar)}
-        cta="Discover the Bar"
-        ctaHref="/dining"
+        label={content.features.bar.label}
+        title={content.features.bar.title}
+        text={content.features.bar.description}
+        image={content.features.bar.image}
+        cta={content.features.bar.cta}
+        ctaHref={content.features.bar.ctaHref}
       />
       
       <FeatureSection 
         id="dining"
-        label="Dining"
-        title="TASTE THE COAST."
-        text="Enjoy fresh food and drinks in a relaxed coastal atmosphere. Our restaurant features local and international flavors crafted with care, perfect for a sunset dinner."
-        image={placeholder(IMAGES.dining)}
+        label={content.features.dining.label}
+        title={content.features.dining.title}
+        text={content.features.dining.description}
+        image={content.features.dining.image}
         reverse={true}
-        cta="View Dining"
-        ctaHref="/dining"
+        cta={content.features.dining.cta}
+        ctaHref={content.features.dining.ctaHref}
       />
       
       <ServicesSection />
-        <CoverflowTestimonialsSection />
-      <EventsSection />
-      <EventInquiryForm />
-      <GallerySection />
+      <CoverflowTestimonialsSection 
+        slides={content.coverflow} 
+        testimonials={content.testimonials} 
+      />
+      <EventsSection data={content.events} />
+      <EventInquiryForm data={content.inquiry} />
+      <GallerySection data={content.gallery} />
       
-      <section className="py-24 bg-white text-center px-6">
-        <span className="text-xs uppercase tracking-[0.2em] text-[#4A5D4E] block mb-12">Social Proof</span>
-        <h2 className="text-3xl md:text-4xl font-serif text-[#1F1F1F] mb-12">WHAT OUR GUESTS SAY</h2>
-        <p className="text-[#6B6F72] italic max-w-2xl mx-auto">"[GUEST REVIEWS COMING SOON]"</p>
-      </section>
-      
-      <FinalCTA />
-      <Footer />
+      <FinalCTA data={content.finalCta} />
+      <Footer general={content.general} />
     </main>
   );
 }

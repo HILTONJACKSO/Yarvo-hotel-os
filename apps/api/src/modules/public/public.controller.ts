@@ -82,4 +82,11 @@ export class PublicController {
   async getActivities() {
     return this.publicService.getActivities();
   }
+
+  @Get('website-content')
+  @ApiOperation({ summary: 'Get published website CMS content' })
+  @ApiResponse({ status: 200, description: 'Website content configuration.' })
+  async getWebsiteContent() {
+    return { data: await this.publicService.getWebsiteContent() };
+  }
 }

@@ -10,6 +10,19 @@ export class PublicService {
     return this.prisma.activity.findMany({ where: { isActive: true } });
   }
 
+  async getWebsiteContent() {
+    const property = await this.prisma.property.findFirst({
+      select: {
+        id: true,
+        websiteContent: true,
+      }
+    });
+    return {
+      propertyId: property?.id,
+      content: property?.websiteContent || {},
+    };
+  }
+
   private readonly logger = new Logger(PublicService.name);
 
   constructor(private prisma: PrismaService) {}

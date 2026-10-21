@@ -7,11 +7,24 @@ import Image from 'next/image';
 import { Bed, Users, Wifi, Wind, Tv, Coffee } from 'lucide-react';
 import { BookingBarInteractive } from '@/components/landing/BookingBarInteractive';
 
+import { DEFAULT_CMS_CONTENT, mergeWithDefaultContent } from '@/lib/default-cms-content';
+import { WebsiteContent } from '@/types/cms';
+
 export default function StayPage() {
   const [roomTypes, setRoomTypes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [cmsContent, setCmsContent] = useState<WebsiteContent>(DEFAULT_CMS_CONTENT);
 
   useEffect(() => {
+    fetch('/api/cms', { cache: 'no-store' })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          setCmsContent(mergeWithDefaultContent(json.data));
+        }
+      })
+      .catch(() => {});
+
     async function fetchRoomTypes() {
       try {
         const res = await fetch('/api/v1/public/room-types', {
@@ -36,23 +49,29 @@ export default function StayPage() {
   const tents = roomTypes.filter(rt => rt.name.toLowerCase().includes('tent') || rt.code.toLowerCase().includes('tnt'));
   const rooms = roomTypes.filter(rt => !rt.name.toLowerCase().includes('tent') && !rt.code.toLowerCase().includes('tnt'));
 
+  const stayData = cmsContent.subpages.stay || DEFAULT_CMS_CONTENT.subpages.stay;
+
   return (
     <main className="min-h-screen bg-[#FDFBF7]">
-      <Navbar />
+      <Navbar general={cmsContent.general} />
       
       {/* Hero Section */}
       <section className="relative h-[60vh] flex items-center justify-center">
-        <Image 
-          src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80"
-          alt="Luxury Accommodation"
-          fill
-          className="object-cover"
+        <img 
+          src={stayData.bgImage || DEFAULT_CMS_CONTENT.subpages.stay.bgImage}
+          alt={stayData.title || "Luxury Accommodation"}
+          className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-4">
-          <h1 className="font-serif text-5xl md:text-7xl mb-6">Stay With Us</h1>
+          {stayData.badge && (
+            <span className="text-xs uppercase tracking-[0.2em] text-[#E8E1D7] block mb-3 font-semibold">
+              {stayData.badge}
+            </span>
+          )}
+          <h1 className="font-serif text-5xl md:text-7xl mb-6">{stayData.title || "Stay With Us"}</h1>
           <p className="text-xl md:text-2xl font-light tracking-wide max-w-2xl mx-auto">
-            Experience unparalleled luxury in our oceanfront rooms and glamping tents.
+            {stayData.description || "Experience unparalleled luxury in our oceanfront rooms and glamping tents."}
           </p>
         </div>
       </section>

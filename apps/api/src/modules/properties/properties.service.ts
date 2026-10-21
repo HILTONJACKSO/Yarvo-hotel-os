@@ -54,6 +54,13 @@ export class PropertiesService {
         // preserve existing if invalid JSON
       }
     }
+    if (data.websiteContent !== undefined && typeof data.websiteContent === 'string') {
+      try {
+        data.websiteContent = JSON.parse(data.websiteContent);
+      } catch (e) {
+        // preserve existing if invalid JSON
+      }
+    }
 
     return this.prisma.property.update({
       where: { id },

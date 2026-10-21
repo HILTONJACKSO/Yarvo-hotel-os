@@ -7,12 +7,25 @@ import Image from 'next/image';
 import { Calendar, Users, MapPin, ArrowRight } from 'lucide-react';
 import { useToast } from '@/components/ui/toast-provider';
 
+import { DEFAULT_CMS_CONTENT, mergeWithDefaultContent } from '@/lib/default-cms-content';
+import { WebsiteContent } from '@/types/cms';
+
 export default function EventsPage() {
   const [eventSpaces, setEventSpaces] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSpace, setSelectedSpace] = useState<any | null>(null);
+  const [cmsContent, setCmsContent] = useState<WebsiteContent>(DEFAULT_CMS_CONTENT);
 
   useEffect(() => {
+    fetch('/api/cms', { cache: 'no-store' })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          setCmsContent(mergeWithDefaultContent(json.data));
+        }
+      })
+      .catch(() => {});
+
     async function fetchSpaces() {
       try {
         const res = await fetch('/api/v1/public/event-spaces', {
@@ -33,23 +46,29 @@ export default function EventsPage() {
     fetchSpaces();
   }, []);
 
+  const eventData = cmsContent.subpages.events || DEFAULT_CMS_CONTENT.subpages.events;
+
   return (
     <main className="min-h-screen bg-[#FDFBF7]">
-      <Navbar />
+      <Navbar general={cmsContent.general} />
       
       {/* Hero Section */}
       <section className="relative h-[60vh] flex items-center justify-center">
-        <Image 
-          src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80"
-          alt="Events & Weddings"
-          fill
-          className="object-cover"
+        <img 
+          src={eventData.bgImage || DEFAULT_CMS_CONTENT.subpages.events.bgImage}
+          alt={eventData.title || "Events & Weddings"}
+          className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative z-10 text-center text-white px-4">
-          <h1 className="font-serif text-5xl md:text-7xl mb-6">Host Your Event</h1>
+          {eventData.badge && (
+            <span className="text-xs uppercase tracking-[0.2em] text-[#E8E1D7] block mb-3 font-semibold">
+              {eventData.badge}
+            </span>
+          )}
+          <h1 className="font-serif text-5xl md:text-7xl mb-6">{eventData.title || "Host Your Event"}</h1>
           <p className="text-xl md:text-2xl font-light tracking-wide max-w-2xl mx-auto">
-            Weddings, corporate retreats, and private celebrations by the ocean.
+            {eventData.description || "Weddings, corporate retreats, and private celebrations by the ocean."}
           </p>
         </div>
       </section>
@@ -125,7 +144,7 @@ export default function EventsPage() {
 
       </div>
 
-      <Footer />
+      <Footer general={cmsContent.general} />
     </main>
   );
 }

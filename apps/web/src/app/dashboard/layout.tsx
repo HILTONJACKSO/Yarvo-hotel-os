@@ -36,7 +36,8 @@ import {
   CalendarDays,
   Clock,
   RotateCcw,
-  Activity
+  Activity,
+  Globe
 } from 'lucide-react';
 
 type NavItem = 
@@ -76,6 +77,7 @@ const NAV_ITEMS: NavItem[] = [
   { type: 'divider' },
   { icon: Wallet, label: 'POS Cashier', href: '/dashboard/cashier', id: 'nav-cashier', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager', 'supervisor', 'cashier', 'pos_cashier', 'front_desk'], requiredFeature: 'POS' },
   { type: 'divider' },
+  { icon: Globe, label: 'Website CMS', href: '/dashboard/cms', id: 'nav-cms', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager'] },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings', id: 'nav-settings', allowedRoles: ['super_admin', 'admin', 'ceo', 'manager'] },
 ];
 

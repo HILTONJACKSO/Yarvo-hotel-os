@@ -6,9 +6,13 @@ import { Navbar } from '../../components/landing/Navbar';
 import { Footer } from '../../components/landing/Footer';
 import { X, CheckCircle, ShoppingBag, Utensils, Coffee } from 'lucide-react';
 
+import { DEFAULT_CMS_CONTENT, mergeWithDefaultContent } from '@/lib/default-cms-content';
+import { WebsiteContent } from '@/types/cms';
+
 export default function DiningPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [cmsContent, setCmsContent] = useState<WebsiteContent>(DEFAULT_CMS_CONTENT);
   
   // Modal state
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -24,6 +28,15 @@ export default function DiningPage() {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
+    fetch('/api/cms', { cache: 'no-store' })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          setCmsContent(mergeWithDefaultContent(json.data));
+        }
+      })
+      .catch(() => {});
+
     fetch('/api/v1/public/menu')
       .then(res => res.json())
       .then(data => {
@@ -87,26 +100,32 @@ export default function DiningPage() {
     }
   };
 
+  const diningData = cmsContent.subpages.dining || DEFAULT_CMS_CONTENT.subpages.dining;
+
   return (
     <main className="font-sans text-[#1F1F1F] bg-[#FAF9F4] min-h-screen flex flex-col">
-      <Navbar />
+      <Navbar general={cmsContent.general} />
 
       {/* Hero Section */}
       <section className="relative h-[50vh] md:h-[60vh] flex items-center justify-center overflow-hidden bg-black pt-20">
         <div className="absolute inset-0 z-0">
-          <Image 
-            src="https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&w=1920&q=80" 
-            alt="Dining at Kwalee" 
-            fill 
-            className="object-cover opacity-60"
-            priority
+          <img 
+            src={diningData.bgImage || DEFAULT_CMS_CONTENT.subpages.dining.bgImage} 
+            alt={diningData.title || "Dining at Kwalee"} 
+            className="w-full h-full object-cover opacity-60"
           />
         </div>
         <div className="relative z-10 text-center px-6">
-          <span className="text-white/80 uppercase tracking-[0.3em] text-sm mb-4 block font-semibold">Exquisite Flavors</span>
-          <h1 className="text-5xl md:text-7xl font-serif text-white mb-6 drop-shadow-lg">Dining at Kwalee</h1>
+          {diningData.badge && (
+            <span className="text-white/80 uppercase tracking-[0.3em] text-sm mb-4 block font-semibold">
+              {diningData.badge}
+            </span>
+          )}
+          <h1 className="text-5xl md:text-7xl font-serif text-white mb-6 drop-shadow-lg">
+            {diningData.title || "Dining at Kwalee"}
+          </h1>
           <p className="text-white/90 max-w-2xl mx-auto text-lg md:text-xl drop-shadow-md">
-            Experience our curated digital menu and have culinary excellence delivered straight to your room.
+            {diningData.description || "Experience our curated digital menu and have culinary excellence delivered straight to your room."}
           </p>
         </div>
       </section>
@@ -256,7 +275,7 @@ export default function DiningPage() {
         </div>
       )}
 
-      <Footer />
+      <Footer general={cmsContent.general} />
     </main>
   );
 }

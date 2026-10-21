@@ -68,7 +68,16 @@ export class UpdatePropertyDto {
   isActive?: boolean;
 
   @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  whatsapp?: string;
+
+  @ApiPropertyOptional()
   @IsOptional()
   receiptSettings?: any;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  websiteContent?: any;
 }
 

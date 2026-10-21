@@ -58,6 +58,9 @@ model Property {
   // Custom Receipt & Invoice Templates
   receiptSettings Json @default("{}")
 
+  // Website CMS Content & Configurations
+  websiteContent Json @default("{}")
+
   // SaaS Features
   selectedFeatures Json @default("[]") // Array of enabled feature modules
 
