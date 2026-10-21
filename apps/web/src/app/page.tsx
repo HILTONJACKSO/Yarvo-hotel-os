@@ -17,7 +17,8 @@ import {
   MomentsGalleryContent, 
   FinalCTAContent, 
   CoverflowSlide, 
-  TestimonialsContent 
+  TestimonialsContent,
+  RoomsTentsSectionContent
 } from "@/types/cms";
 import { DEFAULT_CMS_CONTENT, mergeWithDefaultContent } from "@/lib/default-cms-content";
 
@@ -141,33 +142,12 @@ const FeatureSection = ({ id, label, title, text, image, reverse, cta, ctaHref }
   );
 };
 
-const ServicesSection = () => {
-  const rooms = [
-    {
-      name: "Oceanfront Double Tent",
-      location: "Kpakpa Kon, Marshall, Liberia",
-      features: "2 Bed • 2 Bath",
-      price: "$35/night",
-      rating: "4.8",
-      img: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      name: "Family Triple Tent",
-      location: "Kpakpa Kon, Marshall, Liberia",
-      features: "3 Bed • 2 Bath",
-      price: "$45/night",
-      rating: "4.8",
-      img: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      name: "Deluxe Family Suite",
-      location: "Kpakpa Kon, Marshall, Liberia",
-      features: "4 Bed • 3 Bath",
-      price: "$120/night",
-      rating: "4.9",
-      img: "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80"
-    }
-  ];
+const ServicesSection = ({ data }: { data?: RoomsTentsSectionContent }) => {
+  const roomsData = data || DEFAULT_CMS_CONTENT.rooms;
+  const items = roomsData.items && roomsData.items.length > 0 ? roomsData.items : DEFAULT_CMS_CONTENT.rooms.items;
+  const badge = roomsData.badge || DEFAULT_CMS_CONTENT.rooms.badge;
+  const title = roomsData.title || DEFAULT_CMS_CONTENT.rooms.title;
+  const description = roomsData.description || DEFAULT_CMS_CONTENT.rooms.description;
 
   return (
     <section id="stay" className="py-24 md:py-32 bg-[#FAF9F4] px-6">
@@ -175,25 +155,25 @@ const ServicesSection = () => {
         <div className="flex flex-col lg:flex-row justify-between items-end mb-16 gap-8">
           <div className="max-w-2xl">
             <span className="px-4 py-1.5 rounded-full border border-gray-300 text-xs font-bold tracking-widest text-gray-800 mb-6 inline-block uppercase bg-white">
-              POPULAR SERVICES
+              {badge}
             </span>
-            <h2 className="text-4xl md:text-5xl lg:text-[64px] font-sans font-bold text-[#1F1F1F] leading-tight tracking-tight">
-              Services Built For<br/>Travelers.
+            <h2 className="text-4xl md:text-5xl lg:text-[64px] font-sans font-bold text-[#1F1F1F] leading-tight tracking-tight whitespace-pre-line">
+              {title}
             </h2>
           </div>
           <div className="max-w-sm lg:text-right text-left pb-2">
             <p className="text-[#6B6F72] text-sm md:text-sm leading-relaxed">
-              Kwalee provides smart tools, secure payments, verified reviews, ensuring smooth, confident, and effortless hotel booking.
+              {description}
             </p>
           </div>
         </div>
 
         <div className="relative group">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {rooms.map((room, idx) => (
-              <Link href="/stay" key={idx} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col group cursor-pointer transition-shadow hover:shadow-xl">
+            {items.map((room, idx) => (
+              <Link href={room.bookUrl || "/stay"} key={room.id || idx} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col group cursor-pointer transition-shadow hover:shadow-xl">
                 <div className="relative aspect-[4/3] w-full overflow-hidden p-2 pb-0">
-                  <img src={room.img} alt={room.name} className="w-full h-full object-cover rounded-t-xl transition-transform duration-700 group-hover:scale-105" />
+                  <img src={room.image} alt={room.name} className="w-full h-full object-cover rounded-t-xl transition-transform duration-700 group-hover:scale-105" />
                   <div className="absolute top-6 left-6 bg-white/40 backdrop-blur-md border border-white/20 text-white px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1 shadow-sm">
                     {room.rating} <Star size={12} className="fill-[#F5B041] text-[#F5B041]" />
                   </div>
@@ -207,13 +187,15 @@ const ServicesSection = () => {
                   
                   <div className="flex justify-between items-end mt-auto pt-4 border-t border-gray-100">
                     <div className="flex gap-4 text-[#6B6F72] text-xs font-medium">
-                      {room.features.split(' • ').map((feat, i) => (
+                      {(room.features || '').split(' • ').map((feat, i) => (
                          <span key={i} className="flex items-center gap-1">{feat}</span>
                       ))}
                     </div>
                     <div className="text-right flex items-baseline gap-1">
-                      <span className="font-bold text-lg text-gray-900 block leading-none">{room.price.split('/')[0]}</span>
-                      <span className="text-xs text-[#6B6F72]/80">/{room.price.split('/')[1]}</span>
+                      <span className="font-bold text-lg text-gray-900 block leading-none">{(room.price || '').split('/')[0]}</span>
+                      {room.price?.includes('/') && (
+                        <span className="text-xs text-[#6B6F72]/80">/{room.price.split('/')[1]}</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -652,7 +634,7 @@ export default function LandingPage() {
         ctaHref={content.features.dining.ctaHref}
       />
       
-      <ServicesSection />
+      <ServicesSection data={content.rooms} />
       <CoverflowTestimonialsSection 
         slides={content.coverflow} 
         testimonials={content.testimonials} 

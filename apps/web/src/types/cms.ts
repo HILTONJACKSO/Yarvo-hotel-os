@@ -129,10 +129,35 @@ export interface GeneralContent {
   navLinks: NavLinkItem[];
 }
 
+export interface RoomTentItem {
+  id: string;
+  name: string;
+  type: 'tent' | 'room' | 'suite';
+  location: string;
+  features: string;
+  price: string;
+  rating: string;
+  description: string;
+  image: string;
+  bookUrl?: string;
+}
+
+export interface RoomsTentsSectionContent {
+  badge: string;
+  title: string;
+  description: string;
+  stayRoomsTitle: string;
+  stayRoomsDescription: string;
+  stayTentsTitle: string;
+  stayTentsDescription: string;
+  items: RoomTentItem[];
+}
+
 export interface WebsiteContent {
   hero: HeroSectionContent;
   about: AboutSectionContent;
   features: FeaturesContent;
+  rooms: RoomsTentsSectionContent;
   coverflow: CoverflowSlide[];
   testimonials: TestimonialsContent;
   events: EventsSectionContent;

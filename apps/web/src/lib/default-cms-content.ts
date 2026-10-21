@@ -56,6 +56,53 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
       ctaHref: "/dining",
     },
   },
+  rooms: {
+    badge: "POPULAR SERVICES",
+    title: "Services Built For\nTravelers.",
+    description: "Kwalee provides smart tools, secure payments, verified reviews, ensuring smooth, confident, and effortless hotel booking.",
+    stayRoomsTitle: "Luxury Rooms & Suites",
+    stayRoomsDescription: "Wake up to the sound of waves in our meticulously designed rooms, offering breathtaking views and premium amenities.",
+    stayTentsTitle: "Glamping Tents",
+    stayTentsDescription: "Immerse yourself in nature without sacrificing comfort in our premium beachfront tents.",
+    items: [
+      {
+        id: "room-1",
+        name: "Oceanfront Double Tent",
+        type: "tent",
+        location: "Kpakpa Kon, Marshall, Liberia",
+        features: "2 Bed • 2 Bath",
+        price: "$35/night",
+        rating: "4.8",
+        description: "Beachfront glamping tent with ocean breeze, comfortable double beds, private bathroom, and direct beach access.",
+        image: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80",
+        bookUrl: "/stay"
+      },
+      {
+        id: "room-2",
+        name: "Family Triple Tent",
+        type: "tent",
+        location: "Kpakpa Kon, Marshall, Liberia",
+        features: "3 Bed • 2 Bath",
+        price: "$45/night",
+        rating: "4.8",
+        description: "Spacious triple glamping tent designed for families or groups, blending coastal nature with modern luxury.",
+        image: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80",
+        bookUrl: "/stay"
+      },
+      {
+        id: "room-3",
+        name: "Deluxe Family Suite",
+        type: "room",
+        location: "Kpakpa Kon, Marshall, Liberia",
+        features: "4 Bed • 3 Bath",
+        price: "$120/night",
+        rating: "4.9",
+        description: "Expansive premium oceanview suite with private terrace, king beds, deluxe amenities, and VIP room service.",
+        image: "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80",
+        bookUrl: "/stay"
+      }
+    ]
+  },
   coverflow: [
     { id: "slide-1", image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80", title: "Ocean Breeze", subtitle: "Relaxation at its best." },
     { id: "slide-2", image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1600&q=80", title: "Evening Cocktails", subtitle: "Toast to the sunset." },
@@ -199,6 +246,13 @@ export function mergeWithDefaultContent(input: any): WebsiteContent {
       pool: { ...DEFAULT_CMS_CONTENT.features.pool, ...(input.features?.pool || {}) },
       bar: { ...DEFAULT_CMS_CONTENT.features.bar, ...(input.features?.bar || {}) },
       dining: { ...DEFAULT_CMS_CONTENT.features.dining, ...(input.features?.dining || {}) },
+    },
+    rooms: {
+      ...DEFAULT_CMS_CONTENT.rooms,
+      ...(input.rooms || {}),
+      items: Array.isArray(input.rooms?.items) && input.rooms.items.length > 0
+        ? input.rooms.items
+        : DEFAULT_CMS_CONTENT.rooms.items
     },
     coverflow: Array.isArray(input.coverflow) && input.coverflow.length > 0
       ? input.coverflow

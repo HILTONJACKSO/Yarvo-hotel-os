@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { 
   Globe, Save, RotateCcw, ExternalLink, Upload, Image as ImageIcon, 
   Trash2, Plus, Sparkles, Check, AlertCircle, Eye, ArrowUpRight,
-  Layers, MessageSquare, Camera, Compass, PhoneCall, ChevronDown, ChevronRight
+  Layers, MessageSquare, Camera, Compass, PhoneCall, ChevronDown, ChevronRight,
+  BedDouble
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast-provider';
-import { WebsiteContent } from '@/types/cms';
+import { WebsiteContent, RoomTentItem } from '@/types/cms';
 import { DEFAULT_CMS_CONTENT, mergeWithDefaultContent } from '@/lib/default-cms-content';
 
 // ==========================================
@@ -138,7 +139,7 @@ export default function CmsDashboardPage() {
   const [propertyId, setPropertyId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'hero' | 'features' | 'slides' | 'events_gallery' | 'subpages' | 'general'>('hero');
+  const [activeTab, setActiveTab] = useState<'hero' | 'features' | 'rooms' | 'slides' | 'events_gallery' | 'subpages' | 'general'>('hero');
 
   // Load published CMS content
   useEffect(() => {
@@ -266,6 +267,7 @@ export default function CmsDashboardPage() {
       <div className="flex overflow-x-auto gap-2 pb-2 border-b border-gray-200 scrollbar-none">
         {[
           { id: 'hero', label: 'Hero & About', icon: Sparkles },
+          { id: 'rooms', label: 'Rooms & Tents', icon: BedDouble },
           { id: 'features', label: 'Beach, Pool, Bar, Dining', icon: Layers },
           { id: 'slides', label: 'Carousel & Reviews', icon: MessageSquare },
           { id: 'events_gallery', label: 'Events, Form & Gallery', icon: Camera },
@@ -499,6 +501,385 @@ export default function CmsDashboardPage() {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB: ROOMS & TENTS                                                        */}
+      {/* ========================================================================= */}
+      {activeTab === 'rooms' && (
+        <div className="space-y-8">
+          {/* Section Header Settings */}
+          <div className="bg-white rounded-2xl p-6 md:p-8 border border-gray-200 shadow-sm space-y-6">
+            <div className="border-b border-gray-100 pb-4">
+              <span className="text-[10px] font-bold tracking-widest text-[#F5A623] uppercase">Homepage Showcase</span>
+              <h2 className="text-xl font-serif text-gray-900 mt-1">&quot;Services Built For Travelers&quot; Section Headings</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Customize the badge, title, and description shown directly above the room &amp; tent cards on the homepage.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="text-xs font-semibold text-gray-700 uppercase">Section Badge</label>
+                <input
+                  type="text"
+                  value={content.rooms?.badge || ''}
+                  onChange={(e) =>
+                    setContent({
+                      ...content,
+                      rooms: { ...content.rooms, badge: e.target.value },
+                    })
+                  }
+                  placeholder="POPULAR SERVICES"
+                  className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623]"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-xs font-semibold text-gray-700 uppercase">Main Title (Use \n for line break)</label>
+                <input
+                  type="text"
+                  value={content.rooms?.title || ''}
+                  onChange={(e) =>
+                    setContent({
+                      ...content,
+                      rooms: { ...content.rooms, title: e.target.value },
+                    })
+                  }
+                  placeholder="Services Built For\nTravelers."
+                  className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623]"
+                />
+              </div>
+
+              <div className="md:col-span-3">
+                <label className="text-xs font-semibold text-gray-700 uppercase">Description Paragraph</label>
+                <textarea
+                  rows={2}
+                  value={content.rooms?.description || ''}
+                  onChange={(e) =>
+                    setContent({
+                      ...content,
+                      rooms: { ...content.rooms, description: e.target.value },
+                    })
+                  }
+                  placeholder="Kwalee provides smart tools, secure payments, verified reviews..."
+                  className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623] resize-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Stay Page Section Headings */}
+          <div className="bg-white rounded-2xl p-6 md:p-8 border border-gray-200 shadow-sm space-y-6">
+            <div className="border-b border-gray-100 pb-4">
+              <span className="text-[10px] font-bold tracking-widest text-[#F5A623] uppercase">Stay Page Headings</span>
+              <h2 className="text-xl font-serif text-gray-900 mt-1">Stay Page Category Headings</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Control headings and introductory descriptions for Rooms &amp; Tents on the /stay page.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3 bg-gray-50/70 p-4 rounded-xl border border-gray-100">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700">Luxury Rooms &amp; Suites Block</h3>
+                <div>
+                  <label className="text-[11px] font-semibold text-gray-600 uppercase">Title</label>
+                  <input
+                    type="text"
+                    value={content.rooms?.stayRoomsTitle || ''}
+                    onChange={(e) =>
+                      setContent({
+                        ...content,
+                        rooms: { ...content.rooms, stayRoomsTitle: e.target.value },
+                      })
+                    }
+                    className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-gray-600 uppercase">Description</label>
+                  <textarea
+                    rows={2}
+                    value={content.rooms?.stayRoomsDescription || ''}
+                    onChange={(e) =>
+                      setContent({
+                        ...content,
+                        rooms: { ...content.rooms, stayRoomsDescription: e.target.value },
+                      })
+                    }
+                    className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623] resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3 bg-gray-50/70 p-4 rounded-xl border border-gray-100">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700">Glamping Tents Block</h3>
+                <div>
+                  <label className="text-[11px] font-semibold text-gray-600 uppercase">Title</label>
+                  <input
+                    type="text"
+                    value={content.rooms?.stayTentsTitle || ''}
+                    onChange={(e) =>
+                      setContent({
+                        ...content,
+                        rooms: { ...content.rooms, stayTentsTitle: e.target.value },
+                      })
+                    }
+                    className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-gray-600 uppercase">Description</label>
+                  <textarea
+                    rows={2}
+                    value={content.rooms?.stayTentsDescription || ''}
+                    onChange={(e) =>
+                      setContent({
+                        ...content,
+                        rooms: { ...content.rooms, stayTentsDescription: e.target.value },
+                      })
+                    }
+                    className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623] resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Room & Tent Cards Repeater */}
+          <div className="bg-white rounded-2xl p-6 md:p-8 border border-gray-200 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+              <div>
+                <span className="text-[10px] font-bold tracking-widest text-[#F5A623] uppercase">Accommodations Cards</span>
+                <h2 className="text-xl font-serif text-gray-900 mt-1">Rooms &amp; Glamping Tents Cards</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Manage individual rooms and tents shown on the homepage and booking showcase. Upload photos, change rates, bed/bath specs, and descriptions.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const newItem: RoomTentItem = {
+                    id: `room-${Date.now()}`,
+                    name: 'New Oceanview Tent / Room',
+                    type: 'tent',
+                    location: 'Kpakpa Kon, Marshall, Liberia',
+                    features: '2 Bed • 2 Bath',
+                    price: '$50/night',
+                    rating: '4.9',
+                    description: 'Comfortable beachfront accommodation with ocean views and premium coastal amenities.',
+                    image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80',
+                    bookUrl: '/stay',
+                  };
+                  setContent({
+                    ...content,
+                    rooms: {
+                      ...content.rooms,
+                      items: [...(content.rooms?.items || []), newItem],
+                    },
+                  });
+                }}
+                className="px-4 py-2.5 bg-[#1B2418] hover:bg-[#2C3B27] text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shadow-sm"
+              >
+                <Plus size={15} /> Add Room or Tent
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {(content.rooms?.items || []).map((item, idx) => (
+                <div key={item.id || idx} className="bg-gray-50 border border-gray-200 rounded-2xl p-6 space-y-4 relative group">
+                  <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-800">Card #{idx + 1}</span>
+                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                        item.type === 'tent' 
+                          ? 'bg-amber-100 text-amber-800' 
+                          : item.type === 'suite'
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        {item.type}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = content.rooms.items.filter((_, i) => i !== idx);
+                        setContent({
+                          ...content,
+                          rooms: { ...content.rooms, items: updated },
+                        });
+                      }}
+                      className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                      title="Remove card"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+
+                  {/* Photo Uploader */}
+                  <ImagePicker
+                    label="Room / Tent Photo"
+                    value={item.image}
+                    onChange={(url) => {
+                      const updated = [...content.rooms.items];
+                      updated[idx] = { ...updated[idx], image: url };
+                      setContent({
+                        ...content,
+                        rooms: { ...content.rooms, items: updated },
+                      });
+                    }}
+                    recommendedSize="800x600px"
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] font-semibold text-gray-700 uppercase">Room or Tent Name</label>
+                      <input
+                        type="text"
+                        value={item.name}
+                        onChange={(e) => {
+                          const updated = [...content.rooms.items];
+                          updated[idx] = { ...updated[idx], name: e.target.value };
+                          setContent({
+                            ...content,
+                            rooms: { ...content.rooms, items: updated },
+                          });
+                        }}
+                        placeholder="e.g. Oceanfront Double Tent"
+                        className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-gray-700 uppercase">Category Type</label>
+                      <select
+                        value={item.type || 'tent'}
+                        onChange={(e) => {
+                          const updated = [...content.rooms.items];
+                          updated[idx] = { ...updated[idx], type: e.target.value as any };
+                          setContent({
+                            ...content,
+                            rooms: { ...content.rooms, items: updated },
+                          });
+                        }}
+                        className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623]"
+                      >
+                        <option value="tent">Glamping Tent</option>
+                        <option value="room">Luxury Room</option>
+                        <option value="suite">Executive Suite</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-gray-700 uppercase">Price Tag (e.g. $35/night)</label>
+                      <input
+                        type="text"
+                        value={item.price}
+                        onChange={(e) => {
+                          const updated = [...content.rooms.items];
+                          updated[idx] = { ...updated[idx], price: e.target.value };
+                          setContent({
+                            ...content,
+                            rooms: { ...content.rooms, items: updated },
+                          });
+                        }}
+                        placeholder="$35/night"
+                        className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-gray-700 uppercase">Features (e.g. 2 Bed • 2 Bath)</label>
+                      <input
+                        type="text"
+                        value={item.features}
+                        onChange={(e) => {
+                          const updated = [...content.rooms.items];
+                          updated[idx] = { ...updated[idx], features: e.target.value };
+                          setContent({
+                            ...content,
+                            rooms: { ...content.rooms, items: updated },
+                          });
+                        }}
+                        placeholder="2 Bed • 2 Bath"
+                        className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-gray-700 uppercase">Star Rating</label>
+                      <input
+                        type="text"
+                        value={item.rating}
+                        onChange={(e) => {
+                          const updated = [...content.rooms.items];
+                          updated[idx] = { ...updated[idx], rating: e.target.value };
+                          setContent({
+                            ...content,
+                            rooms: { ...content.rooms, items: updated },
+                          });
+                        }}
+                        placeholder="4.8"
+                        className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623]"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] font-semibold text-gray-700 uppercase">Location Subtitle</label>
+                      <input
+                        type="text"
+                        value={item.location}
+                        onChange={(e) => {
+                          const updated = [...content.rooms.items];
+                          updated[idx] = { ...updated[idx], location: e.target.value };
+                          setContent({
+                            ...content,
+                            rooms: { ...content.rooms, items: updated },
+                          });
+                        }}
+                        placeholder="Kpakpa Kon, Marshall, Liberia"
+                        className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623]"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] font-semibold text-gray-700 uppercase">Booking / Link URL</label>
+                      <input
+                        type="text"
+                        value={item.bookUrl || '/stay'}
+                        onChange={(e) => {
+                          const updated = [...content.rooms.items];
+                          updated[idx] = { ...updated[idx], bookUrl: e.target.value };
+                          setContent({
+                            ...content,
+                            rooms: { ...content.rooms, items: updated },
+                          });
+                        }}
+                        placeholder="/stay"
+                        className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623]"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] font-semibold text-gray-700 uppercase">Description</label>
+                      <textarea
+                        rows={2}
+                        value={item.description}
+                        onChange={(e) => {
+                          const updated = [...content.rooms.items];
+                          updated[idx] = { ...updated[idx], description: e.target.value };
+                          setContent({
+                            ...content,
+                            rooms: { ...content.rooms, items: updated },
+                          });
+                        }}
+                        placeholder="Short description of this room or tent..."
+                        className="w-full mt-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623] resize-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

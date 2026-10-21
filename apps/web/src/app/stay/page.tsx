@@ -45,9 +45,15 @@ export default function StayPage() {
     fetchRoomTypes();
   }, []);
 
-  // Split into tents and standard rooms based on name/code
-  const tents = roomTypes.filter(rt => rt.name.toLowerCase().includes('tent') || rt.code.toLowerCase().includes('tnt'));
-  const rooms = roomTypes.filter(rt => !rt.name.toLowerCase().includes('tent') && !rt.code.toLowerCase().includes('tnt'));
+  // Split into tents and standard rooms based on API room types or fallback to CMS
+  const apiTents = roomTypes.filter(rt => rt.name?.toLowerCase().includes('tent') || rt.code?.toLowerCase().includes('tnt'));
+  const apiRooms = roomTypes.filter(rt => !rt.name?.toLowerCase().includes('tent') && !rt.code?.toLowerCase().includes('tnt'));
+
+  const cmsTents = (cmsContent.rooms?.items || []).filter(item => item.type === 'tent');
+  const cmsRooms = (cmsContent.rooms?.items || []).filter(item => item.type === 'room' || item.type === 'suite');
+
+  const tents = apiTents.length > 0 ? apiTents : cmsTents;
+  const rooms = apiRooms.length > 0 ? apiRooms : cmsRooms;
 
   const stayData = cmsContent.subpages.stay || DEFAULT_CMS_CONTENT.subpages.stay;
 
@@ -85,9 +91,11 @@ export default function StayPage() {
         {/* Rooms Section */}
         <section>
           <div className="text-center mb-16">
-            <h2 className="font-serif text-4xl text-[#1F1F1F] mb-4">Luxury Rooms & Suites</h2>
+            <h2 className="font-serif text-4xl text-[#1F1F1F] mb-4">
+              {cmsContent.rooms?.stayRoomsTitle || "Luxury Rooms & Suites"}
+            </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Wake up to the sound of waves in our meticulously designed rooms, offering breathtaking views and premium amenities.
+              {cmsContent.rooms?.stayRoomsDescription || "Wake up to the sound of waves in our meticulously designed rooms, offering breathtaking views and premium amenities."}
             </p>
           </div>
 
@@ -95,7 +103,7 @@ export default function StayPage() {
             <div className="flex justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1F1F1F]"></div></div>
           ) : rooms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {rooms.map(room => <RoomCard key={room.id} room={room} />)}
+              {rooms.map((room, idx) => <RoomCard key={room.id || idx} room={room} />)}
             </div>
           ) : (
             <p className="text-center text-[#6B6F72]">No rooms available at the moment.</p>
@@ -105,9 +113,11 @@ export default function StayPage() {
         {/* Tents Section */}
         <section>
           <div className="text-center mb-16">
-            <h2 className="font-serif text-4xl text-[#1F1F1F] mb-4">Glamping Tents</h2>
+            <h2 className="font-serif text-4xl text-[#1F1F1F] mb-4">
+              {cmsContent.rooms?.stayTentsTitle || "Glamping Tents"}
+            </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Immerse yourself in nature without sacrificing comfort in our premium beachfront tents.
+              {cmsContent.rooms?.stayTentsDescription || "Immerse yourself in nature without sacrificing comfort in our premium beachfront tents."}
             </p>
           </div>
 
@@ -115,7 +125,7 @@ export default function StayPage() {
              <div className="flex justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1F1F1F]"></div></div>
           ) : tents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-              {tents.map(tent => <RoomCard key={tent.id} room={tent} isLarge />)}
+              {tents.map((tent, idx) => <RoomCard key={tent.id || idx} room={tent} isLarge />)}
             </div>
           ) : (
             <p className="text-center text-[#6B6F72]">No tents available at the moment.</p>
@@ -129,13 +139,26 @@ export default function StayPage() {
 }
 
 function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
-  // Use first image or fallback
-  let imageUrl = 'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&q=80';
-  if (room.images && Array.isArray(room.images) && room.images.length > 0) {
+  // Use room image or first images array entry or fallback
+  let imageUrl = 'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80';
+  if (room.image) {
+    imageUrl = room.image;
+  } else if (room.images && Array.isArray(room.images) && room.images.length > 0) {
     imageUrl = room.images[0];
     if (!imageUrl.startsWith('http')) {
       imageUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/uploads/${imageUrl}`;
     }
+  }
+
+  // Parse price
+  let displayPrice = '$35';
+  let priceSuffix = 'night';
+  if (room.baseRateUsd !== undefined && room.baseRateUsd !== null) {
+    displayPrice = `$${Number(room.baseRateUsd).toFixed(0)}`;
+  } else if (room.price) {
+    const parts = String(room.price).split('/');
+    displayPrice = parts[0];
+    if (parts[1]) priceSuffix = parts[1];
   }
 
   // Parse amenities if it's a string or array
@@ -145,21 +168,22 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
       parsedAmenities = JSON.parse(room.amenities);
     } else if (Array.isArray(room.amenities)) {
       parsedAmenities = room.amenities;
+    } else if (room.features) {
+      parsedAmenities = String(room.features).split(' • ');
     }
   } catch(e) {}
 
   return (
     <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
       <div className={`relative w-full ${isLarge ? 'h-80' : 'h-64'} overflow-hidden`}>
-        <Image 
+        <img 
           src={imageUrl}
           alt={room.name}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-700"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
         />
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
-          <span className="font-bold text-[#1F1F1F]">${Number(room.baseRateUsd).toFixed(2)}</span>
-          <span className="text-sm text-gray-600"> / night</span>
+          <span className="font-bold text-[#1F1F1F]">{displayPrice}</span>
+          <span className="text-sm text-gray-600"> /{priceSuffix}</span>
         </div>
       </div>
       
@@ -169,7 +193,11 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
         <div className="flex items-center gap-4 text-[#6B6F72] text-sm mb-6 pb-6 border-b border-gray-100">
           <div className="flex items-center gap-1">
             <Users size={16} />
-            <span>Up to {room.maxAdults + room.maxChildren} Guests</span>
+            <span>
+              {room.maxAdults 
+                ? `Up to ${room.maxAdults + (room.maxChildren || 0)} Guests` 
+                : (room.features || 'Oceanfront Luxury')}
+            </span>
           </div>
         </div>
 
