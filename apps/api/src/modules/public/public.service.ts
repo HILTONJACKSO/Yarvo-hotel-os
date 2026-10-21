@@ -23,6 +23,29 @@ export class PublicService {
     };
   }
 
+  async updateWebsiteContent(content: any) {
+    let property = await this.prisma.property.findFirst();
+    if (!property) {
+      throw new BadRequestException('No property found');
+    }
+    let parsedContent = content;
+    if (typeof content === 'string') {
+      try {
+        parsedContent = JSON.parse(content);
+      } catch (e) {}
+    }
+    return this.prisma.property.update({
+      where: { id: property.id },
+      data: {
+        websiteContent: parsedContent,
+      },
+      select: {
+        id: true,
+        websiteContent: true,
+      }
+    });
+  }
+
   private readonly logger = new Logger(PublicService.name);
 
   constructor(private prisma: PrismaService) {}

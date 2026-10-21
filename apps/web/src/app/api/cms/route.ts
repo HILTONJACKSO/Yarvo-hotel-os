@@ -48,41 +48,19 @@ export async function POST(request: Request) {
   try {
     const { apiUrl, apiKey } = getApiConfig();
     const body = await request.json();
-    const { content, propertyId } = body;
+    const content = body.content !== undefined ? body.content : body;
 
     if (!content) {
       return NextResponse.json({ success: false, error: 'No content provided' }, { status: 400 });
     }
 
-    let targetId = propertyId;
-
-    // If propertyId not provided, get the first property's ID
-    if (!targetId) {
-      const pubRes = await fetch(`${apiUrl}/api/v1/public/website-content`, {
-        headers: { 'x-api-key': apiKey },
-        cache: 'no-store'
-      });
-      if (pubRes.ok) {
-        const pData = await pubRes.json();
-        targetId = pData.data?.propertyId;
-      }
-    }
-
-    if (!targetId) {
-      return NextResponse.json({ success: false, error: 'Property ID not found' }, { status: 404 });
-    }
-
-    const cookieHeader = request.headers.get('cookie') || '';
-
-    const updateRes = await fetch(`${apiUrl}/api/v1/properties/${targetId}`, {
-      method: 'PATCH',
+    const updateRes = await fetch(`${apiUrl}/api/v1/public/website-content`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'cookie': cookieHeader,
+        'x-api-key': apiKey,
       },
-      body: JSON.stringify({
-        websiteContent: content
-      }),
+      body: JSON.stringify({ content }),
     });
 
     const updateData = await updateRes.json();
@@ -94,9 +72,10 @@ export async function POST(request: Request) {
       }, { status: updateRes.status });
     }
 
+    const saved = updateData.data?.websiteContent || updateData.data || content;
     return NextResponse.json({
       success: true,
-      data: mergeWithDefaultContent(updateData.websiteContent || content),
+      data: mergeWithDefaultContent(saved),
       message: 'Website content saved successfully'
     });
   } catch (error: any) {

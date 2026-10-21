@@ -89,4 +89,12 @@ export class PublicController {
   async getWebsiteContent() {
     return { data: await this.publicService.getWebsiteContent() };
   }
+
+  @Post('website-content')
+  @ApiOperation({ summary: 'Update published website CMS content' })
+  @ApiResponse({ status: 200, description: 'Website content updated.' })
+  async updateWebsiteContent(@Body() body: any) {
+    const content = body.content !== undefined ? body.content : body;
+    return { data: await this.publicService.updateWebsiteContent(content) };
+  }
 }
