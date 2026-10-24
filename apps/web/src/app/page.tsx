@@ -425,7 +425,7 @@ const EventsSection = ({ data }: { data: EventsSectionContent }) => {
 };
 
 const EventInquiryForm = ({ data }: { data: EventInquiryContent }) => {
-  const whatsappDigits = (data.whatsappNumber || "+231777000000").replace(/[^0-9]/g, '');
+  const whatsappDigits = (data.whatsappNumber || "+231774340843").replace(/[^0-9]/g, '');
 
   return (
     <section id="inquiry" className="py-24 md:py-32 px-6 relative bg-[#FAF9F4]">

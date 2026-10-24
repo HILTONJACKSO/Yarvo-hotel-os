@@ -19,6 +19,13 @@ export default function BillingPage() {
   const [discountAmount, setDiscountAmount] = useState('');
   const [discountDescription, setDiscountDescription] = useState('');
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+  const [isDeleteFolioModalOpen, setIsDeleteFolioModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editCategory, setEditCategory] = useState('ROOM');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const { showToast } = useToast();
   const [bills, setBills] = useState<any[]>([]);
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
@@ -197,8 +204,11 @@ export default function BillingPage() {
         const res = await fetch(`/api/v1/folios/${id}/statement`);
         if (res.ok) {
           const json = await res.json();
-          await db.folios.put(json.data);
-          setBills(prev => prev.map(b => (b.id === id && b.type === "FOLIO") ? { ...json.data, type: "FOLIO" } : b));
+          const folioData = json.data || json;
+          if (folioData?.id) {
+            await db.folios.put(folioData);
+            setBills(prev => prev.map(b => (b.id === id && b.type === "FOLIO") ? { ...folioData, type: "FOLIO" } : b));
+          }
         }
       }
     } catch (err) {
@@ -237,6 +247,104 @@ export default function BillingPage() {
     } catch (error) {
       showToast("Network error. Please try again.", "error");
       setIsCloseModalOpen(false);
+    }
+  };
+
+  const confirmDeleteFolio = async () => {
+    if (!selectedBill || selectedBill.type !== "FOLIO") return;
+    try {
+      const res = await fetch(`/api/v1/folios/${selectedBill.id}`, { method: "DELETE" });
+      if (res.ok || res.status === 404) {
+        showToast("Room bill deleted successfully!", "success");
+        await db.folios.delete(selectedBill.id);
+        setSelectedBillId(null);
+        setSelectedBillType(null);
+        setIsDeleteFolioModalOpen(false);
+        fetchBills();
+      } else {
+        const error = await res.json().catch(() => ({}));
+        showToast(error.message || "Failed to delete room bill", "error");
+        setIsDeleteFolioModalOpen(false);
+      }
+    } catch (error) {
+      showToast("Network error. Please try again.", "error");
+      setIsDeleteFolioModalOpen(false);
+    }
+  };
+
+  const handleOpenEditModal = (item: any) => {
+    setEditingItem(item);
+    setEditAmount(String(Math.abs(Number(item.amount))));
+    setEditDesc(item.description || '');
+    setEditCategory(item.category || 'ROOM');
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEditItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBill || !editingItem) return;
+    const numAmount = parseFloat(editAmount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      showToast("Please enter an amount greater than 0", "error");
+      return;
+    }
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch(`/api/v1/folios/${selectedBill.id}/items/${editingItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: numAmount,
+          description: editDesc,
+          category: editCategory,
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const updatedFolio = json.data || json;
+        if (updatedFolio?.id) {
+          await db.folios.put(updatedFolio);
+          setBills(prev => prev.map(b => (b.id === updatedFolio.id && b.type === "FOLIO") ? { ...updatedFolio, type: "FOLIO" } : b));
+        }
+        showToast("Line item updated successfully!", "success");
+        setIsEditModalOpen(false);
+        setEditingItem(null);
+        selectFolio(selectedBill.id);
+        fetchBills();
+      } else {
+        const error = await res.json().catch(() => ({}));
+        showToast(error.message || "Failed to update item", "error");
+      }
+    } catch (err: any) {
+      showToast(err.message || "Network error", "error");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleDeleteLineItem = async (itemId: string) => {
+    if (!selectedBill || selectedBill.type !== "FOLIO") return;
+    if (!window.confirm("Are you sure you want to delete this line item? The bill balance will be automatically recalculated.")) return;
+    try {
+      const res = await fetch(`/api/v1/folios/${selectedBill.id}/items/${itemId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const updatedFolio = json.data || json;
+        if (updatedFolio?.id) {
+          await db.folios.put(updatedFolio);
+          setBills(prev => prev.map(b => (b.id === updatedFolio.id && b.type === "FOLIO") ? { ...updatedFolio, type: "FOLIO" } : b));
+        }
+        showToast("Line item deleted and balance updated!", "success");
+        selectFolio(selectedBill.id);
+        fetchBills();
+      } else {
+        const error = await res.json().catch(() => ({}));
+        showToast(error.message || "Failed to delete line item", "error");
+      }
+    } catch (err: any) {
+      showToast(err.message || "Network error", "error");
     }
   };
 
@@ -453,12 +561,17 @@ export default function BillingPage() {
                   <div className={`text-3xl font-bold ${selectedBill.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                     {format(Number(selectedBill.balance))}
                   </div>
-                  <div className="flex gap-2 justify-end mt-2">
+                  <div className="flex gap-2 justify-end mt-2 flex-wrap">
                       {selectedBill.status === 'OPEN' && (
                           <button onClick={handleCloseFolio} disabled={Number(selectedBill.balance) !== 0} className={`text-xs px-3 py-1.5 rounded-md transition-colors ${Number(selectedBill.balance) === 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}>Close Bill</button>
                         )}
                         <button onClick={() => printViaIframe('INVOICE')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Invoice</button>
                         <button onClick={() => printViaIframe('RECEIPT')} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Receipt</button>
+                        {(isAdmin || isCashierOrManager || isFrontDesk) && (
+                          <button onClick={() => setIsDeleteFolioModalOpen(true)} className="bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 text-xs px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
+                            <Trash2 size={13} /> Delete Bill
+                          </button>
+                        )}
                     </div>
                 </div>
               </div>
@@ -472,22 +585,64 @@ export default function BillingPage() {
                         <th className="p-3 border-b border-slate-700">Category</th>
                         <th className="p-3 border-b border-slate-700">Description</th>
                         <th className="p-3 border-b border-slate-700 text-right">Charge</th>
-                        <th className="p-3 border-b border-slate-700 text-right">Credit</th>
+                        <th className="p-3 border-b border-slate-700 text-right">Credit / Payment</th>
+                        <th className="p-3 border-b border-slate-700 text-center">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="text-slate-300">
                       {selectedBill.lineItems?.length === 0 ? (
-                        <tr><td colSpan={5} className="p-4 text-center text-slate-500">No transactions found.</td></tr>
+                        <tr><td colSpan={6} className="p-4 text-center text-slate-500">No transactions found.</td></tr>
                       ) : (
-                        selectedBill.lineItems?.map((item: any) => (
-                          <tr key={item.id} className="border-b border-slate-700/50 last:border-0">
-                            <td className="p-3">{new Date(item.createdAt).toLocaleString()}</td>
-                            <td className="p-3">{item.category.replace('_', ' ')}</td>
-                            <td className="p-3">{item.description}</td>
-                            <td className="p-3 text-right text-rose-400 font-mono">{item.type === 'CHARGE' ? format(Number(item.amount)) : ''}</td>
-                            <td className="p-3 text-right text-emerald-400 font-mono">{item.type === 'PAYMENT' ? format(Number(item.amount)) : ''}</td>
-                          </tr>
-                        ))
+                        selectedBill.lineItems?.map((item: any) => {
+                          const isAdjustment = item.type === 'ADJUSTMENT';
+                          const isPayment = item.type === 'PAYMENT';
+                          const isCharge = item.type === 'CHARGE';
+                          return (
+                            <tr key={item.id} className="border-b border-slate-700/50 last:border-0 hover:bg-slate-800/40 transition-colors">
+                              <td className="p-3 whitespace-nowrap">{new Date(item.createdAt).toLocaleString()}</td>
+                              <td className="p-3">{item.category?.replace('_', ' ')}</td>
+                              <td className="p-3">
+                                {item.description}
+                                {isAdjustment && (
+                                  <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 uppercase tracking-wide">
+                                    Discount
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 text-right text-rose-400 font-mono">
+                                {isCharge ? format(Math.abs(Number(item.amount))) : ''}
+                              </td>
+                              <td className="p-3 text-right font-mono">
+                                {isPayment && (
+                                  <span className="text-emerald-400">-{format(Math.abs(Number(item.amount)))}</span>
+                                )}
+                                {isAdjustment && (
+                                  <span className="text-amber-400">-{format(Math.abs(Number(item.amount)))}</span>
+                                )}
+                              </td>
+                              <td className="p-3 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    title="Edit Item (amount, description)"
+                                    onClick={() => handleOpenEditModal(item)}
+                                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 border border-slate-700 hover:border-cyan-500/30 transition-all"
+                                  >
+                                    <Edit size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    title="Delete Item"
+                                    onClick={() => handleDeleteLineItem(item.id)}
+                                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 transition-all"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
@@ -606,6 +761,118 @@ export default function BillingPage() {
             <div className="flex justify-end gap-3">
               <button onClick={() => setIsCloseModalOpen(false)} className="px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-xl transition-colors">Cancel</button>
               <button onClick={confirmCloseFolio} className="px-4 py-2.5 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors shadow-lg shadow-emerald-900/30">Yes, Close Bill</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Line Item Modal */}
+      {isEditModalOpen && editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-800 border border-slate-700 p-7 rounded-2xl shadow-2xl max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+              <Edit size={20} className="text-cyan-400" /> Edit {editingItem.type === 'ADJUSTMENT' ? 'Discount' : editingItem.type === 'PAYMENT' ? 'Payment' : 'Charge'}
+            </h3>
+            <p className="text-xs text-slate-400 mb-5">
+              Modify the entry details or amount. The room bill balance will automatically recalculate.
+            </p>
+            <form onSubmit={handleSaveEditItem} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Description</label>
+                <input
+                  type="text"
+                  required
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-cyan-500 text-sm"
+                  placeholder="e.g. Room Charge, Discount, Payment"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Amount ({currencySymbol})</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={editAmount}
+                  onChange={(e) => setEditAmount(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-cyan-500 text-sm font-mono"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Category</label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-cyan-500 text-sm"
+                >
+                  <option value="ROOM">Room Rate</option>
+                  <option value="F_AND_B">Food & Beverage</option>
+                  <option value="LAUNDRY">Laundry</option>
+                  <option value="SPA">Spa</option>
+                  <option value="TOUR">Tour</option>
+                  <option value="EVENT">Event</option>
+                  <option value="PACKAGE">Package</option>
+                  <option value="ACTIVITY">Activity</option>
+                  <option value="TAX">GST / Tax</option>
+                  <option value="PAYMENT_CASH">Payment - Cash</option>
+                  <option value="PAYMENT_CARD">Payment - Card</option>
+                  <option value="PAYMENT_MOBILE">Payment - Mobile Money</option>
+                  <option value="PAYMENT_BANK">Payment - Bank Transfer</option>
+                  <option value="OTHER">Other / Discount</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-4 pt-2 border-t border-slate-700/60">
+                <button
+                  type="button"
+                  onClick={() => { setIsEditModalOpen(false); setEditingItem(null); }}
+                  className="px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="px-5 py-2.5 text-sm font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl transition-colors shadow-lg shadow-cyan-900/30 flex items-center gap-2"
+                >
+                  {isSavingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Folio Modal */}
+      {isDeleteFolioModalOpen && selectedBill && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-800 border border-slate-700 p-7 rounded-2xl shadow-2xl max-w-sm w-full mx-4">
+            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2 text-rose-400">
+              <Trash2 size={22} /> Delete Room Bill
+            </h3>
+            <p className="text-slate-300 mb-6 text-sm">
+              Are you sure you want to delete the bill for <strong className="text-white">{selectedBill.reservation?.guest?.lastName}</strong> (Room {selectedBill.reservation?.room?.number || 'N/A'})? This will remove all associated ledger items and cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsDeleteFolioModalOpen(false)}
+                className="px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteFolio}
+                className="px-4 py-2.5 text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors shadow-lg shadow-rose-900/30"
+              >
+                Yes, Delete Bill
+              </button>
             </div>
           </div>
         </div>

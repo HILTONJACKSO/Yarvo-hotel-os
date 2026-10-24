@@ -347,7 +347,7 @@ export default function ReceiptsSettings({ showToast }: { showToast: (msg: strin
                       className="form-input"
                       value={settings.businessName}
                       onChange={e => handleUpdateGeneral('businessName', e.target.value)}
-                      placeholder="e.g. Yarvo Grand Hotel & Suites"
+                      placeholder="e.g. Kwalee Beach Resort"
                       required
                     />
                   </div>
@@ -357,7 +357,7 @@ export default function ReceiptsSettings({ showToast }: { showToast: (msg: strin
                       className="form-input"
                       value={settings.tagline}
                       onChange={e => handleUpdateGeneral('tagline', e.target.value)}
-                      placeholder="e.g. Luxury, Comfort & Ocean Breeze"
+                      placeholder="e.g. Luxury Coastal Escape & Beach Resort"
                     />
                   </div>
 
@@ -367,7 +367,7 @@ export default function ReceiptsSettings({ showToast }: { showToast: (msg: strin
                       className="form-input"
                       value={settings.address}
                       onChange={e => handleUpdateGeneral('address', e.target.value)}
-                      placeholder="e.g. 104 Oceanfront Highway"
+                      placeholder="e.g. Marshall, Robertsfield Highway"
                     />
                   </div>
 
@@ -377,7 +377,7 @@ export default function ReceiptsSettings({ showToast }: { showToast: (msg: strin
                       className="form-input"
                       value={settings.city}
                       onChange={e => handleUpdateGeneral('city', e.target.value)}
-                      placeholder="e.g. Monrovia"
+                      placeholder="e.g. Marshall / Monrovia"
                     />
                   </div>
                   <div className="form-group">
@@ -396,7 +396,7 @@ export default function ReceiptsSettings({ showToast }: { showToast: (msg: strin
                       className="form-input"
                       value={settings.phone}
                       onChange={e => handleUpdateGeneral('phone', e.target.value)}
-                      placeholder="e.g. +231 777 123 456"
+                      placeholder="e.g. +231 881 744 350"
                     />
                   </div>
                   <div className="form-group">
@@ -405,7 +405,7 @@ export default function ReceiptsSettings({ showToast }: { showToast: (msg: strin
                       className="form-input"
                       value={settings.email}
                       onChange={e => handleUpdateGeneral('email', e.target.value)}
-                      placeholder="e.g. frontdesk@yarvohotel.com"
+                      placeholder="e.g. kwaleebeachresort1@gmail.com"
                     />
                   </div>
 
@@ -415,7 +415,7 @@ export default function ReceiptsSettings({ showToast }: { showToast: (msg: strin
                       className="form-input"
                       value={settings.website}
                       onChange={e => handleUpdateGeneral('website', e.target.value)}
-                      placeholder="e.g. www.yarvohotel.com"
+                      placeholder="e.g. https://kwaleebeachresort.com"
                     />
                   </div>
                   <div className="form-group">

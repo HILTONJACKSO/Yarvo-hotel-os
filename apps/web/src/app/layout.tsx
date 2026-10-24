@@ -23,24 +23,24 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://yarvohotel.com'),
+  metadataBase: new URL('https://kwaleebeachresort.com'),
   title: {
-    default: 'Yarvo Hotel OS | Hotel Management System',
-    template: '%s | Yarvo Hotel OS',
+    default: 'Kwalee Beach Resort | Luxury Coastal Hotel & Beach Resort in Liberia',
+    template: '%s | Kwalee Beach Resort',
   },
   description:
-    'Yarvo Hotel OS — Modern cloud and offline-first property management system for hotels, resorts, and hospitality businesses.',
+    'Discover Kwalee Beach Resort in Marshall, Liberia — where pristine beaches, oceanfront glamping tents, luxury rooms, poolside relaxation, dining, and unforgettable events create a truly memorable coastal escape.',
   keywords: [
-    'hotel management system',
-    'property management system',
-    'yarvo hotel',
-    'hotel os',
-    'hospitality pms',
-    'hotel pos',
-    'liberia hotel software'
+    'kwalee beach resort',
+    'kwalee resort',
+    'liberia beach resort',
+    'marshall liberia',
+    'glamping tents liberia',
+    'luxury resort liberia',
+    'hotels in liberia'
   ],
   alternates: {
-    canonical: 'https://yarvohotel.com',
+    canonical: 'https://kwaleebeachresort.com',
   },
   icons: {
     icon: [
@@ -56,26 +56,26 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://yarvohotel.com',
-    siteName: 'Yarvo Hotel OS',
-    title: 'Yarvo Hotel OS | Hotel Management System',
+    url: 'https://kwaleebeachresort.com',
+    siteName: 'Kwalee Beach Resort',
+    title: 'Kwalee Beach Resort | Coastal Stays & Oceanfront Luxury in Liberia',
     description:
-      'Yarvo Hotel OS — Modern cloud and offline-first property management system for hotels, resorts, and hospitality businesses.',
+      'Come as guests, leave as family. Experience beach relaxation, poolside moments, fresh dining, oceanfront glamping tents, and unforgettable private celebrations at Kwalee Beach Resort in Marshall, Liberia.',
     images: [
       {
-        url: '/yarvo-logo-new.png',
+        url: '/opengraph-image.png',
         width: 1200,
         height: 630,
-        alt: 'Yarvo Hotel OS',
+        alt: 'Kwalee Beach Resort',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Yarvo Hotel OS | Hotel Management System',
+    title: 'Kwalee Beach Resort | Luxury Coastal Resort in Liberia',
     description:
-      'Yarvo Hotel OS — Modern cloud and offline-first property management system for hotels, resorts, and hospitality businesses.',
-    images: ['/yarvo-logo-new.png'],
+      'Discover Kwalee Beach Resort in Marshall, Liberia. Oceanfront tents, luxury rooms, pristine beach, fine coastal dining, and private events.',
+    images: ['/opengraph-image.png'],
   },
 };
 
@@ -83,29 +83,31 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
-      '@type': 'SoftwareApplication',
-      '@id': 'https://yarvohotel.com/#software',
-      name: 'Yarvo Hotel OS',
-      url: 'https://yarvohotel.com',
+      '@type': ['LodgingBusiness', 'Resort', 'Hotel'],
+      '@id': 'https://kwaleebeachresort.com/#hotel',
+      name: 'Kwalee Beach Resort',
+      url: 'https://kwaleebeachresort.com',
+      logo: 'https://kwaleebeachresort.com/kwalee-logo.png',
+      image: 'https://kwaleebeachresort.com/opengraph-image.png',
       description:
-        'Modern cloud and offline-first property management system for hotels, resorts, and hospitality businesses.',
-      applicationCategory: 'BusinessApplication',
-      operatingSystem: 'All',
-    },
-    {
-      '@type': 'Organization',
-      '@id': 'https://yarvohotel.com/#organization',
-      name: 'Yarvo Hotel OS',
-      url: 'https://yarvohotel.com',
-      logo: 'https://yarvohotel.com/yarvo-logo-new.png',
+        'A premier luxury coastal destination in Marshall, Liberia offering beach relaxation, oceanfront glamping tents, dining, poolside experiences, and memorable events.',
+      telephone: '+231881744350',
+      email: 'kwaleebeachresort1@gmail.com',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: 'Kpakpa Kon',
+        addressLocality: 'Marshall',
+        addressRegion: 'Margibi County',
+        addressCountry: 'Liberia',
+      },
     },
     {
       '@type': 'WebSite',
-      '@id': 'https://yarvohotel.com/#website',
-      url: 'https://yarvohotel.com',
-      name: 'Yarvo Hotel OS',
+      '@id': 'https://kwaleebeachresort.com/#website',
+      url: 'https://kwaleebeachresort.com',
+      name: 'Kwalee Beach Resort',
       publisher: {
-        '@id': 'https://yarvohotel.com/#organization',
+        '@id': 'https://kwaleebeachresort.com/#hotel',
       },
     },
   ],

@@ -6,7 +6,7 @@ const PUBLIC_PATHS = [
   '/', '/login', '/signup', '/booking', '/api/', '/_next/', 
   '/favicon.ico', '/logo.jpg', '/logo.png', '/manifest.webmanifest', 
   '/icon', '/sw.js', '/icon-512.jpg', '/uploads/', '/dining', 
-  '/stay', '/events', '/gallery', '/yarvo-', '/sitemap', '/robots.txt', '/llms.txt'
+  '/stay', '/events', '/gallery', '/kwalee-', '/yarvo-', '/sitemap', '/robots.txt', '/llms.txt'
 ];
 
 export function proxy(request: NextRequest) {

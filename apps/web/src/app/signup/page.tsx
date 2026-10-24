@@ -231,12 +231,9 @@ export default function SignupPage() {
         <div className="relative z-10">
           <Link href="/" className="flex items-center gap-3 text-white group w-fit">
             <img 
-              src="/yarvo-logo-dark-horizontal.png" 
-              alt="Yarvo Hotel - Smarter Hotel Management" 
-              onError={(e) => {
-                e.currentTarget.src = "/yarvo-logo-dark.jpg";
-              }}
-              className="h-11 xl:h-12 w-auto object-contain transition-transform group-hover:scale-105"
+              src="/kwalee-logo.png" 
+              alt="Kwalee Beach Resort" 
+              className="h-12 w-auto object-contain transition-transform group-hover:scale-105"
             />
           </Link>
         </div>
@@ -261,11 +258,8 @@ export default function SignupPage() {
         <div className="lg:hidden flex items-center justify-between mb-12">
           <Link href="/" className="flex items-center gap-2">
             <img 
-              src="/yarvo-logo-dark-horizontal.png" 
-              alt="Yarvo Hotel" 
-              onError={(e) => {
-                e.currentTarget.src = "/yarvo-logo-dark.jpg";
-              }}
+              src="/kwalee-logo.png" 
+              alt="Kwalee Beach Resort" 
               className="h-9 w-auto object-contain"
             />
           </Link>
@@ -287,7 +281,7 @@ export default function SignupPage() {
             <p className="text-gray-400 text-sm">
               {step === 1 ? "Start your 14-day free trial. No credit card required." : 
                step === 2 ? "Tell us a bit about your property to customize your experience." : 
-               "Yarvo is modular. Choose only the features you need."}
+               "Choose only the modules and features you need for your property."}
             </p>
           </div>
 

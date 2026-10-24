@@ -507,8 +507,14 @@ export default function InventoryPage() {
                             <Plus size={16} />
                           </button>
                           <button title="Stock Out (Remove)" className="btn-icon" style={{ color: 'hsl(0, 84%, 65%)' }} onClick={() => {
+                            const initLoc = Number(item.stockMain || 0) > 0 ? 'MAIN'
+                              : Number(item.stockBar || 0) > 0 ? 'BAR'
+                              : Number(item.stockKitchen || 0) > 0 ? 'KITCHEN'
+                              : Number(item.stockHousekeeping || 0) > 0 ? 'HOUSEKEEPING'
+                              : Number(item.stockBoutique || 0) > 0 ? 'BOUTIQUE'
+                              : 'MAIN';
                             setStockItem(item);
-                            setStockOutData({ amount: 0, staffName: '', reason: '', location: 'MAIN' });
+                            setStockOutData({ amount: 0, staffName: '', reason: '', location: initLoc });
                             setShowStockOutModal(true);
                           }}>
                             <Minus size={16} />
@@ -576,31 +582,34 @@ export default function InventoryPage() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Stock Out: {stockItem.name}</h3>
+            <p style={{ fontSize: '13px', color: '#94a3b8', margin: '4px 0 16px 0' }}>
+              Total Hotel Available: <strong style={{ color: '#10b981' }}>{Number(stockItem.stockLevel || 0).toFixed(2)} {stockItem.unit}</strong>
+            </p>
             <form onSubmit={handleStockOut}>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Location</label>
+                  <label>Deduct From Department / Storage</label>
                   <select required value={stockOutData.location} onChange={e => setStockOutData({...stockOutData, location: e.target.value})}>
-                    <option value="MAIN">Main Storage</option>
-                    <option value="KITCHEN">Kitchen</option>
-                    <option value="BAR">Bar</option>
-                    <option value="HOUSEKEEPING">Housekeeping</option>
-                      <option value="BOUTIQUE">Boutique</option>
-                    </select>
+                    <option value="MAIN">Main Storage ({Number(stockItem.stockMain || 0).toFixed(2)} {stockItem.unit})</option>
+                    <option value="BAR">Bar ({Number(stockItem.stockBar || 0).toFixed(2)} {stockItem.unit})</option>
+                    <option value="KITCHEN">Kitchen ({Number(stockItem.stockKitchen || 0).toFixed(2)} {stockItem.unit})</option>
+                    <option value="HOUSEKEEPING">Housekeeping ({Number(stockItem.stockHousekeeping || 0).toFixed(2)} {stockItem.unit})</option>
+                    <option value="BOUTIQUE">Boutique ({Number(stockItem.stockBoutique || 0).toFixed(2)} {stockItem.unit})</option>
+                  </select>
                 </div>
                 <div className="form-group">
                   <label>Quantity to remove ({stockItem.unit})</label>
-                  <input required type="number" step="0.01" min="0.01" value={stockOutData.amount} onChange={e => setStockOutData({...stockOutData, amount: Number(e.target.value)})} />
+                  <input required type="number" step="0.01" min="0.01" max={Math.max(0.01, Number(stockItem.stockLevel || 0))} value={stockOutData.amount} onChange={e => setStockOutData({...stockOutData, amount: Number(e.target.value)})} />
                 </div>
               </div>
               <div className="form-row">
                 <div className="form-group">
                   <label>Staff Approving</label>
-                  <input required type="text" placeholder="e.g. John Doe" value={stockOutData.staffName} onChange={e => setStockOutData({...stockOutData, staffName: e.target.value})} />
+                  <input required type="text" placeholder="e.g. Staff Name" value={stockOutData.staffName} onChange={e => setStockOutData({...stockOutData, staffName: e.target.value})} />
                 </div>
                 <div className="form-group">
                   <label>Reason (Optional)</label>
-                  <input type="text" placeholder="e.g. Expired, Broken" value={stockOutData.reason} onChange={e => setStockOutData({...stockOutData, reason: e.target.value})} />
+                  <input type="text" placeholder="e.g. Guest consumption, Bar service, Expired" value={stockOutData.reason} onChange={e => setStockOutData({...stockOutData, reason: e.target.value})} />
                 </div>
               </div>
               <div className="modal-actions">

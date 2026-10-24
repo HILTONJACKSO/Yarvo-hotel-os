@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
   Param,
   Req,
@@ -10,6 +12,7 @@ import {
 import { FoliosService } from './folios.service';
 import { CreateChargeDto } from './dto/create-charge.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { UpdateLineItemDto } from './dto/update-line-item.dto';
 import { ApiTags, ApiOperation, ApiCookieAuth } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 
@@ -71,5 +74,38 @@ export class FoliosController {
     @Req() req: any,
   ) {
     return this.foliosService.postDiscount(id, createPaymentDto, req.user?.id);
+  }
+
+  @Patch(':id/items/:itemId')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
+  @ApiOperation({ summary: 'Update a line item in a folio (amount, description, category)' })
+  updateLineItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() updateLineItemDto: UpdateLineItemDto,
+    @Req() req: any,
+  ) {
+    return this.foliosService.updateLineItem(id, itemId, updateLineItemDto, req.user?.id);
+  }
+
+  @Delete(':id/items/:itemId')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
+  @ApiOperation({ summary: 'Delete a line item from a folio' })
+  deleteLineItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Req() req: any,
+  ) {
+    return this.foliosService.deleteLineItem(id, itemId, req.user?.id);
+  }
+
+  @Delete(':id')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
+  @ApiOperation({ summary: 'Delete a folio and its line items' })
+  deleteFolio(
+    @Param('id') id: string,
+    @Req() req: any,
+  ) {
+    return this.foliosService.deleteFolio(id, req.user?.id);
   }
 }

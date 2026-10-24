@@ -50,13 +50,13 @@ export class InventoryController {
   }
 
   @Post(':id/stock-in')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'INVENTORY_MANAGER', 'STOREKEEPER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'INVENTORY_MANAGER', 'STOREKEEPER', 'SUPERVISOR', 'CASHIER', 'FRONT_DESK', 'BARTENDER', 'POS', 'POS_CASHIER')
   stockIn(@Param('id') id: string, @Body() data: { amount: number, costPerUnit?: number }, @Req() req: any) {
     return this.inventoryService.stockIn(id, data, req.user?.id);
   }
 
   @Post(':id/stock-out')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'INVENTORY_MANAGER', 'STOREKEEPER', 'SUPERVISOR', 'CASHIER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'INVENTORY_MANAGER', 'STOREKEEPER', 'SUPERVISOR', 'CASHIER', 'FRONT_DESK', 'BARTENDER', 'WAITER', 'POS', 'POS_CASHIER')
   stockOut(@Param('id') id: string, @Body() data: { amount: number, staffName: string, reason?: string, location?: string }, @Req() req: any) {
     return this.inventoryService.stockOut(id, data, req.user?.id);
   }

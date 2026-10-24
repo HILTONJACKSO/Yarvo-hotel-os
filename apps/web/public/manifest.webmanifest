@@ -1,11 +1,11 @@
 {
-  "name": "Yarvo Hotel - Smarter Hotel Management",
-  "short_name": "Yarvo",
-  "description": "The Modular Property Management System for Modern Hotels",
+  "name": "Kwalee Beach Resort",
+  "short_name": "Kwalee",
+  "description": "Kwalee Beach Resort — Luxury Coastal Resort & Getaways in Marshall, Liberia",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#050B14",
-  "theme_color": "#CA9851",
+  "background_color": "#0D1714",
+  "theme_color": "#F5B041",
   "icons": [
     {
       "src": "/icon-192.png",

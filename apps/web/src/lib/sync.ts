@@ -325,6 +325,12 @@ export async function downloadLatestData() {
     if (foliosRes.ok) {
       const d = await foliosRes.json();
       const folios = extractArray(d);
+      const serverIds = new Set(folios.map((f: any) => f.id));
+      const localFolios = await db.folios.toArray();
+      const toDelete = localFolios.filter((f: any) => !serverIds.has(f.id)).map((f: any) => f.id);
+      if (toDelete.length > 0) {
+        await db.folios.bulkDelete(toDelete);
+      }
       if (folios.length > 0) {
         await db.folios.bulkPut(folios);
       }

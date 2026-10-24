@@ -42,14 +42,14 @@ export function getDefaultReceiptInvoiceSettings(property?: any): ReceiptInvoice
     ? (() => { try { return JSON.parse(property.receiptSettings); } catch { return {}; } })()
     : property?.receiptSettings || {};
 
-  const propName = property?.name || 'Yarvo Hotel';
+  const propName = property?.name || 'Kwalee Beach Resort';
   const propLegal = property?.legalName || propName;
-  const propAddress = property?.address || 'Broad Street';
-  const propCity = property?.city || 'Monrovia';
+  const propAddress = property?.address || 'Marshall, Robertsfield Highway';
+  const propCity = property?.city || 'Margibi / Monrovia';
   const propCountry = property?.country || 'Liberia';
-  const propPhone = property?.phone || '+231 777 123 456';
-  const propEmail = property?.email || 'billing@yarvohotel.com';
-  const propWebsite = property?.website || 'www.yarvohotel.com';
+  const propPhone = property?.phone || '+231 881 744 350';
+  const propEmail = property?.email || 'kwaleebeachresort1@gmail.com';
+  const propWebsite = property?.website || 'https://kwaleebeachresort.com';
   const propTaxId = property?.taxId || '';
 
   const legacyReceipt = parsedSettings.restaurant || parsedSettings.bar || {};
@@ -57,8 +57,8 @@ export function getDefaultReceiptInvoiceSettings(property?: any): ReceiptInvoice
 
   return {
     businessName: parsedSettings.businessName ?? legacyReceipt.header?.split('\n')[0] ?? propName,
-    tagline: parsedSettings.tagline ?? 'Hospitality & Leisure Services',
-    logoUrl: parsedSettings.logoUrl ?? legacyInvoice.logoUrl ?? legacyReceipt.logoUrl ?? (property?.logoUrl || ''),
+    tagline: parsedSettings.tagline ?? 'Luxury Coastal Escape & Resort',
+    logoUrl: parsedSettings.logoUrl ?? legacyInvoice.logoUrl ?? legacyReceipt.logoUrl ?? (property?.logoUrl || '/kwalee-logo.png'),
     showLogo: parsedSettings.showLogo ?? true,
     address: parsedSettings.address ?? `${propAddress}, ${propCity}`,
     city: parsedSettings.city ?? propCity,

@@ -158,7 +158,7 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
     description: "Tell us about your upcoming event and our dedicated team will get in touch to bring your vision to life.",
     submitButtonText: "Send Request",
     whatsappButtonText: "Chat on WhatsApp",
-    whatsappNumber: "+231777000000"
+    whatsappNumber: "+231774340843"
   },
   gallery: {
     title: "MOMENTS AT KWALEE",
@@ -209,13 +209,13 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
   general: {
     resortName: "Kwalee Beach Resort",
     tagline: "A premium coastal destination offering beach relaxation, poolside experiences, dining, and unforgettable events.",
-    logoUrl: "",
-    phone: "+231 777 000 000",
-    email: "info@kwaleebeachresort.com",
+    logoUrl: "/kwalee-logo.png",
+    phone: "+231 881 744 350",
+    email: "kwaleebeachresort1@gmail.com",
     address: "Kpakpa Kon, Marshall, Liberia",
-    instagramUrl: "https://instagram.com",
-    facebookUrl: "https://facebook.com",
-    whatsappNumber: "+231777000000",
+    instagramUrl: "https://www.instagram.com/kwaleebeachresort?psln=MWp2a3ppdzF5cHB3Zw==",
+    facebookUrl: "https://www.facebook.com/share/1DbCs4wZAb/",
+    whatsappNumber: "+231774340843",
     copyrightText: "© 2026 Kwalee Beach Resort. All rights reserved.",
     navLinks: [
       { label: "Stay", href: "/stay" },

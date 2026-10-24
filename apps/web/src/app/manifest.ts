@@ -2,13 +2,13 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Yarvo Hotel Management System',
-    short_name: 'Yarvo HMS',
-    description: 'Production-grade Property Management System for Yarvo Hotel OS',
-    start_url: '/dashboard',
+    name: 'Kwalee Beach Resort',
+    short_name: 'Kwalee Resort',
+    description: 'Kwalee Beach Resort — Luxury Coastal Resort & Management Portal in Liberia',
+    start_url: '/',
     display: 'standalone',
-    background_color: '#060B14',
-    theme_color: '#FFB800',
+    background_color: '#0D1714',
+    theme_color: '#F5B041',
     icons: [
       {
         src: '/icon-512.jpg',

@@ -256,28 +256,48 @@ export class InventoryService {
       const locKey = data.location ? data.location.toUpperCase() : 'MAIN';
       const targetField = locMap[locKey] || 'stockMain';
 
-      let currentStock = Number((oldRecord as any)[targetField]) || 0;
+      const totalStock = Number(oldRecord.stockLevel || 0);
+      if (totalStock < amount) {
+        throw new BadRequestException(`Not enough total stock available to stock out ${amount}. Available in hotel: ${totalStock}`);
+      }
+
+      let currentLocStock = Number((oldRecord as any)[targetField]) || 0;
       if (targetField === 'stockMain') {
-        const total = Number(oldRecord.stockLevel || 0);
         const otherAllocated = 
           Number(oldRecord.stockKitchen || 0) + 
           Number(oldRecord.stockBar || 0) + 
           Number(oldRecord.stockHousekeeping || 0) + 
           Number(oldRecord.stockBoutique || 0);
-        const unallocated = Math.max(0, total - otherAllocated);
-        if (currentStock < unallocated) currentStock = unallocated;
+        const unallocated = Math.max(0, totalStock - otherAllocated);
+        if (currentLocStock < unallocated) currentLocStock = unallocated;
       }
 
-      if (currentStock < amount) {
-        throw new BadRequestException(`Not enough stock in ${locKey} Storage to stock out ${amount}. Current: ${currentStock}`);
+      const updateData: any = {
+        stockLevel: Math.max(0, totalStock - amount),
+      };
+
+      if (currentLocStock >= amount) {
+        updateData[targetField] = Math.max(0, currentLocStock - amount);
+      } else {
+        let remainder = amount - currentLocStock;
+        updateData[targetField] = 0;
+
+        const locationFields = ['stockMain', 'stockBar', 'stockKitchen', 'stockHousekeeping', 'stockBoutique'];
+        for (const field of locationFields) {
+          if (field === targetField) continue;
+          if (remainder <= 0) break;
+          const availableInField = Number((oldRecord as any)[field]) || 0;
+          if (availableInField > 0) {
+            const deduct = Math.min(availableInField, remainder);
+            updateData[field] = Math.max(0, availableInField - deduct);
+            remainder -= deduct;
+          }
+        }
       }
 
       const newRecord = await tx.inventoryItem.update({
         where: { id },
-        data: {
-          stockLevel: Math.max(0, Number(oldRecord.stockLevel || 0) - amount),
-          [targetField]: Math.max(0, currentStock - amount),
-        },
+        data: updateData,
       });
 
       await this.auditLogsService.logAction({

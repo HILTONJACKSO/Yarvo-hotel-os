@@ -92,8 +92,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const property = useLiveQuery(() => db.properties.toCollection().first());
   const receiptSettings = getDefaultReceiptInvoiceSettings(property);
-  const propertyName = user?.propertyName || property?.name || receiptSettings.businessName || 'Yarvo Hotel';
-  const logoUrl = receiptSettings.logoUrl || '/yarvo-icon-white-gold.png';
+  const propertyName = user?.propertyName || property?.name || receiptSettings.businessName || 'Kwalee Beach Resort';
+  const logoUrl = receiptSettings.logoUrl || '/kwalee-logo.png';
 
   useEffect(() => {
     setCurrentPath(window.location.pathname);
@@ -178,7 +178,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   alt={propertyName} 
                   className="w-7 h-7 rounded-full object-contain border border-[#CA9851]/40 shadow-sm flex-shrink-0 bg-[#070F1E] p-0.5"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/yarvo-icon-white-gold.png';
+                    (e.target as HTMLImageElement).src = '/kwalee-logo.png';
                   }}
                 />
                 <span className="font-serif font-bold text-white tracking-widest text-sm truncate" title={propertyName}>
@@ -192,7 +192,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 title={propertyName}
                 className="w-7 h-7 rounded-full object-contain border border-[#CA9851]/40 shadow-sm bg-[#070F1E] p-0.5"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/yarvo-icon-white-gold.png';
+                  (e.target as HTMLImageElement).src = '/kwalee-logo.png';
                 }}
               />
             )}
