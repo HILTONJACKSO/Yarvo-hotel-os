@@ -170,12 +170,28 @@ export default function EventsPage() {
         .status-badge.cancelled { background: hsl(0, 60%, 20%); color: hsl(0, 70%, 70%); }
         .status-badge.completed { background: hsl(210, 60%, 20%); color: hsl(210, 70%, 70%); }
         
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 24px; }
         .modal-content { background: hsl(222, 35%, 10%); border: 1px solid hsl(217, 20%, 18%); border-radius: 12px; width: 500px; max-width: 100%; display: flex; flex-direction: column; max-height: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         .modal-header { padding: 24px 24px 16px; flex-shrink: 0; }
         .modal-header h3 { margin: 0; color: white; font-size: 1.25rem; }
         .modal-body { padding: 0 24px; overflow-y: auto; flex-grow: 1; }
         .modal-footer { padding: 16px 24px 24px; display: flex; justify-content: flex-end; gap: 12px; flex-shrink: 0; border-top: 1px solid hsl(217, 20%, 14%); margin-top: 16px; }
+
+        @media (max-width: 768px) {
+          .page-container { padding: 4px; gap: 20px; }
+          .panel { padding: 16px; border-radius: 10px; }
+          .header-actions { flex-direction: column; align-items: stretch; gap: 12px; }
+          .header-actions .btn-primary { justify-content: center; width: 100%; }
+          .tabs { width: 100%; display: flex; overflow-x: auto; }
+          .tab { flex: 1; text-align: center; white-space: nowrap; font-size: 0.85rem; padding: 8px 10px; }
+          .form-grid { grid-template-columns: 1fr; }
+          .form-group.full { grid-column: span 1; }
+          .modal-overlay { padding: 12px; }
+          .modal-content { max-height: 92vh; }
+          .data-table th, .data-table td { padding: 12px 10px; font-size: 0.85rem; }
+        }
       `}</style>
     </div>
   );
@@ -261,53 +277,55 @@ function BookingsTab({ bookings, spaces, refresh }: { bookings: EventBooking[], 
         </button>
       </div>
       
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Event Details</th>
-            <th>Space</th>
-            <th>Date & Time</th>
-            <th>Status</th>
-            <th>Payment</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {bookings.map(b => (
-            <tr key={b.id}>
-              <td>
-                <div style={{ fontWeight: 600 }}>{b.eventType}</div>
-                <div style={{ fontSize: '0.85rem', color: 'hsl(215, 20%, 65%)' }}>{b.guestName} ({b.attendeesCount} pax)</div>
-              </td>
-              <td>{b.space?.name || 'Unknown Space'}</td>
-              <td>
-                <div>{new Date(b.startTime).toLocaleDateString()}</div>
-                <div style={{ fontSize: '0.85rem', color: 'hsl(215, 20%, 65%)' }}>
-                  {new Date(b.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                  {new Date(b.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </td>
-              <td>
-                <span className={`status-badge ${b.status.toLowerCase()}`}>{b.status}</span>
-              </td>
-              <td>
-                <div style={{ fontWeight: 600 }}>{format(Number(b.totalAmount))}</div>
-                <div style={{ fontSize: '0.85rem', color: Number(b.amountPaid) >= Number(b.totalAmount) ? 'hsl(142, 70%, 45%)' : 'hsl(35, 90%, 50%)' }}>
-                  Paid: {format(Number(b.amountPaid))}
-                </div>
-              </td>
-              <td>
-                <button className="btn-secondary" onClick={() => { setEditingBooking(b); setShowModal(true); }}>Edit</button>
-              </td>
-            </tr>
-          ))}
-          {bookings.length === 0 && (
+      <div className="table-responsive">
+        <table className="data-table">
+          <thead>
             <tr>
-              <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'hsl(215, 20%, 65%)' }}>No event bookings found.</td>
+              <th>Event Details</th>
+              <th>Space</th>
+              <th>Date & Time</th>
+              <th>Status</th>
+              <th>Payment</th>
+              <th>Actions</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {bookings.map(b => (
+              <tr key={b.id}>
+                <td>
+                  <div style={{ fontWeight: 600 }}>{b.eventType}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'hsl(215, 20%, 65%)' }}>{b.guestName} ({b.attendeesCount} pax)</div>
+                </td>
+                <td>{b.space?.name || 'Unknown Space'}</td>
+                <td>
+                  <div>{new Date(b.startTime).toLocaleDateString()}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'hsl(215, 20%, 65%)' }}>
+                    {new Date(b.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                    {new Date(b.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </td>
+                <td>
+                  <span className={`status-badge ${b.status.toLowerCase()}`}>{b.status}</span>
+                </td>
+                <td>
+                  <div style={{ fontWeight: 600 }}>{format(Number(b.totalAmount))}</div>
+                  <div style={{ fontSize: '0.85rem', color: Number(b.amountPaid) >= Number(b.totalAmount) ? 'hsl(142, 70%, 45%)' : 'hsl(35, 90%, 50%)' }}>
+                    Paid: {format(Number(b.amountPaid))}
+                  </div>
+                </td>
+                <td>
+                  <button className="btn-secondary" onClick={() => { setEditingBooking(b); setShowModal(true); }}>Edit</button>
+                </td>
+              </tr>
+            ))}
+            {bookings.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'hsl(215, 20%, 65%)' }}>No event bookings found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {showModal && (
         <BookingModal 
@@ -343,41 +361,43 @@ function SpacesTab({ spaces, refresh }: { spaces: EventSpace[], refresh: () => v
         </button>
       </div>
       
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Capacity</th>
-            <th>Hourly Rate</th>
-            <th>Daily Rate</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {spaces.map(s => (
-            <tr key={s.id}>
-              <td style={{ fontWeight: 600 }}>{s.name}</td>
-              <td>{s.capacity} pax</td>
-              <td>{format(Number(s.pricePerHour))} / hr</td>
-              <td>{format(Number(s.pricePerDay))} / day</td>
-              <td>
-                <span className={`status-badge ${s.isActive ? 'confirmed' : 'cancelled'}`}>
-                  {s.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </td>
-              <td>
-                <button className="btn-secondary" onClick={() => { setEditingSpace(s); setShowModal(true); }}>Edit</button>
-              </td>
-            </tr>
-          ))}
-          {spaces.length === 0 && (
+      <div className="table-responsive">
+        <table className="data-table">
+          <thead>
             <tr>
-              <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'hsl(215, 20%, 65%)' }}>No event spaces configured.</td>
+              <th>Name</th>
+              <th>Capacity</th>
+              <th>Hourly Rate</th>
+              <th>Daily Rate</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {spaces.map(s => (
+              <tr key={s.id}>
+                <td style={{ fontWeight: 600 }}>{s.name}</td>
+                <td>{s.capacity} pax</td>
+                <td>{format(Number(s.pricePerHour))} / hr</td>
+                <td>{format(Number(s.pricePerDay))} / day</td>
+                <td>
+                  <span className={`status-badge ${s.isActive ? 'confirmed' : 'cancelled'}`}>
+                    {s.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td>
+                  <button className="btn-secondary" onClick={() => { setEditingSpace(s); setShowModal(true); }}>Edit</button>
+                </td>
+              </tr>
+            ))}
+            {spaces.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'hsl(215, 20%, 65%)' }}>No event spaces configured.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {showModal && (
         <SpaceModal 

@@ -865,7 +865,7 @@ enum ExpenseCategory {
 model Expense {
   id            String          @id @default(uuid()) @db.Uuid
   amount        Decimal         @db.Decimal(10, 2)
-  category      ExpenseCategory
+  category      String          @db.VarChar(100)
   date          DateTime        @db.Date
   description   String          @db.Text
   referenceCode String?         @db.VarChar(100)

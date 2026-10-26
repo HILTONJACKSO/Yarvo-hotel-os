@@ -379,6 +379,17 @@ const CoverflowTestimonialsSection = ({
 };
 
 const EventsSection = ({ data }: { data: EventsSectionContent }) => {
+  const [spaces, setSpaces] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/event-spaces')
+      .then(res => res.json())
+      .then(d => {
+        if (d.success && d.data) setSpaces(d.data);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <section id="events" className="py-24 md:py-40 bg-[#1B2418] text-white">
       <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-12 gap-16">
@@ -404,10 +415,10 @@ const EventsSection = ({ data }: { data: EventsSectionContent }) => {
           
           <div>
             <Link 
-              href={data.buttonLink || "#inquiry"} 
+              href={data.buttonLink || "/events"} 
               className="inline-block px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors"
             >
-              {data.buttonText || "Plan Your Event"}
+              {data.buttonText || "Explore Event Spaces"}
             </Link>
           </div>
         </div>
@@ -419,6 +430,39 @@ const EventsSection = ({ data }: { data: EventsSectionContent }) => {
             className="w-full h-full object-cover rounded-sm"
           />
         </div>
+
+        {spaces.length > 0 && (
+          <div className="lg:col-span-12 mt-8 pt-12 border-t border-white/10">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+              <div>
+                <span className="text-xs uppercase tracking-[0.2em] text-[#E8E1D7] block mb-2 font-semibold">Available Venues</span>
+                <h3 className="text-2xl md:text-3xl font-serif text-white">Our Event Spaces & Packages</h3>
+              </div>
+              <Link href="/events" className="text-sm uppercase tracking-widest text-[#E8E1D7] hover:text-white underline underline-offset-8">
+                View All {spaces.length} Spaces &rarr;
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {spaces.slice(0, 4).map((space) => (
+                <div key={space.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all flex flex-col justify-between">
+                  <div>
+                    <h4 className="font-serif text-lg font-bold text-white mb-2">{space.name}</h4>
+                    <p className="text-sm text-[#E8E1D7]/70 mb-3">Up to {space.capacity} Guests</p>
+                    {space.pricePerHour > 0 && (
+                      <p className="text-amber-400 font-semibold text-sm mb-4">${Number(space.pricePerHour).toFixed(2)} / hr</p>
+                    )}
+                  </div>
+                  <Link 
+                    href="/events" 
+                    className="inline-block text-center py-2.5 px-4 rounded-full border border-white/30 text-xs font-semibold uppercase tracking-wider text-white hover:bg-white hover:text-[#1B2418] transition-colors"
+                  >
+                    Book Venue
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -24,10 +24,10 @@ export default function SuperAdminLayout({ children }: { children: ReactNode }) 
         <div className="h-20 flex items-center px-6 border-b border-white/10">
           <Link href="/super-admin" className="flex items-center gap-2">
             <img 
-              src="/yarvo-logo-dark-horizontal.png" 
-              alt="Yarvo Hotel" 
+              src="/kwalee-logo.png" 
+              alt="Kwalee Beach Resort" 
               onError={(e) => {
-                e.currentTarget.src = "/yarvo-logo-dark.jpg";
+                e.currentTarget.src = "/logo.jpg";
               }}
               className="h-8 w-auto object-contain"
             />

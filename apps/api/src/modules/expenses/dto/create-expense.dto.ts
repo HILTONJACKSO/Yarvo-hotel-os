@@ -1,14 +1,13 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsEnum, IsDateString } from 'class-validator';
-import { ExpenseCategory } from '@prisma/client';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsDateString } from 'class-validator';
 
 export class CreateExpenseDto {
   @IsNumber()
   @IsNotEmpty()
   amount!: number;
 
-  @IsEnum(ExpenseCategory)
+  @IsString()
   @IsNotEmpty()
-  category!: ExpenseCategory;
+  category!: string;
 
   @IsDateString()
   @IsNotEmpty()

@@ -56,8 +56,14 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'http',  hostname: 'localhost' },
+      { protocol: 'https', hostname: 'kwaleebeachresort.com' },
+      { protocol: 'https', hostname: 'www.kwaleebeachresort.com' },
+      { protocol: 'http',  hostname: '82.29.175.72' },
+      { protocol: 'https', hostname: '82.29.175.72' },
       // Allow API subdomain (any domain set via DOMAIN env var)
       ...(process.env.DOMAIN ? [
+        { protocol: 'https' as const, hostname: process.env.DOMAIN },
+        { protocol: 'https' as const, hostname: `www.${process.env.DOMAIN}` },
         { protocol: 'https' as const, hostname: `api.${process.env.DOMAIN}` },
       ] : [
         { protocol: 'https' as const, hostname: '*.kwaleebeachresort.com' },

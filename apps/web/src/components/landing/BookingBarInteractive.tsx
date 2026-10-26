@@ -59,6 +59,17 @@ export const BookingBarInteractive = () => {
       })
       .catch(err => console.error('Failed to fetch activities', err));
 
+    const handleOpenBooking = (e: any) => {
+      if (e.detail?.roomTypeId) {
+        setRoomTypeId(e.detail.roomTypeId);
+      }
+      setIsModalOpen(true);
+      setIsSuccess(false);
+      setError('');
+    };
+
+    window.addEventListener('open-booking-modal', handleOpenBooking);
+    return () => window.removeEventListener('open-booking-modal', handleOpenBooking);
   }, []);
 
   const handleCheckAvailability = () => {
@@ -116,8 +127,8 @@ export const BookingBarInteractive = () => {
 
   return (
     <>
-      <section id="book" className="relative z-20 -mt-16 max-w-6xl mx-auto px-6">
-        <div className="bg-white shadow-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
+      <section id="booking-bar" className="relative z-20 -mt-16 max-w-6xl mx-auto px-6">
+        <div id="book" className="bg-white shadow-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
           <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-6 border-b md:border-b-0 md:border-r border-[#E8E1D7] pb-6 md:pb-0 md:pr-6">
             
             {/* Dates */}

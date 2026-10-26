@@ -217,8 +217,13 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
 
         <button 
           onClick={() => {
-            const el = document.getElementById('booking-bar');
+            const el = document.getElementById('booking-bar') || document.getElementById('book');
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('open-booking-modal', {
+                detail: { roomTypeId: room.id }
+              }));
+            }
           }}
           className="w-full py-4 text-center border-2 border-[#1F1F1F] text-[#1F1F1F] font-medium rounded-full hover:bg-[#1B2418] hover:text-white transition-colors uppercase tracking-widest text-sm"
         >

@@ -28,15 +28,19 @@ export default function EventsPage() {
 
     async function fetchSpaces() {
       try {
-        const res = await fetch('/api/v1/public/event-spaces', {
-          headers: {
-            'X-API-Key': process.env.NEXT_PUBLIC_API_KEY || 'yarvo_pub_test_1234567890abcdef',
-          }
-        });
+        let spaces: any[] = [];
+        const res = await fetch('/api/event-spaces', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          setEventSpaces(data.data || []);
+          spaces = data.data || [];
+        } else {
+          const fallbackRes = await fetch('/api/v1/public/event-spaces');
+          if (fallbackRes.ok) {
+            const data = await fallbackRes.json();
+            spaces = data.data || [];
+          }
         }
+        setEventSpaces(spaces);
       } catch (err) {
         console.error('Failed to fetch event spaces:', err);
       } finally {

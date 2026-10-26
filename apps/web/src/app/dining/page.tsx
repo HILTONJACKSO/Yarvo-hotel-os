@@ -155,22 +155,42 @@ export default function DiningPage() {
 
             {/* Menu Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {displayedItems.map((item: any, idx: number) => (
-                <div key={idx} className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all overflow-hidden border border-[#E8E1D7] flex flex-col group">
-                  {item.image ? (
-                    <div className="w-full h-56 relative overflow-hidden bg-gray-100">
-                      <Image 
-                        src={item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_API_URL || ''}${item.image}`} 
-                        alt={item.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                      />
+              {displayedItems.map((item: any, idx: number) => {
+                const itemImg = item.image || item.imageUrl || (Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : null);
+                let fullImgSrc = '';
+                if (itemImg && typeof itemImg === 'string' && itemImg.trim() !== '') {
+                  const trimmed = itemImg.trim();
+                  if (trimmed.startsWith('http')) {
+                    fullImgSrc = trimmed;
+                  } else if (trimmed.startsWith('/')) {
+                    fullImgSrc = trimmed;
+                  } else {
+                    fullImgSrc = `/uploads/${trimmed}`;
+                  }
+                }
+
+                return (
+                  <div key={item.id || idx} className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all overflow-hidden border border-[#E8E1D7] flex flex-col group">
+                    <div className="w-full h-56 relative overflow-hidden bg-[#F0EBE1] flex items-center justify-center">
+                      {fullImgSrc ? (
+                        <img 
+                          src={fullImgSrc} 
+                          alt={item.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextElementSibling;
+                            if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className="w-full h-full bg-[#F0EBE1] flex items-center justify-center text-[#F5A623]"
+                        style={{ display: fullImgSrc ? 'none' : 'flex' }}
+                      >
+                        {item.type === 'FOOD' ? <Utensils size={48} opacity={0.5} /> : <Coffee size={48} opacity={0.5} />}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="w-full h-56 bg-[#F0EBE1] flex items-center justify-center text-[#F5A623]">
-                      {item.type === 'FOOD' ? <Utensils size={48} opacity={0.5} /> : <Coffee size={48} opacity={0.5} />}
-                    </div>
-                  )}
                   
                   <div className="p-6 flex flex-col flex-grow">
                     <div className="flex justify-between items-start mb-3">
@@ -187,7 +207,8 @@ export default function DiningPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </>
         ) : (
