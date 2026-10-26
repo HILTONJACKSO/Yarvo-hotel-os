@@ -36,7 +36,7 @@ const Footer = ({ general }: FooterProps) => {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16 border-b border-white/20 pb-16 mb-12">
         <div className="md:col-span-1">
           {data.logoUrl ? (
-            <img src={data.logoUrl} alt={data.resortName} className="h-10 max-w-[200px] object-contain mb-6 invert brightness-200" />
+            <img src={data.logoUrl} alt={data.resortName || 'Kwalee Beach Resort'} className="h-11 max-w-[200px] object-contain mb-6" />
           ) : (
             <h3 className="font-serif text-2xl tracking-widest uppercase mb-8 whitespace-pre-line">
               {data.resortName || 'Kwalee\nBeach\nResort'}
