@@ -9,8 +9,8 @@ export class ApiKeyGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<FastifyRequest>();
     
-    // Allow anonymous read access for GET requests on public catalog/data (event spaces, menu, room types, activities, availability)
-    if (request.method === 'GET') {
+    // Allow anonymous read access for GET, HEAD, and OPTIONS requests on public catalog/data (event spaces, menu, room types, activities, availability)
+    if (request.method === 'GET' || request.method === 'HEAD' || request.method === 'OPTIONS') {
       return true;
     }
 
