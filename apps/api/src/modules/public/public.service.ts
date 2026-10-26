@@ -334,7 +334,7 @@ export class PublicService {
       include: {
         items: {
           where: { isAvailable: true },
-          select: { id: true, name: true, description: true, price: true, type: true, image: true, }
+          select: { id: true, name: true, description: true, price: true, type: true, image: true, images: true }
         }
       }
     });

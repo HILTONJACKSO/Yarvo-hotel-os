@@ -9,6 +9,90 @@ import { X, CheckCircle, ShoppingBag, Utensils, Coffee } from 'lucide-react';
 import { DEFAULT_CMS_CONTENT, mergeWithDefaultContent } from '@/lib/default-cms-content';
 import { WebsiteContent } from '@/types/cms';
 
+const getDishFallbackImage = (itemName: string = '', categoryName: string = '', type: string = 'FOOD'): string => {
+  const name = itemName.toLowerCase();
+  const cat = categoryName.toLowerCase();
+
+  // Keyword matches on dish name
+  if (name.includes('lobster') || name.includes('seafood') || name.includes('prawn') || name.includes('shrimp')) {
+    return 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('pizza')) {
+    return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('burger') || name.includes('sandwich')) {
+    return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('rice')) {
+    return 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('soup')) {
+    return 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('avocado')) {
+    return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('salad') || name.includes('cucumber')) {
+    return 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('fruit')) {
+    return 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('caramel') || name.includes('ice-cream') || name.includes('ice cream') || name.includes('dessert') || name.includes('cake')) {
+    return 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('finger') || name.includes('ball')) {
+    return 'https://images.unsplash.com/photo-1562967914-608f82629710?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('fries') || name.includes('cassava')) {
+    return 'https://images.unsplash.com/photo-1576107232684-1279f3908594?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('cashew') || name.includes('nut')) {
+    return 'https://images.unsplash.com/photo-1509912760195-260339d39109?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('watermelon')) {
+    return 'https://images.unsplash.com/photo-1589733955941-5eeaf752f6dd?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('pineapple')) {
+    return 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('mango')) {
+    return 'https://images.unsplash.com/photo-1546173159-315724a31696?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('tea')) {
+    return 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('coffee') || name.includes('nescaf')) {
+    return 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('tequila') || name.includes('spirit') || name.includes('whiskey') || name.includes('vodka') || name.includes('daddy')) {
+    return 'https://images.unsplash.com/photo-1527061011665-3652c757a4d4?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('wine')) {
+    return 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('beer') || name.includes('cider') || name.includes('savanna')) {
+    return 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=800&auto=format&fit=crop&q=80';
+  }
+  if (name.includes('juice') || name.includes('water') || name.includes('aloevera') || name.includes('buffalo')) {
+    return 'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=800&auto=format&fit=crop&q=80';
+  }
+
+  // Category fallback
+  if (cat.includes('pizza')) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop&q=80';
+  if (cat.includes('main')) return 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80';
+  if (cat.includes('salad')) return 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=80';
+  if (cat.includes('starter')) return 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?w=800&auto=format&fit=crop&q=80';
+  if (cat.includes('dessert')) return 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&auto=format&fit=crop&q=80';
+  if (cat.includes('kid')) return 'https://images.unsplash.com/photo-1562967914-608f82629710?w=800&auto=format&fit=crop&q=80';
+  if (cat.includes('hot drink')) return 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&auto=format&fit=crop&q=80';
+  if (cat.includes('wine')) return 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=800&auto=format&fit=crop&q=80';
+  if (cat.includes('alcoholic') || cat.includes('bottle') || cat.includes('drink')) return 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&auto=format&fit=crop&q=80';
+
+  if (type === 'FOOD') return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop&q=80';
+  return 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&auto=format&fit=crop&q=80';
+};
+
 export default function DiningPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -37,27 +121,39 @@ export default function DiningPage() {
       })
       .catch(() => {});
 
-    fetch('/api/v1/public/menu')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.data) {
-          setCategories(data.data);
-        } else {
-          // Fallback just in case they haven't re-deployed proxy changes
-          fetch('/api/menu-orders')
-            .then(res => res.json())
-            .then(d2 => {
-              if (d2.success && d2.data) setCategories(d2.data);
-            });
+    const loadMenu = async () => {
+      try {
+        const res = await fetch('/api/v1/public/menu');
+        const json = await res.json();
+        const menuData = json.data || (Array.isArray(json) ? json : null);
+        if (menuData && Array.isArray(menuData) && menuData.length > 0) {
+          setCategories(menuData);
+          return;
         }
-      })
-      .catch(err => console.error('Failed to fetch menu', err));
+      } catch (err) {
+        console.error('Failed to fetch from /api/v1/public/menu', err);
+      }
+
+      // Fallback
+      try {
+        const res2 = await fetch('/api/menu-orders');
+        const json2 = await res2.json();
+        const fallbackData = json2.data || (Array.isArray(json2) ? json2 : null);
+        if (fallbackData && Array.isArray(fallbackData)) {
+          setCategories(fallbackData);
+        }
+      } catch (err2) {
+        console.error('Failed to fetch from fallback menu', err2);
+      }
+    };
+
+    loadMenu();
   }, []);
 
-  const allItems = categories.flatMap(c => c.items);
+  const allItems = categories.flatMap(c => (c.items || []).map((it: any) => ({ ...it, categoryName: c.name })));
   const displayedItems = selectedCategory === 'All' 
     ? allItems 
-    : categories.find(c => c.name === selectedCategory)?.items || [];
+    : (categories.find(c => c.name === selectedCategory)?.items || []).map((it: any) => ({ ...it, categoryName: selectedCategory }));
 
   const handleOrderClick = (item: any) => {
     setSelectedItem(item);
@@ -156,40 +252,32 @@ export default function DiningPage() {
             {/* Menu Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {displayedItems.map((item: any, idx: number) => {
-                const itemImg = item.image || item.imageUrl || (Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : null);
-                let fullImgSrc = '';
-                if (itemImg && typeof itemImg === 'string' && itemImg.trim() !== '') {
-                  const trimmed = itemImg.trim();
-                  if (trimmed.startsWith('http')) {
-                    fullImgSrc = trimmed;
-                  } else if (trimmed.startsWith('/')) {
-                    fullImgSrc = trimmed;
+                const rawImg = item.image || item.imageUrl || (Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : null);
+                let itemSrc = '';
+                if (rawImg && typeof rawImg === 'string' && rawImg.trim() !== '') {
+                  const trimmed = rawImg.trim();
+                  if (trimmed.startsWith('http') || trimmed.startsWith('/')) {
+                    itemSrc = trimmed;
                   } else {
-                    fullImgSrc = `/uploads/${trimmed}`;
+                    itemSrc = `/uploads/${trimmed}`;
                   }
                 }
+                const fallbackSrc = getDishFallbackImage(item.name, item.categoryName || selectedCategory, item.type);
+                const finalSrc = itemSrc || fallbackSrc;
 
                 return (
                   <div key={item.id || idx} className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all overflow-hidden border border-[#E8E1D7] flex flex-col group">
                     <div className="w-full h-56 relative overflow-hidden bg-[#F0EBE1] flex items-center justify-center">
-                      {fullImgSrc ? (
-                        <img 
-                          src={fullImgSrc} 
-                          alt={item.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const fallback = e.currentTarget.nextElementSibling;
-                            if (fallback) (fallback as HTMLElement).style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
-                      <div 
-                        className="w-full h-full bg-[#F0EBE1] flex items-center justify-center text-[#F5A623]"
-                        style={{ display: fullImgSrc ? 'none' : 'flex' }}
-                      >
-                        {item.type === 'FOOD' ? <Utensils size={48} opacity={0.5} /> : <Coffee size={48} opacity={0.5} />}
-                      </div>
+                      <img 
+                        src={finalSrc} 
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                        onError={(e) => {
+                          if (e.currentTarget.src !== fallbackSrc) {
+                            e.currentTarget.src = fallbackSrc;
+                          }
+                        }}
+                      />
                     </div>
                   
                   <div className="p-6 flex flex-col flex-grow">
@@ -197,7 +285,7 @@ export default function DiningPage() {
                       <h4 className="font-serif text-2xl text-[#1F1F1F]">{item.name}</h4>
                       <span className="font-bold text-[#F5A623] text-lg">${(Number(item.price)).toFixed(2)}</span>
                     </div>
-                    <p className="text-[#6B6F72] mb-6 flex-grow">{item.description}</p>
+                    <p className="text-[#6B6F72] mb-6 flex-grow">{item.description || 'Prepared fresh by our resort culinary team using the finest coastal ingredients.'}</p>
                     <button 
                       onClick={() => handleOrderClick(item)}
                       className="w-full py-3 flex items-center justify-center border border-[#E8E1D7] rounded text-[#F5A623] font-semibold tracking-widest uppercase text-sm group-hover:bg-[#F5A623] group-hover:text-white group-hover:border-[#F5A623] transition-all"

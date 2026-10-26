@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Users, Home as HomeIcon, X, CheckCircle } from 'lucide-react';
+import { Calendar, Users, Home as HomeIcon, X, CheckCircle, Bed, Sparkles, Phone, Mail, User, ShieldCheck } from 'lucide-react';
 
 export const BookingBarInteractive = () => {
   const [roomTypes, setRoomTypes] = useState<any[]>([]);
@@ -27,7 +27,6 @@ export const BookingBarInteractive = () => {
   const [activities, setActivities] = useState<any[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<{activityId: string, quantity: number}[]>([]);
 
-
   const router = useRouter();
 
   // Set default dates
@@ -46,9 +45,20 @@ export const BookingBarInteractive = () => {
         if (data.success && data.data && data.data.length > 0) {
           setRoomTypes(data.data);
           setRoomTypeId(data.data[0].id);
+        } else {
+          // Fallback to public endpoint
+          fetch('/api/v1/public/room-types')
+            .then(r => r.json())
+            .then(d => {
+              if (d.data && d.data.length > 0) {
+                setRoomTypes(d.data);
+                setRoomTypeId(d.data[0].id);
+              }
+            });
         }
       })
       .catch(err => console.error('Failed to fetch room types', err));
+
     // Fetch activities
     fetch('/api/activities')
       .then(res => res.json())
@@ -89,9 +99,9 @@ export const BookingBarInteractive = () => {
         lastName,
         email,
         phone,
-          whatsapp,
-          specialRequests,
-          checkInDate: checkIn,
+        whatsapp,
+        specialRequests,
+        checkInDate: checkIn,
         checkOutDate: checkOut,
         roomTypeId,
         adultsCount: parseInt(guests, 10),
@@ -109,7 +119,9 @@ export const BookingBarInteractive = () => {
       
       if (data.success) {
         setIsSuccess(true);
-        router.push('/booking/' + data.data.confirmationCode);
+        if (data.data?.confirmationCode) {
+          router.push('/booking/' + data.data.confirmationCode);
+        }
         // Reset form
         setFirstName('');
         setLastName('');
@@ -125,60 +137,64 @@ export const BookingBarInteractive = () => {
     }
   };
 
+  const selectedRoom = roomTypes.find(r => r.id === roomTypeId);
+  const nights = Math.max(1, Math.round((new Date(checkOut || Date.now()).getTime() - new Date(checkIn || Date.now()).getTime()) / (1000 * 60 * 60 * 24)) || 1);
+
   return (
     <>
-      <section id="booking-bar" className="relative z-20 -mt-16 max-w-6xl mx-auto px-6">
-        <div id="book" className="bg-white shadow-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
+      <section id="booking-bar" className="relative z-20 -mt-16 max-w-6xl mx-auto px-4 sm:px-6">
+        <div id="book" className="bg-white shadow-2xl rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 border border-[#E8E1D7]">
           <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-6 border-b md:border-b-0 md:border-r border-[#E8E1D7] pb-6 md:pb-0 md:pr-6">
             
             {/* Dates */}
             <div>
-              <label className="block text-xs uppercase tracking-widest text-[#6B6F72]/80 mb-2">Check-in — Check-out</label>
+              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2">Check-in — Check-out</label>
               <div className="flex items-center gap-2 border-b border-[#1F1F1F] py-2">
-                <Calendar size={18} className="text-[#6B6F72]/80 shrink-0" />
+                <Calendar size={18} className="text-[#C4A47C] shrink-0" />
                 <input 
                   type="date" 
                   value={checkIn}
                   onChange={(e) => setCheckIn(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm" 
+                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm font-medium" 
                 />
-                <span className="text-[#6B6F72]/80">-</span>
+                <span className="text-[#6B6F72]">-</span>
                 <input 
                   type="date" 
                   value={checkOut}
                   onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm" 
+                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm font-medium" 
                 />
               </div>
             </div>
 
             {/* Guests */}
             <div>
-              <label className="block text-xs uppercase tracking-widest text-[#6B6F72]/80 mb-2">Guests</label>
+              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2">Guests</label>
               <div className="flex items-center gap-3 border-b border-[#1F1F1F] py-2">
-                <Users size={18} className="text-[#6B6F72]/80" />
+                <Users size={18} className="text-[#C4A47C] shrink-0" />
                 <select 
                   value={guests}
                   onChange={(e) => setGuests(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1F1F1F]"
+                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm font-medium cursor-pointer"
                 >
                   <option value="1">1 Adult</option>
                   <option value="2">2 Adults</option>
                   <option value="3">3 Adults</option>
                   <option value="4">4 Adults</option>
+                  <option value="5">5+ Adults</option>
                 </select>
               </div>
             </div>
 
             {/* Room */}
             <div>
-              <label className="block text-xs uppercase tracking-widest text-[#6B6F72]/80 mb-2">Accommodation</label>
+              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2">Accommodation</label>
               <div className="flex items-center gap-3 border-b border-[#1F1F1F] py-2">
-                <HomeIcon size={18} className="text-[#6B6F72]/80" />
+                <HomeIcon size={18} className="text-[#C4A47C] shrink-0" />
                 <select 
                   value={roomTypeId}
                   onChange={(e) => setRoomTypeId(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1F1F1F]"
+                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm font-medium cursor-pointer"
                 >
                   {roomTypes.map(rt => (
                     <option key={rt.id} value={rt.id}>{rt.name}</option>
@@ -191,7 +207,7 @@ export const BookingBarInteractive = () => {
           <div className="w-full md:w-auto flex-shrink-0">
             <button 
               onClick={handleCheckAvailability}
-              className="block w-full px-8 py-5 bg-[#1B2418] text-white uppercase tracking-widest text-sm text-center hover:bg-[#2B4B5C] transition-colors cursor-pointer"
+              className="block w-full px-8 py-5 bg-[#1B2418] text-white uppercase tracking-widest text-sm text-center hover:bg-[#283824] rounded-xl transition-all shadow-lg hover:shadow-xl font-semibold cursor-pointer"
             >
               Book Now
             </button>
@@ -199,123 +215,236 @@ export const BookingBarInteractive = () => {
         </div>
       </section>
 
-      {/* Booking Modal */}
+      {/* Luxury Booking Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h3 className="text-xl font-serif font-bold text-gray-900">Complete Your Booking</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-[#6B6F72]/80 hover:text-gray-600 transition">
-                <X size={24} />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+          <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-[#E8E1D7] flex flex-col my-auto max-h-[92vh] overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="bg-[#1B2418] text-white px-6 py-5 flex items-center justify-between shrink-0 border-b border-[#C4A47C]/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#C4A47C]/20 border border-[#C4A47C]/40 flex items-center justify-center text-[#DFB776]">
+                  <Bed size={20} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#DFB776] font-semibold">Kwalee Beach Resort</span>
+                    <span className="inline-block w-1 h-1 rounded-full bg-[#DFB776]"></span>
+                    <span className="text-[10px] text-white/70">Direct Booking</span>
+                  </div>
+                  <h3 className="text-xl font-serif font-bold text-white tracking-wide">Complete Your Reservation</h3>
+                </div>
+              </div>
+              
+              <button 
+                type="button"
+                onClick={() => setIsModalOpen(false)} 
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition cursor-pointer"
+                title="Close"
+              >
+                <X size={20} />
               </button>
             </div>
             
-            <div className="p-6">
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#FCFBF7]">
               {isSuccess ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle size={32} />
+                <div className="text-center py-10">
+                  <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                    <CheckCircle size={36} />
                   </div>
-                  <h4 className="text-2xl font-bold text-gray-900 mb-2">Booking Requested!</h4>
-                  <p className="text-gray-600 mb-6">
-                    Thank you for your reservation. Our team will review it and contact you shortly to confirm.
+                  <h4 className="text-2xl font-serif font-bold text-gray-900 mb-2">Reservation Requested!</h4>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto text-sm leading-relaxed">
+                    Thank you for choosing Kwalee Beach Resort. Our guest services team has received your details and will contact you via WhatsApp / Email shortly to confirm.
                   </p>
                   <button 
                     onClick={() => setIsModalOpen(false)}
-                    className="bg-[#1B2418] text-white px-8 py-3 rounded hover:bg-gray-800 transition"
+                    className="bg-[#1B2418] text-white px-8 py-3.5 rounded-xl hover:bg-[#283824] transition uppercase tracking-widest text-xs font-semibold"
                   >
-                    Close
+                    Done
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmitBooking} className="space-y-4">
+                <form id="booking-form-submit" onSubmit={handleSubmitBooking} className="space-y-5">
                   {error && (
-                    <div className="p-3 bg-red-50 text-red-600 text-sm rounded border border-red-100">
+                    <div className="p-4 bg-rose-50 text-rose-700 text-sm rounded-xl border border-rose-200">
                       {error}
                     </div>
                   )}
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">First Name</label>
-                      <input required type="text" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="John" />
+
+                  {/* Summary Banner */}
+                  <div className="bg-[#FAF7EE] border border-[#E8E1D7] rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-white border border-[#E8E1D7] flex items-center justify-center text-[#1B2418] font-bold">
+                        <HomeIcon size={18} />
+                      </div>
+                      <div>
+                        <p className="font-serif font-bold text-[#1F1F1F] text-base">
+                          {selectedRoom?.name || 'Selected Room'}
+                        </p>
+                        <p className="text-xs text-[#6B6F72]">
+                          {nights} Night{nights !== 1 ? 's' : ''} • {guests} Guest{guests !== '1' ? 's' : ''}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Last Name</label>
-                      <input required type="text" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="Doe" />
+                    <div className="text-left sm:text-right">
+                      <span className="text-[11px] uppercase tracking-wider text-[#6B6F72] block">Dates</span>
+                      <span className="text-xs font-semibold text-[#1B2418]">{checkIn} → {checkOut}</span>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Email Address</label>
-                    <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="john@example.com" />
+                  {/* Guest Information */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs uppercase tracking-[0.15em] font-bold text-[#6B6F72] flex items-center gap-2">
+                      <User size={14} className="text-[#C4A47C]" /> Guest Details
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">First Name *</label>
+                        <input 
+                          required 
+                          type="text" 
+                          value={firstName} 
+                          onChange={e => setFirstName(e.target.value)} 
+                          className="w-full bg-white border border-[#E8E1D7] rounded-xl p-3 text-sm text-[#1F1F1F] outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/20 transition" 
+                          placeholder="e.g. John" 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Last Name *</label>
+                        <input 
+                          required 
+                          type="text" 
+                          value={lastName} 
+                          onChange={e => setLastName(e.target.value)} 
+                          className="w-full bg-white border border-[#E8E1D7] rounded-xl p-3 text-sm text-[#1F1F1F] outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/20 transition" 
+                          placeholder="e.g. Doe" 
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Email Address *</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <input 
+                          required 
+                          type="email" 
+                          value={email} 
+                          onChange={e => setEmail(e.target.value)} 
+                          className="w-full bg-white border border-[#E8E1D7] rounded-xl pl-10 pr-3 py-3 text-sm text-[#1F1F1F] outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/20 transition" 
+                          placeholder="john@example.com" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Phone Number *</label>
+                        <div className="relative">
+                          <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                          <input 
+                            required 
+                            type="tel" 
+                            value={phone} 
+                            onChange={e => setPhone(e.target.value)} 
+                            className="w-full bg-white border border-[#E8E1D7] rounded-xl pl-10 pr-3 py-3 text-sm text-[#1F1F1F] outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/20 transition" 
+                            placeholder="+231..." 
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">WhatsApp Number (Optional)</label>
+                        <input 
+                          type="tel" 
+                          value={whatsapp} 
+                          onChange={e => setWhatsapp(e.target.value)} 
+                          className="w-full bg-white border border-[#E8E1D7] rounded-xl p-3 text-sm text-[#1F1F1F] outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/20 transition" 
+                          placeholder="+231..." 
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Special Requests (Optional)</label>
+                      <textarea 
+                        value={specialRequests} 
+                        onChange={e => setSpecialRequests(e.target.value)} 
+                        rows={2}
+                        className="w-full bg-white border border-[#E8E1D7] rounded-xl p-3 text-sm text-[#1F1F1F] outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/20 transition resize-none" 
+                        placeholder="Arrival time, dietary preferences, ocean view preference..." 
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Phone Number</label>
-                    <input required type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="+1 234 567 8900" />
-                  </div>
-
-                  
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp Number (Optional)</label>
-                    <input type="tel" value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623]" placeholder="+1 234 567 8900" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Special Requests</label>
-                    <textarea value={specialRequests} onChange={e => setSpecialRequests(e.target.value)} className="w-full border border-gray-300 rounded p-2 text-sm outline-none focus:border-[#F5A623] resize-none h-16" placeholder="Any special needs..."></textarea>
-                  </div>
-                    {activities.length > 0 && (
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Enhance Your Stay (Optional)</label>
-                        <div className="space-y-3">
-                          {activities.map(act => {
-                            const selected = selectedActivities.find(a => a.activityId === act.id);
-                            const qty = selected ? selected.quantity : 0;
-                            return (
-                              <div key={act.id} className="flex justify-between items-center border border-gray-200 p-3 rounded">
-                                <div>
-                                  <p className="text-sm font-medium text-gray-800">{act.name} <span className="text-xs text-[#F5A623] ml-1">${Number(act.price).toFixed(2)}</span></p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <button type="button" onClick={() => {
+                  {/* Add-on Experiences */}
+                  {activities.length > 0 && (
+                    <div className="space-y-3 pt-2">
+                      <h4 className="text-xs uppercase tracking-[0.15em] font-bold text-[#6B6F72] flex items-center gap-2">
+                        <Sparkles size={14} className="text-[#C4A47C]" /> Add Resort Activities (Optional)
+                      </h4>
+                      <div className="space-y-2">
+                        {activities.map(act => {
+                          const selected = selectedActivities.find(a => a.activityId === act.id);
+                          const qty = selected ? selected.quantity : 0;
+                          return (
+                            <div key={act.id} className="flex justify-between items-center bg-white border border-[#E8E1D7] p-3 rounded-xl">
+                              <div>
+                                <p className="text-sm font-medium text-[#1F1F1F]">{act.name}</p>
+                                <span className="text-xs font-semibold text-[#C4A47C]">${Number(act.price).toFixed(2)} / guest</span>
+                              </div>
+                              <div className="flex items-center gap-2 bg-[#FAF7EE] border border-[#E8E1D7] rounded-lg p-1">
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
                                     if (qty > 0) {
                                       setSelectedActivities(prev => prev.map(p => p.activityId === act.id ? { ...p, quantity: p.quantity - 1 } : p));
                                     }
-                                  }} className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200">-</button>
-                                  <span className="text-sm w-4 text-center">{qty}</span>
-                                  <button type="button" onClick={() => {
+                                  }} 
+                                  className="w-7 h-7 rounded bg-white border border-[#E8E1D7] flex items-center justify-center text-gray-700 font-bold hover:bg-gray-100 transition"
+                                >-</button>
+                                <span className="text-xs font-bold w-6 text-center">{qty}</span>
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
                                     if (qty === 0) {
                                       setSelectedActivities([...selectedActivities, { activityId: act.id, quantity: 1 }]);
                                     } else {
                                       setSelectedActivities(prev => prev.map(p => p.activityId === act.id ? { ...p, quantity: p.quantity + 1 } : p));
                                     }
-                                  }} className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200">+</button>
-                                </div>
+                                  }} 
+                                  className="w-7 h-7 rounded bg-white border border-[#E8E1D7] flex items-center justify-center text-gray-700 font-bold hover:bg-gray-100 transition"
+                                >+</button>
                               </div>
-                            );
-                          })}
-                        </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    )}
-
-<div className="bg-gray-50 p-4 rounded text-sm text-gray-600 mt-6 border border-gray-100">
-                    <p><strong>Check-in:</strong> {checkIn}</p>
-                    <p><strong>Check-out:</strong> {checkOut}</p>
-                    <p><strong>Guests:</strong> {guests} Adult{guests !== '1' ? 's' : ''}</p>
-                    <p><strong>Room:</strong> {roomTypes.find(r => r.id === roomTypeId)?.name || 'Standard'}</p>
-                  </div>
-
-                  <button 
-                    type="submit" 
-                    disabled={isSubmitting}
-                    className="w-full bg-[#F5A623] text-white font-bold py-3 rounded mt-4 hover:bg-[#D08C1D] transition disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Confirm Request'}
-                  </button>
+                    </div>
+                  )}
                 </form>
               )}
             </div>
+
+            {/* Modal Footer */}
+            {!isSuccess && (
+              <div className="bg-white p-5 border-t border-[#E8E1D7] shrink-0 flex flex-col gap-3">
+                <div className="flex items-center justify-center gap-2 text-xs text-[#6B6F72]">
+                  <ShieldCheck size={14} className="text-emerald-600" />
+                  <span>No immediate payment required • Pay on arrival or via Mobile Money</span>
+                </div>
+                <button 
+                  type="submit" 
+                  form="booking-form-submit"
+                  disabled={isSubmitting}
+                  className="w-full py-4 bg-[#1B2418] hover:bg-[#283824] text-white font-serif tracking-widest uppercase text-sm font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isSubmitting ? 'Submitting Reservation...' : 'Confirm Reservation Request'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
