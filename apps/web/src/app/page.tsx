@@ -378,7 +378,42 @@ const CoverflowTestimonialsSection = ({
   );
 };
 
-const EventsSection = ({ data }: { data: EventsSectionContent }) => {
+const getEventImage = (eventName: string): string => {
+  const n = (eventName || '').toLowerCase();
+  if (n.includes('heartshape') || (n.includes('beach') && n.includes('dinner'))) {
+    return 'https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&q=80&w=800';
+  }
+  if (n.includes('poolside')) {
+    return 'https://images.unsplash.com/photo-1576013462273-d1a460851ec0?auto=format&fit=crop&q=80&w=800';
+  }
+  if (n.includes('jazz')) {
+    return 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&q=80&w=800';
+  }
+  if (n.includes('karaoke')) {
+    return 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=800';
+  }
+  if (n.includes('movie')) {
+    return 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&q=80&w=800';
+  }
+  if (n.includes('bonfire')) {
+    return 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&q=80&w=800';
+  }
+  if (n.includes('dinner')) {
+    return 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&q=80&w=800';
+  }
+  return 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800';
+};
+
+const formatEventPrice = (space: any): string => {
+  const perDay = Number(space.pricePerDay || 0);
+  const perHour = Number(space.pricePerHour || 0);
+  if (perDay > 0 && perHour > 0) return `$${perHour}/hr • $${perDay}/pkg`;
+  if (perDay > 0) return `$${perDay} / package`;
+  if (perHour > 0) return `$${perHour} / hr`;
+  return 'Inquire for Custom Quote';
+};
+
+const EventsSection = ({ data, onSelectEvent }: { data: EventsSectionContent; onSelectEvent?: (name: string) => void }) => {
   const [spaces, setSpaces] = useState<any[]>([]);
 
   useEffect(() => {
@@ -405,7 +440,13 @@ const EventsSection = ({ data }: { data: EventsSectionContent }) => {
           </p>
           
           <ul className="space-y-4 mb-12">
-            {(data.highlights || []).map((item, idx) => (
+            {(data.highlights && data.highlights.length > 0 ? data.highlights : [
+              "Romantic Heartshape Beach Dinners",
+              "Romantic Poolside Candlelight Dinners",
+              "Coastal Jazz & Live Music Nights",
+              "Beachfront Karaoke & Big Screen Movie Nights",
+              "Sunset Bonfires, Music & Celebrations"
+            ]).map((item, idx) => (
               <li key={idx} className="flex items-center gap-4 text-lg font-serif">
                 <div className="w-1.5 h-1.5 bg-[#E8E1D7] rounded-full" />
                 {item}
@@ -415,10 +456,10 @@ const EventsSection = ({ data }: { data: EventsSectionContent }) => {
           
           <div>
             <Link 
-              href={data.buttonLink || "/events"} 
+              href="/events" 
               className="inline-block px-8 py-4 bg-white text-[#1F1F1F] uppercase tracking-widest text-sm hover:bg-[#E8E1D7] transition-colors"
             >
-              {data.buttonText || "Explore Event Spaces"}
+              Explore All Event Spaces
             </Link>
           </div>
         </div>
@@ -435,31 +476,44 @@ const EventsSection = ({ data }: { data: EventsSectionContent }) => {
           <div className="lg:col-span-12 mt-8 pt-12 border-t border-white/10">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
               <div>
-                <span className="text-xs uppercase tracking-[0.2em] text-[#E8E1D7] block mb-2 font-semibold">Available Venues</span>
-                <h3 className="text-2xl md:text-3xl font-serif text-white">Our Event Spaces & Packages</h3>
+                <span className="text-xs uppercase tracking-[0.2em] text-[#E8E1D7] block mb-2 font-semibold">Live Backend Packages</span>
+                <h3 className="text-2xl md:text-3xl font-serif text-white">Our Event Spaces & Signature Experiences</h3>
               </div>
               <Link href="/events" className="text-sm uppercase tracking-widest text-[#E8E1D7] hover:text-white underline underline-offset-8">
                 View All {spaces.length} Spaces &rarr;
               </Link>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {spaces.slice(0, 4).map((space) => (
-                <div key={space.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all flex flex-col justify-between">
-                  <div>
-                    <h4 className="font-serif text-lg font-bold text-white mb-2">{space.name}</h4>
-                    <p className="text-sm text-[#E8E1D7]/70 mb-3">Up to {space.capacity} Guests</p>
-                    {space.pricePerHour > 0 && (
-                      <p className="text-amber-400 font-semibold text-sm mb-4">${Number(space.pricePerHour).toFixed(2)} / hr</p>
-                    )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {spaces.map((space) => {
+                const eventImg = getEventImage(space.name);
+                const priceFormatted = formatEventPrice(space);
+                return (
+                  <div key={space.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 transition-all flex flex-col justify-between group">
+                    <div className="relative w-full h-44 overflow-hidden bg-black/30">
+                      <img 
+                        src={eventImg} 
+                        alt={space.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
+                      <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-amber-300">
+                        {priceFormatted}
+                      </div>
+                    </div>
+                    <div className="p-5 flex flex-col flex-1 justify-between">
+                      <div>
+                        <h4 className="font-serif text-lg font-bold text-white mb-1.5">{space.name}</h4>
+                        <p className="text-xs text-[#E8E1D7]/75 mb-4">Capacity: Up to {space.capacity} Guests</p>
+                      </div>
+                      <Link 
+                        href="/events" 
+                        className="w-full text-center py-2.5 px-4 rounded-xl border border-white/30 text-xs font-semibold uppercase tracking-wider text-white hover:bg-white hover:text-[#1B2418] transition-colors"
+                      >
+                        Book Event Space
+                      </Link>
+                    </div>
                   </div>
-                  <Link 
-                    href="/events" 
-                    className="inline-block text-center py-2.5 px-4 rounded-full border border-white/30 text-xs font-semibold uppercase tracking-wider text-white hover:bg-white hover:text-[#1B2418] transition-colors"
-                  >
-                    Book Venue
-                  </Link>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -468,8 +522,40 @@ const EventsSection = ({ data }: { data: EventsSectionContent }) => {
   );
 };
 
-const EventInquiryForm = ({ data }: { data: EventInquiryContent }) => {
+const EventInquiryForm = ({ data, selectedEvent }: { data: EventInquiryContent; selectedEvent?: string }) => {
   const whatsappDigits = (data.whatsappNumber || "+231774340843").replace(/[^0-9]/g, '');
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [eventType, setEventType] = useState(selectedEvent || '');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [guests, setGuests] = useState('');
+  const [date, setDate] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSent, setIsSent] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/event-spaces')
+      .then(res => res.json())
+      .then(d => {
+        if (d.success && d.data) setSpaces(d.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (selectedEvent) setEventType(selectedEvent);
+  }, [selectedEvent]);
+
+  const handleWhatsAppClick = () => {
+    const text = `Hello Kwalee Beach Resort! I would like to inquire about hosting an event:
+Event: ${eventType || 'Custom Celebration'}
+Name: ${fullName || 'Guest'}
+Phone: ${phone || 'N/A'}
+Estimated Guests: ${guests || 'N/A'}
+Preferred Date: ${date || 'Flexible'}
+Details: ${message || 'Please send available dates and package information.'}`;
+    window.open(`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
   return (
     <section id="inquiry" className="py-24 md:py-32 px-6 relative bg-[#FAF9F4]">
@@ -489,57 +575,100 @@ const EventInquiryForm = ({ data }: { data: EventInquiryContent }) => {
             </p>
           </div>
           
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleWhatsAppClick(); }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Full Name</label>
-                <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="John Doe" />
+                <input 
+                  type="text" 
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" 
+                  placeholder="John Doe" 
+                  required 
+                />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Phone / WhatsApp</label>
-                <input type="text" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="+231..." />
+                <input 
+                  type="text" 
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" 
+                  placeholder="+231..." 
+                  required 
+                />
               </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Event Type</label>
-                <select defaultValue="" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all cursor-pointer">
-                  <option value="" disabled>Select an event...</option>
-                  <option>Birthday Celebration</option>
-                  <option>Corporate Retreat</option>
-                  <option>Wedding Ceremony</option>
-                  <option>Private Party</option>
+                <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Event Package / Venue</label>
+                <select 
+                  value={eventType} 
+                  onChange={e => setEventType(e.target.value)} 
+                  className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all cursor-pointer"
+                >
+                  <option value="">Select an Event Package...</option>
+                  {spaces.map(s => (
+                    <option key={s.id} value={s.name}>
+                      {s.name} ({formatEventPrice(s)} • Up to {s.capacity} Guests)
+                    </option>
+                  ))}
+                  <option value="Wedding Ceremony">Wedding Ceremony</option>
+                  <option value="Corporate Retreat">Corporate Retreat</option>
+                  <option value="Birthday Celebration">Birthday Celebration</option>
+                  <option value="Other Private Celebration">Other Private Celebration</option>
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Estimated Guests</label>
-                <input type="number" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" placeholder="e.g. 50" />
+                <input 
+                  type="number" 
+                  value={guests}
+                  onChange={e => setGuests(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all" 
+                  placeholder="e.g. 20" 
+                />
               </div>
             </div>
             
             <div>
               <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Preferred Date</label>
-              <input type="date" className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all text-[#6B6F72]" />
+              <input 
+                type="date" 
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all text-[#6B6F72]" 
+              />
             </div>
             
             <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Message Details</label>
-              <textarea rows={4} className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all resize-none" placeholder="Any special requests, theme ideas, or dietary requirements..."></textarea>
+              <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Message & Special Requests</label>
+              <textarea 
+                rows={3} 
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl px-5 py-4 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623] transition-all resize-none" 
+                placeholder="Preferred arrival time, special culinary preferences, setup ideas..."
+              />
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 pt-6">
-              <button type="submit" className="flex-1 px-8 py-4 bg-[#1B2418] text-white uppercase tracking-widest text-xs font-bold rounded-xl shadow-lg shadow-black/10 hover:bg-[#F5A623] hover:shadow-[#F5A623]/20 hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <button 
+                type="submit" 
+                className="flex-1 px-8 py-4 bg-[#1B2418] text-white uppercase tracking-widest text-xs font-bold rounded-xl shadow-lg hover:bg-[#F5A623] hover:shadow-[#F5A623]/20 transition-all duration-300 cursor-pointer"
+              >
                 {data.submitButtonText || "Send Request"}
               </button>
-              <a 
-                href={`https://wa.me/${whatsappDigits}`} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="flex-1 px-8 py-4 border border-gray-200 bg-white text-[#1F1F1F] uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:border-[#25D366] hover:text-[#25D366] transition-all duration-300"
+              <button 
+                type="button" 
+                onClick={handleWhatsAppClick}
+                className="flex-1 px-8 py-4 border border-[#25D366] bg-[#25D366]/5 text-[#1B2418] hover:bg-[#25D366] hover:text-white uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer"
               >
-                {data.whatsappButtonText || "Chat on WhatsApp"}
-              </a>
+                <span>💬</span>
+                {data.whatsappButtonText || "Instant WhatsApp Chat"}
+              </button>
             </div>
           </form>
         </div>

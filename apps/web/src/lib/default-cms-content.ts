@@ -5,7 +5,7 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
     subtitle: "Liberia • West African Coast",
     title: "WHERE THE OCEAN\nMEETS YOUR ESCAPE.",
     description: "Discover the beauty of Kwalee Beach Resort — where the beach, pool, dining, events and coastal atmosphere come together for an unforgettable experience.",
-    bgImage: "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1600&q=80",
+    bgImage: "/uploads/1792690524951-661832220-1001926674.webp",
     bookButtonText: "Book Your Stay",
     bookButtonLink: "#book",
     exploreButtonText: "Explore the Resort",
@@ -17,17 +17,17 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
     description: "Escape to a coastal destination where days are shaped by the rhythm of the ocean, warm hospitality, good food, refreshing swims and unforgettable moments by the beach.",
     buttonText: "Read More",
     buttonLink: "#gallery",
-    mainImage: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1600&q=80",
+    mainImage: "/uploads/1792605825669-760395842-image12.jpeg",
     mainImageTitle: "Ocean Room",
     mainImageSubtitle: "Wake up to the sound of waves",
-    secondaryImage: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1600&q=80",
+    secondaryImage: "/uploads/1792605863417-88439173-image1.jpeg",
   },
   features: {
     beach: {
       label: "The Beach",
       title: "YOUR PLACE BY THE OCEAN.",
       description: "Whether you're looking for a quiet afternoon by the water, time with friends or an unforgettable celebration, the beach is at the heart of the Kwalee experience.",
-      image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
+      image: "/uploads/1792614827259-96739526-1001923944.jpg",
       cta: "Explore the Beach",
       ctaHref: "/#gallery",
     },
@@ -35,7 +35,7 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
       label: "The Pool",
       title: "TAKE A DIP. STAY A LITTLE LONGER.",
       description: "Take a refreshing swim, relax beside the water and spend the afternoon doing absolutely nothing. Enjoy poolside service, comfortable loungers, and perfect coastal temperatures.",
-      image: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1600&q=80",
+      image: "/uploads/1792608314097-589818625-FB_IMG_1791274719751.jpg",
       cta: "Explore the Pool",
       ctaHref: "/#experience",
     },
@@ -51,7 +51,7 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
       label: "Dining",
       title: "TASTE THE COAST.",
       description: "Enjoy fresh food and drinks in a relaxed coastal atmosphere. Our restaurant features local and international flavors crafted with care, perfect for a sunset dinner.",
-      image: "https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&w=1600&q=80",
+      image: "/uploads/1792608893243-595835822-FB_IMG_1791274755210.jpg",
       cta: "View Dining",
       ctaHref: "/dining",
     },
@@ -147,10 +147,16 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
     badge: "Events & Gatherings",
     title: "YOUR MOMENT.\nYOUR PEOPLE.\nYOUR BEACH.",
     description: "From birthdays and private celebrations to corporate gatherings, parties and special occasions, Kwalee Beach Resort provides a memorable coastal setting for events.",
-    highlights: ["Birthdays", "Weddings & Celebrations", "Private Parties", "Corporate Events", "Beach Gatherings"],
+    highlights: [
+      "Romantic Heartshape Beach Dinners",
+      "Romantic Poolside Candlelight Dinners",
+      "Coastal Jazz & Live Music Nights",
+      "Beachfront Karaoke & Big Screen Movie Nights",
+      "Sunset Bonfires, Music & Celebrations"
+    ],
     buttonText: "Plan Your Event",
     buttonLink: "#inquiry",
-    image: "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1600&q=80"
+    image: "/uploads/1792691162950-191268538-1001926702.webp"
   },
   inquiry: {
     badge: "Plan With Us",
@@ -174,7 +180,7 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
   finalCta: {
     title: "YOUR ESCAPE\nSTARTS HERE.",
     subtitle: "Come for the beach. Stay for the experience.",
-    bgImage: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
+    bgImage: "/uploads/1792690524951-661832220-1001926674.webp",
     button1Text: "Book Your Stay",
     button1Link: "#book",
     button2Text: "Plan An Event",
@@ -185,31 +191,31 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
       badge: "Accommodations",
       title: "Stay With Us",
       description: "Experience unparalleled luxury in our oceanfront rooms and glamping tents.",
-      bgImage: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80"
+      bgImage: "/uploads/1792622079023-234476382-image12.jpeg"
     },
     dining: {
       badge: "Exquisite Flavors",
       title: "Dining at Kwalee",
       description: "Experience our curated digital menu and have culinary excellence delivered straight to your room.",
-      bgImage: "https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&w=1920&q=80"
+      bgImage: "/uploads/1792609423276-45157749-FB_IMG_1791274730855.jpg"
     },
     events: {
-      badge: "Events & Weddings",
-      title: "Host Your Event",
-      description: "Weddings, corporate retreats, and private celebrations by the ocean.",
-      bgImage: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80"
+      badge: "Events & Gatherings",
+      title: "Our Event Spaces & Experiences",
+      description: "Private beach dinners, live jazz, karaoke, starlight movie nights, and coastal celebrations.",
+      bgImage: "/uploads/1792691162950-191268538-1001926702.webp"
     },
     tours: {
       badge: "Coastal Adventures",
       title: "Resort Activities & Tours",
       description: "Explore the breathtaking Liberian coast, ocean excursions, and guided activities.",
-      bgImage: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80"
+      bgImage: "/uploads/1792609527914-295451027-images.jpeg"
     }
   },
   general: {
     resortName: "Kwalee Beach Resort",
     tagline: "A premium coastal destination offering beach relaxation, poolside experiences, dining, and unforgettable events.",
-    logoUrl: "/kwalee-logo.png",
+    logoUrl: "/uploads/1792592361539-240038038-1001106563.png",
     phone: "+231 881 744 350",
     email: "kwaleebeachresort1@gmail.com",
     address: "Kpakpa Kon, Marshall, Liberia",
