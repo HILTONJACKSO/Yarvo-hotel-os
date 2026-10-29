@@ -44,17 +44,17 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico?v=2' },
-      { url: '/favicon-48x48.png?v=2', sizes: '48x48', type: 'image/png' },
-      { url: '/favicon-96x96.png?v=2', sizes: '96x96', type: 'image/png' },
-      { url: '/icon-192.png?v=2', sizes: '192x192', type: 'image/png' },
-      { url: '/favicon-32x32.png?v=2', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon-16x16.png?v=2', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon.ico?v=3' },
+      { url: '/favicon-48x48.png?v=3', sizes: '48x48', type: 'image/png' },
+      { url: '/favicon-96x96.png?v=3', sizes: '96x96', type: 'image/png' },
+      { url: '/icon-192.png?v=3', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon-32x32.png?v=3', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png?v=3', sizes: '16x16', type: 'image/png' },
     ],
     apple: [
-      { url: '/apple-touch-icon.png?v=2', sizes: '180x180', type: 'image/png' },
+      { url: '/apple-touch-icon.png?v=3', sizes: '180x180', type: 'image/png' },
     ],
-    shortcut: '/favicon.ico?v=2',
+    shortcut: '/favicon.ico?v=3',
   },
   openGraph: {
     type: 'website',
@@ -94,7 +94,7 @@ const jsonLd = {
       image: 'https://kwaleebeachresort.com/opengraph-image.png',
       description:
         'A premier luxury coastal destination in Marshall, Liberia offering beach relaxation, oceanfront glamping tents, dining, poolside experiences, and memorable events.',
-      telephone: '+231881744350',
+      telephone: '+231774340843',
       email: 'kwaleebeachresort1@gmail.com',
       address: {
         '@type': 'PostalAddress',
@@ -124,11 +124,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans scroll-smooth", geist.variable, inter.variable, playfair.variable)} suppressHydrationWarning>
       <head>
-        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png?v=2" />
-        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=2" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=2" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
-        <link rel="shortcut icon" href="/favicon.ico?v=2" />
+        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png?v=3" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=3" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=3" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3" />
+        <link rel="shortcut icon" href="/favicon.ico?v=3" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

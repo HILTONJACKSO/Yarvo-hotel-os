@@ -13,8 +13,33 @@ export default function ReportExportToolbar({ onDateChange, onExport, initialSta
   const [endDate, setEndDate] = useState(initialEndDate || new Date().toISOString().split('T')[0]);
 
 
+  const formatDateYMD = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleApply = () => {
     onDateChange(startDate, endDate);
+  };
+
+  const setToday = () => {
+    const todayStr = formatDateYMD(new Date());
+    setStartDate(todayStr);
+    setEndDate(todayStr);
+    onDateChange(todayStr, todayStr);
+  };
+
+  const setLast7Days = () => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 6);
+    const sStr = formatDateYMD(start);
+    const eStr = formatDateYMD(end);
+    setStartDate(sStr);
+    setEndDate(eStr);
+    onDateChange(sStr, eStr);
   };
 
   const setThisWeek = () => {
@@ -26,8 +51,8 @@ export default function ReportExportToolbar({ onDateChange, onExport, initialSta
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
     
-    const sStr = start.toISOString().split('T')[0];
-    const eStr = end.toISOString().split('T')[0];
+    const sStr = formatDateYMD(start);
+    const eStr = formatDateYMD(end);
     setStartDate(sStr);
     setEndDate(eStr);
     onDateChange(sStr, eStr);
@@ -38,9 +63,8 @@ export default function ReportExportToolbar({ onDateChange, onExport, initialSta
     const start = new Date(d.getFullYear(), d.getMonth(), 1);
     const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
     
-    // safe format
-    const sStr = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString().split('T')[0];
-    const eStr = new Date(end.getTime() - end.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    const sStr = formatDateYMD(start);
+    const eStr = formatDateYMD(end);
     setStartDate(sStr);
     setEndDate(eStr);
     onDateChange(sStr, eStr);
@@ -75,6 +99,22 @@ export default function ReportExportToolbar({ onDateChange, onExport, initialSta
           Apply
         </button>
         <div className="w-px h-6 bg-slate-700 mx-1"></div>
+        <button 
+          onClick={setToday}
+          className="bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-500/40 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5"
+          title="Today (00:00 - 23:59)"
+        >
+          <Calendar size={14} />
+          Today
+        </button>
+        <button 
+          onClick={setLast7Days}
+          className="bg-slate-700/50 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+          title="Last 7 Days"
+        >
+          <CalendarDays size={14} />
+          Last 7 Days
+        </button>
         <button 
           onClick={setThisWeek}
           className="bg-slate-700/50 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"

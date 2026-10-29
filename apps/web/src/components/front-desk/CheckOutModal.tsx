@@ -219,6 +219,42 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
   };
 
   const [billToCompany, setBillToCompany] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+
+  const handleSendWhatsApp = () => {
+    if (!reservation) return;
+    const guestName = `${reservation.guest.firstName} ${reservation.guest.lastName}`;
+    const roomNum = reservation.room?.number || 'N/A';
+    const bal = Number(statement?.balance || 0);
+    const text = `*Kwalee Beach Resort - Folio Statement*\n\n` +
+      `Guest: ${guestName}\n` +
+      `Room: ${roomNum}\n` +
+      `Check-In: ${new Date(reservation.checkInDate).toLocaleDateString()}\n` +
+      `Check-Out: ${new Date().toLocaleDateString()}\n` +
+      `Balance Due: $${bal.toFixed(2)}\n\n` +
+      `Thank you for staying with us at Kwalee Beach Resort!\nOfficial WhatsApp: +231774340843`;
+    const digits = (reservation.guest.phone || '').replace(/\D/g, '');
+    const waUrl = digits ? `https://wa.me/${digits}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, '_blank');
+    setShowSendModal(false);
+  };
+
+  const handleSendEmail = () => {
+    if (!reservation) return;
+    const guestName = `${reservation.guest.firstName} ${reservation.guest.lastName}`;
+    const roomNum = reservation.room?.number || 'N/A';
+    const bal = Number(statement?.balance || 0);
+    const subject = `Kwalee Beach Resort - Folio Statement - Room ${roomNum} (${guestName})`;
+    const body = `Dear ${guestName},\n\nThank you for staying at Kwalee Beach Resort.\n\n` +
+      `Room: ${roomNum}\n` +
+      `Check-In: ${new Date(reservation.checkInDate).toLocaleDateString()}\n` +
+      `Check-Out: ${new Date().toLocaleDateString()}\n\n` +
+      `Outstanding Balance: $${bal.toFixed(2)}\n\n` +
+      `Warm regards,\nKwalee Beach Resort\nWhatsApp: +231774340843\nEmail: kwaleebeachresort1@gmail.com`;
+    const mailto = `mailto:${encodeURIComponent(reservation.guest.email || '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+    setShowSendModal(false);
+  };
 
   if (!reservation) return null;
 
@@ -314,6 +350,9 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
             <button type="button" className="btn-secondary" onClick={handlePrint}>
               Print Receipt
             </button>
+            <button type="button" className="btn-secondary" onClick={() => setShowSendModal(true)} style={{ backgroundColor: '#10b981', color: 'white', borderColor: '#059669' }}>
+              Send Receipt
+            </button>
             <button 
               type="button" 
               className="btn-primary" 
@@ -323,6 +362,57 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
               {isCheckingOut ? 'Processing...' : 'Complete Check-Out'}
             </button>
           </div>
+
+          {showSendModal && (
+            <div style={{
+              position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '16px'
+            }}>
+              <div style={{
+                background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '24px',
+                maxWidth: '420px', width: '100%', textAlign: 'center', color: '#f8fafc', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+              }}>
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>📬</div>
+                <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>Send Receipt to Guest</h3>
+                <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '20px' }}>
+                  Would you like to send this receipt via WhatsApp or Email?
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={handleSendWhatsApp}
+                    style={{
+                      padding: '12px 16px', background: '#25D366', color: 'white', border: 'none', borderRadius: '10px',
+                      fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                    }}
+                  >
+                    <span>💬</span>
+                    <span>Send via WhatsApp</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendEmail}
+                    style={{
+                      padding: '12px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '10px',
+                      fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                    }}
+                  >
+                    <span>✉️</span>
+                    <span>Send via Email</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSendModal(false)}
+                    style={{
+                      marginTop: '6px', background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '12px', cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* PRINT ONLY SECTION */}
           <div className="print-only-receipt">

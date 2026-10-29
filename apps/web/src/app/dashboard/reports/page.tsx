@@ -63,14 +63,28 @@ export default function ReportsPage() {
   const [eventMetrics, setEventMetrics] = useState<EventMetrics | null>(null);
 
   const [dateRangeStr, setDateRangeStr] = useState<string>('Last 7 Days');
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 6);
+    const formatYMD = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    return { start: formatYMD(start), end: formatYMD(end) };
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async (start?: string, end?: string) => {
     setLoading(true);
     setError(null);
+    const s = start || dateRange.start;
+    const e = end || dateRange.end;
     let query = '';
-    if (start && end) query = `?start=${start}&end=${end}`;
+    if (s && e) query = `?start=${s}&end=${e}`;
     
     try {
       if (activeTab === 'HOTEL') {
@@ -111,10 +125,11 @@ export default function ReportsPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(dateRange.start, dateRange.end);
   }, [activeTab]);
 
   const handleDateChange = (start: string, end: string) => {
+    setDateRange({ start, end });
     if (start && end) {
       if (start === end) {
         setDateRangeStr(start);
@@ -194,7 +209,7 @@ export default function ReportsPage() {
         <h2>Reports & Analytics</h2>
       </div>
 
-      <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} />
+      <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} initialStartDate={dateRange.start} initialEndDate={dateRange.end} />
 
       <div className="tabs">
         <button 

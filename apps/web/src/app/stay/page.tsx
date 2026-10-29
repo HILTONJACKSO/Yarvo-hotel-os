@@ -138,17 +138,33 @@ export default function StayPage() {
   );
 }
 
-function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
-  // Use room image or first images array entry or fallback
-  let imageUrl = 'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80';
-  if (room.image) {
-    imageUrl = room.image;
-  } else if (room.images && Array.isArray(room.images) && room.images.length > 0) {
-    imageUrl = room.images[0];
-    if (!imageUrl.startsWith('http')) {
-      imageUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/uploads/${imageUrl}`;
+function resolveRoomImageUrl(room: any): string {
+  const fallback = 'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80';
+  let raw: any = room?.image;
+  if (!raw && room?.images) {
+    if (Array.isArray(room.images) && room.images.length > 0) {
+      raw = room.images[0];
+    } else if (typeof room.images === 'string') {
+      try {
+        const parsed = JSON.parse(room.images);
+        if (Array.isArray(parsed) && parsed.length > 0) raw = parsed[0];
+        else raw = room.images;
+      } catch {
+        raw = room.images;
+      }
     }
   }
+  if (!raw || typeof raw !== 'string') return fallback;
+  const clean = raw.trim();
+  if (clean.startsWith('http://') || clean.startsWith('https://')) return clean;
+  if (clean.startsWith('/uploads/')) return clean;
+  if (clean.startsWith('uploads/')) return `/${clean}`;
+  if (clean.startsWith('/')) return clean;
+  return `/uploads/${clean}`;
+}
+
+function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
+  const imageUrl = resolveRoomImageUrl(room);
 
   // Parse price
   let displayPrice = '$35';

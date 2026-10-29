@@ -374,9 +374,13 @@ export class AnalyticsService {
   async getRevenueByMethod(start?: string, end?: string, propertyId?: string) {
     let gte: Date | undefined;
     let lte: Date | undefined;
-    if (start && end) {
-      gte = new Date(start);
-      lte = new Date(new Date(end).setUTCHours(23, 59, 59, 999));
+    if (start) {
+      const cleanStart = start.includes('T') ? start.split('T')[0] : start;
+      gte = new Date(`${cleanStart}T00:00:00.000Z`);
+    }
+    if (end) {
+      const cleanEnd = end.includes('T') ? end.split('T')[0] : end;
+      lte = new Date(`${cleanEnd}T23:59:59.999Z`);
     }
     const propCondition = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
 
@@ -385,7 +389,7 @@ export class AnalyticsService {
       _sum: { amount: true },
       where: { 
         type: 'PAYMENT',
-        ...(gte && lte ? { createdAt: { gte, lte } } : {}),
+        ...(gte && lte ? { createdAt: { gte, lte } } : gte ? { createdAt: { gte } } : lte ? { createdAt: { lte } } : {}),
         ...(propertyId ? { folio: propCondition } : {})
       }
     });
@@ -394,43 +398,49 @@ export class AnalyticsService {
       by: ['method'],
       _sum: { amount: true },
       where: {
-        ...(gte && lte ? { createdAt: { gte, lte } } : {}),
+        ...(gte && lte ? { createdAt: { gte, lte } } : gte ? { createdAt: { gte } } : lte ? { createdAt: { lte } } : {}),
         ...(propertyId ? { OR: [{ propertyId }, { order: { propertyId } }, { propertyId: null }] } : {}),
-        order: { status: 'PAID' }
+        order: { status: { in: ['PAID', 'COMPLETED', 'SETTLED', 'CLOSED'] } }
       }
     });
+
+    const normalizeMethod = (raw: string | null | undefined): string => {
+      if (!raw) return 'OTHER';
+      const m = raw.trim().toUpperCase().replace(/^PAYMENT_/, '');
+      if (m === 'CASH') return 'CASH';
+      if (m === 'CARD' || m === 'CREDIT_CARD' || m === 'DEBIT_CARD' || m === 'VISA' || m === 'MASTERCARD') return 'CARD';
+      if (m === 'MOBILE' || m === 'MOBILE_MONEY' || m === 'MOMO' || m === 'ORANGE' || m === 'MTN' || m === 'ORANGE_MONEY') return 'MOBILE_MONEY';
+      if (m === 'BANK' || m === 'BANK_TRANSFER' || m === 'TRANSFER' || m === 'WIRE' || m === 'CHECK' || m === 'CHEQUE') return 'BANK';
+      if (m === 'CORPORATE') return 'CORPORATE';
+      return 'OTHER';
+    };
 
     const combined: Record<string, number> = {
       CASH: 0,
       CARD: 0,
       MOBILE_MONEY: 0,
       BANK: 0,
+      CORPORATE: 0,
       OTHER: 0
     };
 
     // Map FolioLineItem categories
     folioPayments.forEach(p => {
-      const val = p._sum.amount?.toNumber() || 0;
-      if (p.category === 'PAYMENT_CASH') combined.CASH += val;
-      else if (p.category === 'PAYMENT_CARD') combined.CARD += val;
-      else if (p.category === 'PAYMENT_MOBILE') combined.MOBILE_MONEY += val;
-      else if (p.category === 'PAYMENT_BANK') combined.BANK += val;
-      else combined.OTHER += val;
+      const val = p._sum.amount ? Number(p._sum.amount) : 0;
+      const key = normalizeMethod(p.category);
+      combined[key] = (combined[key] || 0) + val;
     });
 
     // Map PosPayment methods
     posPayments.forEach(p => {
-      const val = p._sum.amount?.toNumber() || 0;
-      if (p.method === 'PAYMENT_CASH') combined.CASH += val;
-      else if (p.method === 'PAYMENT_CARD') combined.CARD += val;
-      else if (p.method === 'PAYMENT_MOBILE') combined.MOBILE_MONEY += val;
-      else if (p.method === 'PAYMENT_BANK') combined.BANK += val;
-      else combined.OTHER += val;
+      const val = p._sum.amount ? Number(p._sum.amount) : 0;
+      const key = normalizeMethod(p.method);
+      combined[key] = (combined[key] || 0) + val;
     });
 
     const chartData = Object.keys(combined).map(method => ({
       method,
-      revenue: combined[method]
+      revenue: Number(combined[method].toFixed(2))
     })).filter(d => d.revenue > 0);
 
     return chartData;

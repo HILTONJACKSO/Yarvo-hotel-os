@@ -142,9 +142,61 @@ const FeatureSection = ({ id, label, title, text, image, reverse, cta, ctaHref }
   );
 };
 
+function resolveRoomImageUrl(room: any): string {
+  const fallback = 'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80';
+  let raw: any = room?.image;
+  if (!raw && room?.images) {
+    if (Array.isArray(room.images) && room.images.length > 0) {
+      raw = room.images[0];
+    } else if (typeof room.images === 'string') {
+      try {
+        const parsed = JSON.parse(room.images);
+        if (Array.isArray(parsed) && parsed.length > 0) raw = parsed[0];
+        else raw = room.images;
+      } catch {
+        raw = room.images;
+      }
+    }
+  }
+  if (!raw || typeof raw !== 'string') return fallback;
+  const clean = raw.trim();
+  if (clean.startsWith('http://') || clean.startsWith('https://')) return clean;
+  if (clean.startsWith('/uploads/')) return clean;
+  if (clean.startsWith('uploads/')) return `/${clean}`;
+  if (clean.startsWith('/')) return clean;
+  return `/uploads/${clean}`;
+}
+
 const ServicesSection = ({ data }: { data?: RoomsTentsSectionContent }) => {
+  const [liveRooms, setLiveRooms] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/v1/public/room-types')
+      .then(res => res.json())
+      .then(json => {
+        if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+          setLiveRooms(json.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const roomsData = data || DEFAULT_CMS_CONTENT.rooms;
-  const items = roomsData.items && roomsData.items.length > 0 ? roomsData.items : DEFAULT_CMS_CONTENT.rooms.items;
+  const defaultItems = roomsData.items && roomsData.items.length > 0 ? roomsData.items : DEFAULT_CMS_CONTENT.rooms.items;
+
+  const items = liveRooms.length > 0
+    ? liveRooms.map(rt => ({
+        id: rt.id,
+        name: rt.name,
+        image: resolveRoomImageUrl(rt),
+        rating: '5.0',
+        location: rt.description ? (rt.description.length > 45 ? `${rt.description.slice(0, 42)}...` : rt.description) : 'Kwalee Oceanfront Retreat',
+        features: rt.maxAdults ? `Up to ${rt.maxAdults + (rt.maxChildren || 0)} Guests` : 'Luxury Suite',
+        price: `$${Number(rt.baseRateUsd || 35).toFixed(0)}/night`,
+        bookUrl: '/stay',
+      }))
+    : defaultItems;
+
   const badge = roomsData.badge || DEFAULT_CMS_CONTENT.rooms.badge;
   const title = roomsData.title || DEFAULT_CMS_CONTENT.rooms.title;
   const description = roomsData.description || DEFAULT_CMS_CONTENT.rooms.description;
@@ -546,15 +598,40 @@ const EventInquiryForm = ({ data, selectedEvent }: { data: EventInquiryContent; 
     if (selectedEvent) setEventType(selectedEvent);
   }, [selectedEvent]);
 
-  const handleWhatsAppClick = () => {
-    const text = `Hello Kwalee Beach Resort! I would like to inquire about hosting an event:
+  const [showSendChoiceModal, setShowSendChoiceModal] = useState(false);
+
+  const getInquiryText = () => {
+    return `Hello Kwalee Beach Resort! I would like to inquire about hosting an event:
 Event: ${eventType || 'Custom Celebration'}
 Name: ${fullName || 'Guest'}
 Phone: ${phone || 'N/A'}
 Estimated Guests: ${guests || 'N/A'}
 Preferred Date: ${date || 'Flexible'}
 Details: ${message || 'Please send available dates and package information.'}`;
+  };
+
+  const handleWhatsAppClick = () => {
+    const text = getInquiryText();
     window.open(`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleEmailClick = () => {
+    const subject = `Event Inquiry: ${eventType || 'Celebration'} - ${fullName || 'Guest'}`;
+    const body = getInquiryText();
+    fetch('/api/v1/public/event-bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        guestName: fullName || 'Guest',
+        guestPhone: phone || 'N/A',
+        eventType: eventType || 'Event Inquiry',
+        attendeesCount: Number(guests) || 1,
+        startTime: date ? `${date}T12:00:00Z` : new Date().toISOString(),
+        endTime: date ? `${date}T18:00:00Z` : new Date().toISOString(),
+        specialRequests: message,
+      })
+    }).catch(() => {});
+    window.location.href = `mailto:kwaleebeachresort1@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   return (
@@ -575,7 +652,7 @@ Details: ${message || 'Please send available dates and package information.'}`;
             </p>
           </div>
           
-          <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleWhatsAppClick(); }}>
+          <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); setShowSendChoiceModal(true); }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-[#6B6F72] mb-2">Full Name</label>
@@ -657,20 +734,77 @@ Details: ${message || 'Please send available dates and package information.'}`;
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <button 
                 type="submit" 
-                className="flex-1 px-8 py-4 bg-[#1B2418] text-white uppercase tracking-widest text-xs font-bold rounded-xl shadow-lg hover:bg-[#F5A623] hover:shadow-[#F5A623]/20 transition-all duration-300 cursor-pointer"
+                className="flex-1 px-8 py-4 bg-[#1B2418] text-white uppercase tracking-widest text-xs font-bold rounded-xl shadow-lg hover:bg-[#F5A623] hover:shadow-[#F5A623]/20 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2"
               >
-                {data.submitButtonText || "Send Request"}
+                <span>📬</span>
+                <span>{data.submitButtonText || "Send Request (WhatsApp or Email)"}</span>
               </button>
               <button 
                 type="button" 
                 onClick={handleWhatsAppClick}
-                className="flex-1 px-8 py-4 border border-[#25D366] bg-[#25D366]/5 text-[#1B2418] hover:bg-[#25D366] hover:text-white uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer"
+                className="px-6 py-4 border border-[#25D366] bg-[#25D366]/10 text-[#1B2418] hover:bg-[#25D366] hover:text-white uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer"
+                title="Send via WhatsApp"
               >
                 <span>💬</span>
-                {data.whatsappButtonText || "Instant WhatsApp Chat"}
+                <span>WhatsApp</span>
+              </button>
+              <button 
+                type="button" 
+                onClick={handleEmailClick}
+                className="px-6 py-4 border border-gray-300 bg-gray-50 text-[#1B2418] hover:bg-gray-200 uppercase tracking-widest text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer"
+                title="Send via Email"
+              >
+                <span>✉️</span>
+                <span>Email</span>
               </button>
             </div>
           </form>
+
+          {/* Send Choice Modal: WhatsApp or Email */}
+          {showSendChoiceModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100 text-center animate-in fade-in zoom-in-95 duration-200">
+                <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">
+                  📬
+                </div>
+                <h3 className="font-serif text-2xl text-[#1F1F1F] mb-2">Send Your Request</h3>
+                <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                  How would you prefer to send your inquiry to Kwalee Beach Resort? Please choose:
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSendChoiceModal(false);
+                      handleWhatsAppClick();
+                    }}
+                    className="w-full py-4 px-6 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-[#25D366]/30 transition-all cursor-pointer"
+                  >
+                    <span className="text-xl">💬</span>
+                    <span>Send via WhatsApp</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSendChoiceModal(false);
+                      handleEmailClick();
+                    }}
+                    className="w-full py-4 px-6 bg-[#1B2418] hover:bg-[#2c3b27] text-white font-bold text-sm rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-black/20 transition-all cursor-pointer"
+                  >
+                    <span className="text-xl">✉️</span>
+                    <span>Send via Email</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSendChoiceModal(false)}
+                    className="mt-2 py-2 text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>

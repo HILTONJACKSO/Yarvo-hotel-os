@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/toast-provider";
 import { useAuth } from "@/lib/auth-provider";
 import { useCurrency } from "@/lib/currency";
 import { getDefaultReceiptInvoiceSettings } from "@/lib/receipt-invoice-helper";
-import { ShoppingCart, Edit, Trash2, Receipt } from "lucide-react";
+import { ShoppingCart, Edit, Trash2, Receipt, Send, MessageSquare, Mail } from "lucide-react";
 
 export default function BillingPage() {
   const { user } = useAuth();
@@ -20,6 +20,9 @@ export default function BillingPage() {
   const [discountDescription, setDiscountDescription] = useState('');
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const [isDeleteFolioModalOpen, setIsDeleteFolioModalOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [sendPhone, setSendPhone] = useState('');
+  const [sendEmail, setSendEmail] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [editAmount, setEditAmount] = useState('');
@@ -471,6 +474,58 @@ export default function BillingPage() {
     }
   };
 
+  const handleSendViaWhatsApp = () => {
+    if (!selectedBill) return;
+    const guestName = selectedBill.reservation?.guest ? `${selectedBill.reservation.guest.firstName || ''} ${selectedBill.reservation.guest.lastName || ''}`.trim() : 'Valued Guest';
+    const roomNum = selectedBill.reservation?.room?.number || 'N/A';
+    const balance = format(Number(selectedBill.balance));
+    
+    let summaryText = `*${hotelName} - Official Bill Statement*\n\n` +
+      `Guest: ${guestName}\n` +
+      `Room: ${roomNum}\n` +
+      `Status: ${selectedBill.status}\n` +
+      `Total Balance Due: ${balance}\n\n` +
+      `*Recent Transactions:*\n`;
+
+    if (selectedBill.lineItems && selectedBill.lineItems.length > 0) {
+      selectedBill.lineItems.slice(-8).forEach((item: any) => {
+        const sign = item.type === 'PAYMENT' ? 'Payment (-)' : 'Charge (+)';
+        summaryText += `• ${item.description || item.category}: ${sign} $${Number(item.amount).toFixed(2)}\n`;
+      });
+    }
+
+    summaryText += `\nThank you for choosing Kwalee Beach Resort!\nOfficial Inquiries / WhatsApp: +231774340843`;
+
+    const digits = (sendPhone || '').replace(/\D/g, '');
+    const waUrl = digits ? `https://wa.me/${digits}?text=${encodeURIComponent(summaryText)}` : `https://wa.me/?text=${encodeURIComponent(summaryText)}`;
+    window.open(waUrl, '_blank');
+    setIsSendModalOpen(false);
+    showToast("Opening WhatsApp...", "info");
+  };
+
+  const handleSendViaEmail = () => {
+    if (!selectedBill) return;
+    const guestName = selectedBill.reservation?.guest ? `${selectedBill.reservation.guest.firstName || ''} ${selectedBill.reservation.guest.lastName || ''}`.trim() : 'Valued Guest';
+    const roomNum = selectedBill.reservation?.room?.number || 'N/A';
+    const balance = format(Number(selectedBill.balance));
+    const subject = `${hotelName} - Bill Statement - Room ${roomNum} (${guestName})`;
+    
+    let body = `Dear ${guestName},\n\nHere is your bill statement for Room ${roomNum} at ${hotelName}.\n\nTotal Balance Due: ${balance}\n\n`;
+    if (selectedBill.lineItems && selectedBill.lineItems.length > 0) {
+      body += `Transactions:\n`;
+      selectedBill.lineItems.forEach((item: any) => {
+        const sign = item.type === 'PAYMENT' ? 'Payment (-)' : 'Charge (+)';
+        body += `- ${item.description || item.category}: ${sign} $${Number(item.amount).toFixed(2)}\n`;
+      });
+    }
+    body += `\nIf you have any questions, please contact us at kwaleebeachresort1@gmail.com or WhatsApp +231774340843.\n\nWarm regards,\nKwalee Beach Resort Team`;
+
+    const mailto = `mailto:${encodeURIComponent(sendEmail || '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+    setIsSendModalOpen(false);
+    showToast("Opening Email client...", "info");
+  };
+
   const isAdmin = user?.roles?.some((r: any) => ["SUPER_ADMIN", "ADMIN", "CEO"].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
   const isCashierOrManager = user?.roles?.some((r: any) => ["CASHIER", "MANAGER", "SUPER_ADMIN", "ADMIN", "CEO"].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
   const isFrontDesk = user?.roles?.some((r: any) => ["FRONT_DESK"].includes(r.name?.toUpperCase() || r.toUpperCase() || r));
@@ -567,6 +622,17 @@ export default function BillingPage() {
                         )}
                         <button onClick={() => printViaIframe('INVOICE')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Invoice</button>
                         <button onClick={() => printViaIframe('RECEIPT')} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Receipt</button>
+                        <button 
+                          onClick={() => {
+                            setSendPhone(selectedBill.reservation?.guest?.phone || '');
+                            setSendEmail(selectedBill.reservation?.guest?.email || '');
+                            setIsSendModalOpen(true);
+                          }} 
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5"
+                          title="Send Bill via WhatsApp or Email"
+                        >
+                          <Send size={13} /> Send Bill
+                        </button>
                         {(isAdmin || isCashierOrManager || isFrontDesk) && (
                           <button onClick={() => setIsDeleteFolioModalOpen(true)} className="bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 text-xs px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
                             <Trash2 size={13} /> Delete Bill
@@ -872,6 +938,83 @@ export default function BillingPage() {
                 className="px-4 py-2.5 text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors shadow-lg shadow-rose-900/30"
               >
                 Yes, Delete Bill
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Send Bill Modal: WhatsApp or Email */}
+      {isSendModalOpen && selectedBill && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-slate-800 border border-slate-700 p-7 rounded-2xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 bg-cyan-500/10 text-cyan-400 rounded-xl flex items-center justify-center mb-4">
+              <Send size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-1">
+              Send Bill to Guest
+            </h3>
+            <p className="text-slate-400 text-sm mb-5">
+              Guest: <strong className="text-slate-200">{selectedBill.reservation?.guest ? `${selectedBill.reservation.guest.firstName || ''} ${selectedBill.reservation.guest.lastName || ''}`.trim() : 'Guest'}</strong> • Room {selectedBill.reservation?.room?.number || 'N/A'}<br />
+              Balance Due: <strong className="text-emerald-400 font-mono">{format(Number(selectedBill.balance))}</strong>
+            </p>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Guest Phone / WhatsApp
+                </label>
+                <input
+                  type="text"
+                  value={sendPhone}
+                  onChange={(e) => setSendPhone(e.target.value)}
+                  placeholder="+231..."
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-cyan-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Guest Email Address
+                </label>
+                <input
+                  type="email"
+                  value={sendEmail}
+                  onChange={(e) => setSendEmail(e.target.value)}
+                  placeholder="guest@example.com"
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-cyan-500 text-sm"
+                />
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-400 mb-4 font-medium text-center">
+              Choose your preferred delivery method:
+            </p>
+
+            <div className="flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={handleSendViaWhatsApp}
+                className="w-full py-3 px-4 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2.5 shadow-lg shadow-[#25D366]/20 transition-all cursor-pointer"
+              >
+                <MessageSquare size={18} />
+                <span>Send via WhatsApp</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSendViaEmail}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2.5 shadow-lg shadow-blue-900/30 transition-all cursor-pointer"
+              >
+                <Mail size={18} />
+                <span>Send via Email</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsSendModalOpen(false)}
+                className="mt-1 py-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+              >
+                Cancel
               </button>
             </div>
           </div>
