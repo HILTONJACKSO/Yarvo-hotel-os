@@ -140,7 +140,7 @@ export default function EventsPage() {
         ) : eventSpaces.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
             {eventSpaces.map(space => {
-              const eventImg = getEventImage(space.name);
+              const eventImg = cmsContent.events?.spaceImages?.[space.id] || cmsContent.events?.spaceImages?.[space.name] || space.image || getEventImage(space.name);
               const priceText = formatEventPrice(space);
               const description = getEventDescription(space.name, space.capacity);
               const waText = `Hello Kwalee Beach Resort! I would like to inquire about booking the ${space.name.trim()} (${priceText}, up to ${space.capacity} guests). Please send availability!`;
@@ -334,7 +334,7 @@ function EventBookingForm({ space, onSuccess }: { space: any, onSuccess: () => v
       <button 
         type="submit" 
         disabled={isSubmitting}
-        className="w-full py-4 bg-[#1B2418] text-white font-serif tracking-widest uppercase text-xs font-bold rounded-xl hover:bg-black transition-colors disabled:opacity-50 cursor-pointer shadow-lg"
+        className="w-full py-4 bg-[#1B2418] text-white font-serif tracking-widest uppercase text-xs font-bold rounded-xl hover:bg-[#283824] transition-colors disabled:opacity-50 cursor-pointer shadow-lg"
       >
         {isSubmitting ? 'Submitting Reservation Request...' : 'Confirm Event Request'}
       </button>

@@ -185,16 +185,29 @@ const ServicesSection = ({ data }: { data?: RoomsTentsSectionContent }) => {
   const defaultItems = roomsData.items && roomsData.items.length > 0 ? roomsData.items : DEFAULT_CMS_CONTENT.rooms.items;
 
   const items = liveRooms.length > 0
-    ? liveRooms.map(rt => ({
-        id: rt.id,
-        name: rt.name,
-        image: resolveRoomImageUrl(rt),
-        rating: '5.0',
-        location: rt.description ? (rt.description.length > 45 ? `${rt.description.slice(0, 42)}...` : rt.description) : 'Kwalee Oceanfront Retreat',
-        features: rt.maxAdults ? `Up to ${rt.maxAdults + (rt.maxChildren || 0)} Guests` : 'Luxury Suite',
-        price: `$${Number(rt.baseRateUsd || 35).toFixed(0)}/night`,
-        bookUrl: '/stay',
-      }))
+    ? liveRooms.map(rt => {
+        const cleanName = (rt.name || '').replace(/\s*coming\s*soon\.*/gi, '').trim();
+        const n = cleanName.toLowerCase();
+        let count = rt.maxAdults ? rt.maxAdults + (rt.maxChildren || 0) : null;
+        if (!count) {
+          if (n.includes('family')) count = 4;
+          else if (n.includes('suite') || n.includes('triple')) count = 3;
+          else if (n.includes('solo')) count = 1;
+          else count = 2;
+        }
+        const guestText = count === 1 ? 'Up to 1 Guest' : `Up to ${count} Guests`;
+
+        return {
+          id: rt.id,
+          name: cleanName,
+          image: resolveRoomImageUrl(rt),
+          rating: '5.0',
+          location: rt.description ? (rt.description.length > 45 ? `${rt.description.slice(0, 42)}...` : rt.description) : 'Kwalee Oceanfront Retreat',
+          features: guestText,
+          price: `$${Number(rt.baseRateUsd || 35).toFixed(0)}/night`,
+          bookUrl: '/stay',
+        };
+      })
     : defaultItems;
 
   const badge = roomsData.badge || DEFAULT_CMS_CONTENT.rooms.badge;
@@ -542,7 +555,7 @@ const EventsSection = ({ data, onSelectEvent }: { data: EventsSectionContent; on
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {spaces.map((space) => {
-                const eventImg = getEventImage(space.name);
+                const eventImg = data?.spaceImages?.[space.id] || data?.spaceImages?.[space.name] || space.image || getEventImage(space.name);
                 const priceFormatted = formatEventPrice(space);
                 return (
                   <div key={space.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 transition-all flex flex-col justify-between group">

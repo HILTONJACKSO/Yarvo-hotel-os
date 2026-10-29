@@ -134,7 +134,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="antialiased min-h-screen">
+      <body className="antialiased min-h-screen bg-[#FAF9F4] text-[#1F1F1F]">
         <AuthProvider>
           <ToastProvider>
             <SyncProvider>

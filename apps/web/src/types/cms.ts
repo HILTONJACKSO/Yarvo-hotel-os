@@ -62,6 +62,15 @@ export interface TestimonialsContent {
   items: TestimonialItem[];
 }
 
+export interface EventSpaceItem {
+  id: string;
+  name: string;
+  image: string;
+  description?: string;
+  capacity?: number;
+  priceText?: string;
+}
+
 export interface EventsSectionContent {
   badge: string;
   title: string;
@@ -70,6 +79,8 @@ export interface EventsSectionContent {
   buttonText: string;
   buttonLink: string;
   image: string;
+  spaceImages?: Record<string, string>;
+  spaces?: EventSpaceItem[];
 }
 
 export interface EventInquiryContent {

@@ -4,6 +4,36 @@ import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, ShoppingBag, Utensils, Coffee } from 'lucide-react';
 import Image from 'next/image';
 
+function resolveMenuItemImageUrl(item: any): string {
+  let candidate: any = item?.image || item?.imageUrl;
+  
+  if (!candidate && item?.images) {
+    if (Array.isArray(item.images) && item.images.length > 0) {
+      candidate = item.images[0];
+    } else if (typeof item.images === 'string') {
+      try {
+        const parsed = JSON.parse(item.images);
+        if (Array.isArray(parsed) && parsed.length > 0) candidate = parsed[0];
+        else candidate = item.images;
+      } catch {
+        candidate = item.images;
+      }
+    }
+  }
+
+  if (typeof candidate === 'string') {
+    let clean = candidate.trim().replace(/^[\["'\s]+|[\]"'\s]+$/g, '').trim();
+    if (!clean) return '';
+    if (clean.startsWith('http://') || clean.startsWith('https://')) return clean;
+    if (clean.startsWith('/uploads/')) return clean;
+    if (clean.startsWith('uploads/')) return `/${clean}`;
+    if (clean.startsWith('/')) return clean;
+    return `/uploads/${clean}`;
+  }
+
+  return '';
+}
+
 export const DigitalMenuMarquee = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
@@ -20,7 +50,7 @@ export const DigitalMenuMarquee = () => {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    fetch('/api/menu-orders')
+    fetch('/api/menu-orders', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
@@ -114,20 +144,25 @@ export const DigitalMenuMarquee = () => {
               onClick={() => handleOrderClick(item)}
               className="inline-flex flex-col mx-4 w-72 bg-white border border-[#E8E1D7] shadow-sm hover:shadow-xl transition-shadow cursor-pointer group"
             >
-              {item.image ? (
-                <div className="w-full h-48 relative overflow-hidden">
-                  <Image 
-                    src={item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_API_URL || ''}${item.image}`} 
-                    alt={item.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-48 bg-[#F0EBE1] flex items-center justify-center text-[#F5A623]">
-                  {item.type === 'FOOD' ? <Utensils size={48} opacity={0.5} /> : <Coffee size={48} opacity={0.5} />}
-                </div>
-              )}
+              {(() => {
+                const itemSrc = resolveMenuItemImageUrl(item);
+                if (itemSrc) {
+                  return (
+                    <div className="w-full h-48 relative overflow-hidden bg-[#F0EBE1]">
+                      <img 
+                        src={itemSrc} 
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                  );
+                }
+                return (
+                  <div className="w-full h-48 bg-[#F0EBE1] flex items-center justify-center text-[#F5A623]">
+                    {item.type === 'FOOD' ? <Utensils size={48} opacity={0.5} /> : <Coffee size={48} opacity={0.5} />}
+                  </div>
+                );
+              })()}
               
               <div className="p-5">
                 <div className="flex justify-between items-start mb-2">

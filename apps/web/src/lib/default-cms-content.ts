@@ -156,7 +156,16 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
     ],
     buttonText: "Plan Your Event",
     buttonLink: "#inquiry",
-    image: "/uploads/1792691162950-191268538-1001926702.webp"
+    image: "/uploads/1792691162950-191268538-1001926702.webp",
+    spaceImages: {
+      'Heartshape Beach Dinner': 'https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&q=80&w=800',
+      'Romantic Poolside Candlelight Dinner': 'https://images.unsplash.com/photo-1576013462273-d1a460851ec0?auto=format&fit=crop&q=80&w=800',
+      'Live Jazz Under the Stars': 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&q=80&w=800',
+      'Beachfront Karaoke Party': 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=800',
+      'Starlight Movie Night': 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&q=80&w=800',
+      'Oceanfront Bonfire & Acoustic Lounge': 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&q=80&w=800',
+      'Private Dinner Party Banquet': 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&q=80&w=800'
+    }
   },
   inquiry: {
     badge: "Plan With Us",
@@ -275,7 +284,11 @@ export function mergeWithDefaultContent(input: any): WebsiteContent {
       ...(input.events || {}),
       highlights: Array.isArray(input.events?.highlights) && input.events.highlights.length > 0
         ? input.events.highlights
-        : DEFAULT_CMS_CONTENT.events.highlights
+        : DEFAULT_CMS_CONTENT.events.highlights,
+      spaceImages: {
+        ...(DEFAULT_CMS_CONTENT.events.spaceImages || {}),
+        ...(input.events?.spaceImages || {})
+      }
     },
     inquiry: { ...DEFAULT_CMS_CONTENT.inquiry, ...(input.inquiry || {}) },
     gallery: {

@@ -38,6 +38,7 @@ yarn-error.log*
 # Runtime data
 pids/
 *.pid
+scratch/
 *.seed
 *.pid.lock
 

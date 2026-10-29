@@ -93,6 +93,36 @@ const getDishFallbackImage = (itemName: string = '', categoryName: string = '', 
   return 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&auto=format&fit=crop&q=80';
 };
 
+function resolveMenuItemImageUrl(item: any, fallbackSrc: string): string {
+  let candidate: any = item.image || item.imageUrl;
+  
+  if (!candidate && item.images) {
+    if (Array.isArray(item.images) && item.images.length > 0) {
+      candidate = item.images[0];
+    } else if (typeof item.images === 'string') {
+      try {
+        const parsed = JSON.parse(item.images);
+        if (Array.isArray(parsed) && parsed.length > 0) candidate = parsed[0];
+        else candidate = item.images;
+      } catch {
+        candidate = item.images;
+      }
+    }
+  }
+
+  if (typeof candidate === 'string') {
+    let clean = candidate.trim().replace(/^[\["'\s]+|[\]"'\s]+$/g, '').trim();
+    if (!clean) return fallbackSrc;
+    if (clean.startsWith('http://') || clean.startsWith('https://')) return clean;
+    if (clean.startsWith('/uploads/')) return clean;
+    if (clean.startsWith('uploads/')) return `/${clean}`;
+    if (clean.startsWith('/')) return clean;
+    return `/uploads/${clean}`;
+  }
+
+  return fallbackSrc;
+}
+
 export default function DiningPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -123,7 +153,7 @@ export default function DiningPage() {
 
     const loadMenu = async () => {
       try {
-        const res = await fetch('/api/v1/public/menu');
+        const res = await fetch('/api/v1/public/menu', { cache: 'no-store' });
         const json = await res.json();
         const menuData = json.data || (Array.isArray(json) ? json : null);
         if (menuData && Array.isArray(menuData) && menuData.length > 0) {
@@ -136,7 +166,7 @@ export default function DiningPage() {
 
       // Fallback
       try {
-        const res2 = await fetch('/api/menu-orders');
+        const res2 = await fetch('/api/menu-orders', { cache: 'no-store' });
         const json2 = await res2.json();
         const fallbackData = json2.data || (Array.isArray(json2) ? json2 : null);
         if (fallbackData && Array.isArray(fallbackData)) {
@@ -203,7 +233,7 @@ export default function DiningPage() {
       <Navbar general={cmsContent.general} />
 
       {/* Hero Section */}
-      <section className="relative h-[50vh] md:h-[60vh] flex items-center justify-center overflow-hidden bg-black pt-20">
+      <section className="relative h-[50vh] md:h-[60vh] flex items-center justify-center overflow-hidden bg-[#1B2418] pt-20">
         <div className="absolute inset-0 z-0">
           <img 
             src={diningData.bgImage || DEFAULT_CMS_CONTENT.subpages.dining.bgImage} 
@@ -252,18 +282,8 @@ export default function DiningPage() {
             {/* Menu Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {displayedItems.map((item: any, idx: number) => {
-                const rawImg = item.image || item.imageUrl || (Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : null);
-                let itemSrc = '';
-                if (rawImg && typeof rawImg === 'string' && rawImg.trim() !== '') {
-                  const trimmed = rawImg.trim();
-                  if (trimmed.startsWith('http') || trimmed.startsWith('/')) {
-                    itemSrc = trimmed;
-                  } else {
-                    itemSrc = `/uploads/${trimmed}`;
-                  }
-                }
                 const fallbackSrc = getDishFallbackImage(item.name, item.categoryName || selectedCategory, item.type);
-                const finalSrc = itemSrc || fallbackSrc;
+                const finalSrc = resolveMenuItemImageUrl(item, fallbackSrc);
 
                 return (
                   <div key={item.id || idx} className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all overflow-hidden border border-[#E8E1D7] flex flex-col group">
@@ -373,7 +393,7 @@ export default function DiningPage() {
                   <button 
                     type="submit" 
                     disabled={isSubmitting}
-                    className="w-full bg-[#1B2418] text-white font-semibold uppercase tracking-widest text-sm py-4 rounded-md mt-4 hover:bg-black transition-all disabled:opacity-50"
+                    className="w-full bg-[#1B2418] text-white font-semibold uppercase tracking-widest text-sm py-4 rounded-md mt-4 hover:bg-[#283824] transition-all disabled:opacity-50 cursor-pointer shadow-md"
                   >
                     {isSubmitting ? 'Sending Order...' : 'Confirm Order'}
                   </button>

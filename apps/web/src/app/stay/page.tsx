@@ -216,12 +216,23 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
       : `Experience coastal luxury and tranquil ocean breezes in our ${room.name}.`;
   }
 
+  const cleanName = (room.name || '').replace(/\s*coming\s*soon\.*/gi, '').trim();
+  const n = cleanName.toLowerCase();
+  let count = room.maxAdults ? room.maxAdults + (room.maxChildren || 0) : null;
+  if (!count) {
+    if (n.includes('family')) count = 4;
+    else if (n.includes('suite') || n.includes('triple')) count = 3;
+    else if (n.includes('solo')) count = 1;
+    else count = 2;
+  }
+  const guestLabel = count === 1 ? 'Up to 1 Guest' : `Up to ${count} Guests`;
+
   return (
     <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
       <div className={`relative w-full ${isLarge ? 'h-80' : 'h-64'} overflow-hidden`}>
         <img 
           src={imageUrl}
-          alt={room.name}
+          alt={cleanName}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
         />
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
@@ -231,16 +242,12 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
       </div>
       
       <div className="p-8 flex flex-col flex-grow">
-        <h3 className="font-serif text-2xl text-[#1F1F1F] mb-2">{room.name}</h3>
+        <h3 className="font-serif text-2xl text-[#1F1F1F] mb-2">{cleanName}</h3>
         
         <div className="flex items-center gap-4 text-[#6B6F72] text-sm mb-4 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-1.5 font-medium">
             <Users size={16} className="text-[#CA9851]" />
-            <span>
-              {room.maxAdults 
-                ? `Up to ${room.maxAdults + (room.maxChildren || 0)} Guests` 
-                : (room.features || 'Oceanfront Luxury')}
-            </span>
+            <span>{guestLabel}</span>
           </div>
         </div>
 
@@ -265,7 +272,7 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             if (typeof window !== 'undefined') {
               window.dispatchEvent(new CustomEvent('open-booking-modal', {
-                detail: { roomTypeId: room.id }
+                detail: { roomTypeId: room.id, roomTypeName: cleanName }
               }));
             }
           }}

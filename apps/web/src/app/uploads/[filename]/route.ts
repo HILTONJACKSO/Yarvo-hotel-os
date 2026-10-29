@@ -5,6 +5,7 @@ import { existsSync } from 'fs';
 
 function findFilePath(filename: string): string | null {
   const candidates = [
+    '/app/uploads',
     '/app/apps/web/public/uploads',
     join(process.cwd(), 'apps/web/public/uploads'),
     join(process.cwd(), 'public/uploads'),

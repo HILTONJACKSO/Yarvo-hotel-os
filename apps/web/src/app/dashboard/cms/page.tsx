@@ -1415,6 +1415,56 @@ export default function CmsDashboardPage() {
             </div>
           </div>
 
+          {/* Event Space & Package Pictures Management */}
+          <div className="bg-white rounded-2xl p-6 md:p-8 border border-gray-200 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+              <div>
+                <span className="text-[10px] font-bold tracking-widest text-[#F5A623] uppercase">Event Spaces & Packages</span>
+                <h2 className="text-lg font-serif text-gray-900">Event Space Pictures & Packages</h2>
+                <p className="text-xs text-gray-500">Upload or customize the photo displayed for each event space on the website and booking forms.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[
+                { name: 'Heartshape Beach Dinner', desc: 'Beach dinner inside romantic heart-shaped floral display' },
+                { name: 'Romantic Poolside Candlelight Dinner', desc: 'Intimate candlelit table beside illuminated resort pool' },
+                { name: 'Live Jazz Under the Stars', desc: 'Coastal live jazz performances and cocktail lounge' },
+                { name: 'Beachfront Karaoke Party', desc: 'Open mic karaoke with sound system and beach lounge' },
+                { name: 'Starlight Movie Night', desc: 'Big screen projection under palm trees with seating' },
+                { name: 'Oceanfront Bonfire & Acoustic Lounge', desc: 'Beach bonfire with acoustic music and marshmallows' },
+                { name: 'Private Dinner Party Banquet', desc: 'Banquet dining for up to 30 guests for celebrations' }
+              ].map((space) => {
+                const currentImg = content.events?.spaceImages?.[space.name] || '';
+                return (
+                  <div key={space.name} className="bg-gray-50/70 border border-gray-200 rounded-xl p-4 space-y-3">
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">{space.name}</h4>
+                      <p className="text-[11px] text-gray-500">{space.desc}</p>
+                    </div>
+                    <ImagePicker
+                      label="Event Space Picture"
+                      value={currentImg}
+                      onChange={(url) => {
+                        setContent({
+                          ...content,
+                          events: {
+                            ...content.events,
+                            spaceImages: {
+                              ...(content.events.spaceImages || {}),
+                              [space.name]: url
+                            }
+                          }
+                        });
+                      }}
+                      recommendedSize="800x600px"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Moments at Kwalee Gallery Grid */}
           <div className="bg-white rounded-2xl p-6 md:p-8 border border-gray-200 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">

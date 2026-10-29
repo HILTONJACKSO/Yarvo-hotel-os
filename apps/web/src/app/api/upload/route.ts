@@ -5,6 +5,7 @@ import { existsSync } from 'fs';
 
 function getUploadDir(): string {
   const candidates = [
+    '/app/uploads',
     '/app/apps/web/public/uploads',
     join(process.cwd(), 'apps/web/public/uploads'),
     join(process.cwd(), 'public/uploads'),

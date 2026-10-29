@@ -79,12 +79,14 @@ html {
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  background-color: #FAF9F4;
+  color: #1F1F1F;
 }
 
 body {
   margin: 0;
-  background-color: #050B14;
-  color: hsl(210, 40%, 96%);
+  background-color: #FAF9F4;
+  color: #1F1F1F;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

@@ -23,6 +23,7 @@ export const BookingBarInteractive = () => {
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
+  const [confirmationPreference, setConfirmationPreference] = useState<'both' | 'whatsapp' | 'email'>('both');
   const [error, setError] = useState('');
   const [activities, setActivities] = useState<any[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<{activityId: string, quantity: number}[]>([]);
@@ -94,13 +95,20 @@ export const BookingBarInteractive = () => {
     setError('');
 
     try {
+      const specialReqCombined = [
+        specialRequests.trim(),
+        `[Confirmation Preference: ${confirmationPreference.toUpperCase()}]`
+      ].filter(Boolean).join('\n');
+
+      const finalWhatsapp = whatsapp.trim() || (confirmationPreference !== 'email' ? phone.trim() : '');
+
       const payload = {
         firstName,
         lastName,
         email,
         phone,
-        whatsapp,
-        specialRequests,
+        whatsapp: finalWhatsapp,
+        specialRequests: specialReqCombined,
         checkInDate: checkIn,
         checkOutDate: checkOut,
         roomTypeId,
@@ -139,6 +147,8 @@ export const BookingBarInteractive = () => {
 
   const selectedRoom = roomTypes.find(r => r.id === roomTypeId);
   const nights = Math.max(1, Math.round((new Date(checkOut || Date.now()).getTime() - new Date(checkIn || Date.now()).getTime()) / (1000 * 60 * 60 * 24)) || 1);
+  const rateNum = selectedRoom?.baseRateUsd ? Number(selectedRoom.baseRateUsd) : (selectedRoom?.price ? Number(String(selectedRoom.price).replace(/[^0-9.]/g, '')) : 35);
+  const totalStayPrice = (rateNum * nights).toFixed(0);
 
   return (
     <>
@@ -272,24 +282,78 @@ export const BookingBarInteractive = () => {
                     </div>
                   )}
 
-                  {/* Summary Banner */}
-                  <div className="bg-[#FAF7EE] border border-[#E8E1D7] rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-white border border-[#E8E1D7] flex items-center justify-center text-[#1B2418] font-bold">
-                        <HomeIcon size={18} />
+                  {/* Select Dates & Accommodation */}
+                  <div className="bg-[#FAF7EE] border border-[#E8E1D7] rounded-xl p-5 space-y-4">
+                    <div className="flex items-center justify-between border-b border-[#E8E1D7] pb-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={16} className="text-[#CA9851]" />
+                        <h4 className="text-xs uppercase tracking-widest font-bold text-[#1F1F1F]">
+                          Select Dates & Accommodation
+                        </h4>
+                      </div>
+                      <span className="text-xs font-semibold text-[#1B2418] bg-white px-3 py-1 rounded-full border border-[#E8E1D7]">
+                        {nights} Night{nights !== 1 ? 's' : ''} • Est. ${totalStayPrice}
+                      </span>
+                    </div>
+
+                    {/* Room Type Selector */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Accommodation</label>
+                      <select 
+                        value={roomTypeId}
+                        onChange={(e) => setRoomTypeId(e.target.value)}
+                        className="w-full bg-white border border-[#E8E1D7] rounded-xl p-3 text-sm text-[#1F1F1F] font-medium outline-none focus:border-[#C4A47C] focus:ring-2 focus:ring-[#C4A47C]/20 transition cursor-pointer"
+                      >
+                        {roomTypes.map(rt => {
+                          const cleanName = (rt.name || '').replace(/\s*coming\s*soon\.*/gi, '').trim();
+                          const rate = rt.baseRateUsd ? `$${Number(rt.baseRateUsd).toFixed(0)}/night` : '';
+                          return (
+                            <option key={rt.id} value={rt.id}>
+                              {cleanName} {rate ? `(${rate})` : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    {/* Dates & Guests Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Check-in Date *</label>
+                        <input 
+                          type="date"
+                          required
+                          value={checkIn}
+                          min={new Date().toISOString().split('T')[0]}
+                          onChange={(e) => setCheckIn(e.target.value)}
+                          className="w-full bg-white border border-[#E8E1D7] rounded-xl p-2.5 text-xs text-[#1F1F1F] font-medium outline-none focus:border-[#C4A47C] transition"
+                        />
                       </div>
                       <div>
-                        <p className="font-serif font-bold text-[#1F1F1F] text-base">
-                          {selectedRoom?.name || 'Selected Room'}
-                        </p>
-                        <p className="text-xs text-[#6B6F72]">
-                          {nights} Night{nights !== 1 ? 's' : ''} • {guests} Guest{guests !== '1' ? 's' : ''}
-                        </p>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Check-out Date *</label>
+                        <input 
+                          type="date"
+                          required
+                          value={checkOut}
+                          min={checkIn || new Date().toISOString().split('T')[0]}
+                          onChange={(e) => setCheckOut(e.target.value)}
+                          className="w-full bg-white border border-[#E8E1D7] rounded-xl p-2.5 text-xs text-[#1F1F1F] font-medium outline-none focus:border-[#C4A47C] transition"
+                        />
                       </div>
-                    </div>
-                    <div className="text-left sm:text-right">
-                      <span className="text-[11px] uppercase tracking-wider text-[#6B6F72] block">Dates</span>
-                      <span className="text-xs font-semibold text-[#1B2418]">{checkIn} → {checkOut}</span>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Guests</label>
+                        <select 
+                          value={guests}
+                          onChange={(e) => setGuests(e.target.value)}
+                          className="w-full bg-white border border-[#E8E1D7] rounded-xl p-2.5 text-xs text-[#1F1F1F] font-medium outline-none focus:border-[#C4A47C] transition cursor-pointer"
+                        >
+                          <option value="1">1 Guest</option>
+                          <option value="2">2 Guests</option>
+                          <option value="3">3 Guests</option>
+                          <option value="4">4 Guests</option>
+                          <option value="5">5+ Guests</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
 
@@ -365,6 +429,53 @@ export const BookingBarInteractive = () => {
                           placeholder="+231..." 
                         />
                       </div>
+                    </div>
+
+                    {/* Confirmation Preference: WhatsApp, Email, or Both */}
+                    <div className="bg-white border border-[#E8E1D7] rounded-xl p-4 space-y-2.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#6B6F72]">
+                        Preferred Confirmation Method
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmationPreference('whatsapp')}
+                          className={`py-2 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
+                            confirmationPreference === 'whatsapp'
+                              ? 'bg-[#25D366] text-white border-[#25D366] shadow-sm'
+                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span>💬</span> WhatsApp
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmationPreference('email')}
+                          className={`py-2 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
+                            confirmationPreference === 'email'
+                              ? 'bg-[#1B2418] text-white border-[#1B2418] shadow-sm'
+                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span>✉️</span> Email
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmationPreference('both')}
+                          className={`py-2 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
+                            confirmationPreference === 'both'
+                              ? 'bg-[#CA9851] text-white border-[#CA9851] shadow-sm'
+                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span>⭐</span> Both
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-gray-500">
+                        {confirmationPreference === 'whatsapp' && 'We will send your reservation confirmation to WhatsApp.'}
+                        {confirmationPreference === 'email' && 'We will send your reservation confirmation to Email.'}
+                        {confirmationPreference === 'both' && 'We will send your confirmation to both WhatsApp and Email.'}
+                      </p>
                     </div>
 
                     <div>
