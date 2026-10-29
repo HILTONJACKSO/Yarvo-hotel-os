@@ -238,10 +238,15 @@ const ServicesSection = ({ data }: { data?: RoomsTentsSectionContent }) => {
                   <p className="text-[#6B6F72]/80 text-xs mb-6 truncate">{room.location}</p>
                   
                   <div className="flex justify-between items-end mt-auto pt-4 border-t border-gray-100">
-                    <div className="flex gap-4 text-[#6B6F72] text-xs font-medium">
-                      {(room.features || '').split(' • ').map((feat, i) => (
-                         <span key={i} className="flex items-center gap-1">{feat}</span>
-                      ))}
+                    <div className="flex flex-wrap gap-2 text-[#6B6F72] text-xs font-medium">
+                      {(room.features || ((room as any).description && (room as any).description.includes('*') ? (room as any).description : 'Oceanfront • Luxury'))
+                        .split(/[•*]/)
+                        .map((s: string) => s.trim())
+                        .filter(Boolean)
+                        .slice(0, 3)
+                        .map((feat: string, i: number) => (
+                          <span key={i} className="flex items-center gap-1">{feat}</span>
+                        ))}
                     </div>
                     <div className="text-right flex items-baseline gap-1">
                       <span className="font-bold text-lg text-gray-900 block leading-none">{(room.price || '').split('/')[0]}</span>
@@ -610,15 +615,8 @@ Preferred Date: ${date || 'Flexible'}
 Details: ${message || 'Please send available dates and package information.'}`;
   };
 
-  const handleWhatsAppClick = () => {
-    const text = getInquiryText();
-    window.open(`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(text)}`, '_blank');
-  };
-
-  const handleEmailClick = () => {
-    const subject = `Event Inquiry: ${eventType || 'Celebration'} - ${fullName || 'Guest'}`;
-    const body = getInquiryText();
-    fetch('/api/v1/public/event-bookings', {
+  const recordBookingInSystem = () => {
+    fetch('/api/event-bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -627,10 +625,22 @@ Details: ${message || 'Please send available dates and package information.'}`;
         eventType: eventType || 'Event Inquiry',
         attendeesCount: Number(guests) || 1,
         startTime: date ? `${date}T12:00:00Z` : new Date().toISOString(),
-        endTime: date ? `${date}T18:00:00Z` : new Date().toISOString(),
+        endTime: date ? `${date}T18:00:00Z` : new Date(Date.now() + 4 * 3600000).toISOString(),
         specialRequests: message,
       })
     }).catch(() => {});
+  };
+
+  const handleWhatsAppClick = () => {
+    recordBookingInSystem();
+    const text = getInquiryText();
+    window.open(`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleEmailClick = () => {
+    recordBookingInSystem();
+    const subject = `Event Inquiry: ${eventType || 'Celebration'} - ${fullName || 'Guest'}`;
+    const body = getInquiryText();
     window.location.href = `mailto:kwaleebeachresort1@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 

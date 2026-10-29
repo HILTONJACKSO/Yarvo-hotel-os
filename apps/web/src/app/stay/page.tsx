@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import Image from 'next/image';
-import { Bed, Users, Wifi, Wind, Tv, Coffee } from 'lucide-react';
+import { Bed, Users, Wifi, Wind, Tv, Coffee, Check } from 'lucide-react';
 import { BookingBarInteractive } from '@/components/landing/BookingBarInteractive';
 
 import { DEFAULT_CMS_CONTENT, mergeWithDefaultContent } from '@/lib/default-cms-content';
@@ -177,17 +177,44 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
     if (parts[1]) priceSuffix = parts[1];
   }
 
-  // Parse amenities if it's a string or array
-  let parsedAmenities: string[] = [];
-  try {
-    if (typeof room.amenities === 'string') {
-      parsedAmenities = JSON.parse(room.amenities);
-    } else if (Array.isArray(room.amenities)) {
-      parsedAmenities = room.amenities;
-    } else if (room.features) {
-      parsedAmenities = String(room.features).split(' • ');
+  // Parse structured amenities & features into individual items
+  const parseItems = (val: any): string[] => {
+    if (!val) return [];
+    if (Array.isArray(val)) {
+      return val.flatMap(item => typeof item === 'string' ? item.split('*') : [String(item)]);
     }
-  } catch(e) {}
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) {
+          return parsed.flatMap(item => typeof item === 'string' ? item.split('*') : [String(item)]);
+        }
+      } catch {}
+      return val.split('*');
+    }
+    return [];
+  };
+
+  const rawFeatures = [
+    ...parseItems(room.amenities),
+    ...(room.features ? String(room.features).split(' • ') : []),
+    ...(room.description && room.description.includes('*') ? parseItems(room.description) : [])
+  ];
+
+  const uniqueFeatures = Array.from(new Set(
+    rawFeatures
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && s !== '*' && s.toLowerCase() !== 'null')
+  ));
+
+  // Determine a clean, natural description sentence without raw asterisks
+  let cleanDescription = room.description || `Experience the perfect blend of comfort and style in our ${room.name}.`;
+  if (cleanDescription.includes('*')) {
+    const parts = cleanDescription.split('*').map((s: string) => s.trim()).filter(Boolean);
+    cleanDescription = parts.length > 0 
+      ? (parts[0].endsWith('.') ? parts[0] : `${parts[0]}.`)
+      : `Experience coastal luxury and tranquil ocean breezes in our ${room.name}.`;
+  }
 
   return (
     <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
@@ -206,9 +233,9 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
       <div className="p-8 flex flex-col flex-grow">
         <h3 className="font-serif text-2xl text-[#1F1F1F] mb-2">{room.name}</h3>
         
-        <div className="flex items-center gap-4 text-[#6B6F72] text-sm mb-6 pb-6 border-b border-gray-100">
-          <div className="flex items-center gap-1">
-            <Users size={16} />
+        <div className="flex items-center gap-4 text-[#6B6F72] text-sm mb-4 pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-1.5 font-medium">
+            <Users size={16} className="text-[#CA9851]" />
             <span>
               {room.maxAdults 
                 ? `Up to ${room.maxAdults + (room.maxChildren || 0)} Guests` 
@@ -217,15 +244,16 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
           </div>
         </div>
 
-        <p className="text-gray-600 mb-8 flex-grow line-clamp-3">
-          {room.description || `Experience the perfect blend of comfort and style in our ${room.name}.`}
+        <p className="text-gray-600 mb-6 flex-grow text-sm leading-relaxed">
+          {cleanDescription}
         </p>
 
-        {parsedAmenities.length > 0 && (
-          <div className="flex flex-wrap gap-3 mb-8">
-            {parsedAmenities.slice(0, 4).map((amenity, i) => (
-              <span key={i} className="text-xs px-3 py-1 bg-gray-50 text-gray-600 rounded-full border border-gray-100">
-                {amenity}
+        {uniqueFeatures.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-8">
+            {uniqueFeatures.slice(0, 6).map((feat, i) => (
+              <span key={i} className="text-xs px-3 py-1.5 bg-[#FAF9F4] text-[#1F1F1F] rounded-full border border-gray-200/80 font-medium flex items-center gap-1.5 shadow-xs">
+                <Check size={13} className="text-[#CA9851] shrink-0" />
+                <span>{feat}</span>
               </span>
             ))}
           </div>

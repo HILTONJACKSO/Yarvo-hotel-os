@@ -370,21 +370,38 @@ export class PublicService {
   }
 
   async createEventBooking(dto: CreateEventBookingDto) {
-    const space = await this.prisma.eventSpace.findUnique({ where: { id: dto.spaceId } });
-    if (!space) throw new BadRequestException('Event space not found');
+    let space = dto.spaceId ? await this.prisma.eventSpace.findUnique({ where: { id: dto.spaceId } }) : null;
+    if (!space) {
+      space = await this.prisma.eventSpace.findFirst({ where: { isActive: true } });
+    }
+    if (!space) {
+      space = await this.prisma.eventSpace.findFirst();
+    }
+    if (!space) throw new BadRequestException('No event spaces available in the system.');
 
     const startTime = new Date(dto.startTime);
     const endTime = new Date(dto.endTime);
-    if (startTime >= endTime) throw new BadRequestException('End time must be after start time');
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime()) || startTime >= endTime) {
+      throw new BadRequestException('Invalid start or end time. End time must be after start time.');
+    }
 
-    const hours = Math.ceil((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60));
-    const totalAmount = Number(space.pricePerHour) * hours;
+    const hours = Math.max(1, Math.ceil((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)));
+    const unitPrice = Number(space.pricePerHour || space.pricePerDay || 50);
+    const totalAmount = unitPrice * hours;
 
     const booking = await this.prisma.eventBooking.create({
       data: {
-        spaceId: dto.spaceId, guestName: dto.guestName, guestEmail: dto.guestEmail, guestPhone: dto.guestPhone,
-        eventType: dto.eventType, attendeesCount: dto.attendeesCount, startTime, endTime, totalAmount,
-        status: 'PENDING', specialRequests: dto.specialRequests,
+        spaceId: space.id,
+        guestName: dto.guestName,
+        guestEmail: dto.guestEmail && dto.guestEmail.trim() !== '' ? dto.guestEmail.trim() : null,
+        guestPhone: dto.guestPhone,
+        eventType: dto.eventType || space.name || 'Event Reservation',
+        attendeesCount: dto.attendeesCount || 10,
+        startTime,
+        endTime,
+        totalAmount,
+        status: 'PENDING',
+        specialRequests: dto.specialRequests || null,
       }
     });
 

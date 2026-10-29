@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, MapPin, Compass, Calendar, CheckCircle2 } from 'lu
 import { useAuth } from '@/lib/auth-provider';
 import { useCurrency } from '@/lib/currency';
 import { MultiImageUpload } from '@/components/ui/MultiImageUpload';
+import { useToast } from '@/components/ui/toast-provider';
 
 type Activity = {
   id: string;
@@ -20,9 +21,11 @@ type Activity = {
 export default function ToursEventsPage() {
   const { user } = useAuth();
   const { format, currency } = useCurrency();
+  const { showToast } = useToast();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Activity | null>(null);
   
   const [formData, setFormData] = useState({
@@ -37,13 +40,13 @@ export default function ToursEventsPage() {
 
   const fetchActivities = async () => {
     try {
-      const res = await fetch('/api/v1/activities');
+      const res = await fetch('/api/v1/activities', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setActivities(data);
+        setActivities(data || []);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch activities:', err);
     } finally {
       setLoading(false);
     }
@@ -55,6 +58,7 @@ export default function ToursEventsPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const url = selectedItem 
         ? `/api/v1/activities/${selectedItem.id}` 
@@ -62,29 +66,46 @@ export default function ToursEventsPage() {
         
       const res = await fetch(url, {
         method: selectedItem ? 'PUT' : 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          price: parseFloat(formData.price)
+          price: parseFloat(formData.price) || 0
         })
       });
 
       if (res.ok) {
+        showToast(selectedItem ? 'Activity updated successfully!' : 'Activity created successfully!', 'success');
         setIsModalOpen(false);
         fetchActivities();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.message || 'Failed to save activity.', 'error');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showToast(err.message || 'Network error saving activity.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this activity?')) return;
     try {
-      const res = await fetch(`/api/v1/activities/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchActivities();
+      const res = await fetch(`/api/v1/activities/${id}`, { 
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        showToast('Activity deleted.', 'success');
+        fetchActivities();
+      } else {
+        showToast('Failed to delete activity.', 'error');
+      }
     } catch (err) {
       console.error(err);
+      showToast('Error deleting activity.', 'error');
     }
   };
 
@@ -244,11 +265,20 @@ export default function ToursEventsPage() {
               </div>
 
               <div className="pt-4 flex justify-end gap-3 border-t border-slate-800">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-300 hover:text-white transition-colors">
+                <button 
+                  type="button" 
+                  disabled={isSubmitting}
+                  onClick={() => setIsModalOpen(false)} 
+                  className="px-4 py-2 text-slate-300 hover:text-white transition-colors disabled:opacity-50"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-slate-900 px-6 py-2 rounded-lg font-medium transition-colors">
-                  Save Activity
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-900 px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSubmitting ? 'Saving Activity...' : 'Save Activity'}
                 </button>
               </div>
             </form>

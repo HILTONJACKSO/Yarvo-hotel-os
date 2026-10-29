@@ -9,7 +9,7 @@ import { Calendar, Clock, MapPin, Users, DollarSign, Search, Plus, CreditCard } 
 import { useAuth } from '@/lib/auth-provider';
 import { useCurrency } from '@/lib/currency';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = '';
 
 type EventSpace = {
   id: string;
@@ -55,18 +55,44 @@ export default function EventsPage() {
     setLoading(true);
     try {
       if (navigator.onLine) {
-        fetch(`${API_URL}/api/v1/events/stats/daily`, { credentials: 'include' })
+        fetch('/api/v1/events/stats/daily', { credentials: 'include' })
           .then(res => res.json())
           .then(data => setStats(data?.data || data))
           .catch(console.error);
-        await downloadLatestData();
+
+        try {
+          const [sRes, bRes] = await Promise.all([
+            fetch('/api/v1/events/spaces', { credentials: 'include' }),
+            fetch('/api/v1/events/bookings', { credentials: 'include' })
+          ]);
+          if (sRes.ok) {
+            const sData = await sRes.json();
+            const sArr = sData?.data || sData || [];
+            if (Array.isArray(sArr) && sArr.length > 0) {
+              setSpaces(sArr);
+              await db.eventSpaces.bulkPut(sArr).catch(() => {});
+            }
+          }
+          if (bRes.ok) {
+            const bData = await bRes.json();
+            const bArr = bData?.data || bData || [];
+            if (Array.isArray(bArr) && bArr.length > 0) {
+              setBookings(bArr);
+              await db.eventBookings.bulkPut(bArr).catch(() => {});
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching live events data:', e);
+        }
+
+        await downloadLatestData().catch(() => {});
       }
 
       const allSpaces = await db.eventSpaces.toArray();
       const allBookings = await db.eventBookings.toArray();
 
-      setSpaces(allSpaces as any[]);
-      setBookings(allBookings as any[]);
+      if (allSpaces.length > 0) setSpaces(allSpaces as any[]);
+      if (allBookings.length > 0) setBookings(allBookings as any[]);
     } catch (err) {
       console.error('Failed to fetch events data', err);
     } finally {

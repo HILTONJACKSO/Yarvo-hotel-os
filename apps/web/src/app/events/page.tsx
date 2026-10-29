@@ -241,34 +241,46 @@ function EventBookingForm({ space, onSuccess }: { space: any, onSuccess: () => v
     setIsSubmitting(true);
     
     const formData = new FormData(e.currentTarget);
-    const data = {
+    const guestEmailRaw = (formData.get('guestEmail') as string)?.trim();
+    const data: any = {
       spaceId: space.id,
-      guestName: formData.get('guestName'),
-      guestEmail: formData.get('guestEmail'),
-      guestPhone: formData.get('guestPhone'),
-      eventType: space.name || formData.get('eventType'),
-      attendeesCount: Number(formData.get('attendeesCount') || space.capacity),
+      guestName: (formData.get('guestName') as string)?.trim() || 'Guest',
+      guestPhone: (formData.get('guestPhone') as string)?.trim() || '',
+      eventType: space.name || formData.get('eventType') || 'Event Package',
+      attendeesCount: Number(formData.get('attendeesCount') || space.capacity || 2),
       startTime: new Date(formData.get('date') as string + 'T' + formData.get('startTime') + ':00').toISOString(),
       endTime: new Date(formData.get('date') as string + 'T' + formData.get('endTime') + ':00').toISOString(),
-      specialRequests: formData.get('specialRequests'),
+      specialRequests: (formData.get('specialRequests') as string)?.trim() || '',
     };
+    if (guestEmailRaw && guestEmailRaw.length > 0) {
+      data.guestEmail = guestEmailRaw;
+    }
 
     try {
-      const res = await fetch('/api/v1/public/event-bookings', {
+      // First try internal server route proxy, fallback to direct API
+      let res = await fetch('/api/event-bookings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': process.env.NEXT_PUBLIC_API_KEY || 'kwalee_pub_key_default',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+
+      if (!res.ok) {
+        res = await fetch('/api/v1/public/event-bookings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': 'kwalee_pub_key_default',
+          },
+          body: JSON.stringify(data),
+        });
+      }
 
       if (res.ok) {
         showToast("Your event booking request has been sent successfully!", "success", "Booking Submitted");
         e.currentTarget.reset();
         onSuccess();
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         showToast(err.message || "Failed to submit booking.", "error", "Booking Failed");
       }
     } catch (err) {
@@ -284,35 +296,35 @@ function EventBookingForm({ space, onSuccess }: { space: any, onSuccess: () => v
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-          <input required name="guestName" type="text" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418]" placeholder="Your name" />
+          <input required name="guestName" type="text" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418] text-gray-900 bg-white" placeholder="Your name" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Phone / WhatsApp Number</label>
-          <input required name="guestPhone" type="tel" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418]" placeholder="+231..." />
+          <input required name="guestPhone" type="tel" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418] text-gray-900 bg-white" placeholder="+231..." />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Email Address (Optional)</label>
-          <input name="guestEmail" type="email" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418]" placeholder="email@example.com" />
+          <input name="guestEmail" type="email" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418] text-gray-900 bg-white" placeholder="email@example.com" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Number of Guests</label>
-          <input required name="attendeesCount" type="number" min="1" max={space.capacity * 2} defaultValue={Math.min(space.capacity, 2)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418]" />
+          <input required name="attendeesCount" type="number" min="1" max={space.capacity * 2} defaultValue={Math.min(space.capacity, 2)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418] text-gray-900 bg-white" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Event Date</label>
-          <input required name="date" type="date" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418] text-gray-700" />
+          <input required name="date" type="date" style={{ colorScheme: 'light' }} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418] text-gray-900 bg-white font-medium" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
-          <input required name="startTime" type="time" defaultValue="18:00" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418] text-gray-700" />
+          <input required name="startTime" type="time" defaultValue="18:00" style={{ colorScheme: 'light' }} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418] text-gray-900 bg-white font-medium cursor-pointer" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
-          <input required name="endTime" type="time" defaultValue="22:00" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418] text-gray-700" />
+          <input required name="endTime" type="time" defaultValue="22:00" style={{ colorScheme: 'light' }} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1B2418] text-gray-900 bg-white font-medium cursor-pointer" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Selected Package</label>
-          <input disabled value={`${space.name} (${formatEventPrice(space)})`} className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-600 font-semibold" />
+          <input disabled value={`${space.name} (${formatEventPrice(space)})`} className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-800 font-semibold" />
         </div>
       </div>
       <div>

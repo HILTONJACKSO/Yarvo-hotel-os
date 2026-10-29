@@ -90,6 +90,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Force light color-scheme on date and time pickers so mobile clock dials & action buttons are high-contrast and readable */
+input[type="time"],
+input[type="date"],
+input[type="datetime-local"],
+select {
+  color-scheme: light !important;
+}
+
 /* Focus visible for keyboard accessibility */
 :focus-visible {
   outline: 2px solid var(--color-brand-gold);

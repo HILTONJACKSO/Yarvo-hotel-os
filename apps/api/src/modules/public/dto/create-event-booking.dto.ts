@@ -1,18 +1,19 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional, IsNumber, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, IsOptional, IsNumber, IsDateString, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateEventBookingDto {
-  @ApiProperty({ example: 'uuid-of-space' })
+  @ApiProperty({ example: 'uuid-of-space', required: false })
   @IsString()
-  @IsNotEmpty()
-  spaceId!: string;
+  @IsOptional()
+  spaceId?: string;
 
   @ApiProperty({ example: 'John Doe' })
   @IsString()
   @IsNotEmpty()
   guestName!: string;
 
-  @ApiProperty({ example: 'john@example.com' })
+  @ApiProperty({ example: 'john@example.com', required: false })
+  @ValidateIf((o) => !!o.guestEmail && typeof o.guestEmail === 'string' && o.guestEmail.trim() !== '')
   @IsEmail()
   @IsOptional()
   guestEmail?: string;

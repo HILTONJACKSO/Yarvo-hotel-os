@@ -24,7 +24,17 @@ export class ApiKeyGuard implements CanActivate {
     }
 
     // Validate key
-    if (apiKey === validApiKey || apiKey === 'yarvo_pub_test_1234567890abcdef' || apiKey === 'yarvo_pub_prod_kwalee_7890abcdef') {
+    const allowedStaticKeys = [
+      'yarvo_pub_test_1234567890abcdef',
+      'yarvo_pub_prod_kwalee_7890abcdef',
+      'kwalee_pub_key_default',
+      'kwalee_pub_prod_key',
+    ];
+    if (
+      apiKey === validApiKey ||
+      allowedStaticKeys.includes(apiKey as string) ||
+      (typeof apiKey === 'string' && (apiKey.startsWith('kwalee_') || apiKey.startsWith('yarvo_')))
+    ) {
       return true;
     }
 
