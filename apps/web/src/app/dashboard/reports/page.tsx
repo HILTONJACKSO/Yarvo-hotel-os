@@ -81,8 +81,8 @@ export default function ReportsPage() {
   const fetchData = async (start?: string, end?: string) => {
     setLoading(true);
     setError(null);
-    const s = start || dateRange.start;
-    const e = end || dateRange.end;
+    const s = start !== undefined ? start : dateRange.start;
+    const e = end !== undefined ? end : dateRange.end;
     let query = '';
     if (s && e) query = `?start=${s}&end=${e}`;
     
@@ -137,7 +137,7 @@ export default function ReportsPage() {
         setDateRangeStr(`${start} - ${end}`);
       }
     } else {
-      setDateRangeStr('Last 7 Days');
+      setDateRangeStr('Auto (All Records)');
     }
     fetchData(start, end);
   };

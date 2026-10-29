@@ -1059,16 +1059,23 @@ export class AnalyticsService {
   }
 
   async getDiscounts(startDate?: string, endDate?: string, propertyId?: string) {
-    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
-    const end = endDate ? new Date(endDate) : new Date();
-    end.setHours(23, 59, 59, 999);
-
     const propCondition = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
+
+    const dateFilter: any = {};
+    if (startDate) {
+      dateFilter.gte = new Date(startDate);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.lte = end;
+    }
+    const hasDateFilter = Boolean(startDate || endDate);
 
     // 1. Get Folio Discounts
     const folioDiscounts = await this.prisma.folioLineItem.findMany({
       where: {
-        createdAt: { gte: start, lte: end },
+        ...(hasDateFilter ? { createdAt: dateFilter } : {}),
         ...(propertyId ? { folio: propCondition } : {}),
         OR: [
           { type: 'ADJUSTMENT' },
@@ -1086,7 +1093,7 @@ export class AnalyticsService {
     // 2. Get POS Discounts
     const posDiscounts = await this.prisma.posOrder.findMany({
       where: {
-        createdAt: { gte: start, lte: end },
+        ...(hasDateFilter ? { createdAt: dateFilter } : {}),
         discountAmount: { gt: 0 },
         ...propCondition,
       },

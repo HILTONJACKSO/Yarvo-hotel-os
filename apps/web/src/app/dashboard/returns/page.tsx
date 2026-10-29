@@ -33,22 +33,13 @@ export default function ReturnsPage() {
   const [discounts, setDiscounts] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'RETURNS' | 'DISCOUNTS'>('RETURNS');
 
-  const [dateRange, setDateRange] = useState(() => {
-    const d = new Date();
-    const day = d.getDay();
-    const diffToMonday = day === 0 ? -6 : 1 - day;
-    const start = new Date(d);
-    start.setDate(d.getDate() + diffToMonday);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    return { 
-      start: start.toISOString().split('T')[0], 
-      end: end.toISOString().split('T')[0] 
-    };
-  });
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
 
   const fetchReturns = useCallback(() => {
-    const query = `?start=${dateRange.start}&end=${dateRange.end}`;
+    let query = '';
+    if (dateRange.start && dateRange.end) {
+      query = `?start=${dateRange.start}&end=${dateRange.end}`;
+    }
     fetch(`/api/v1/pos/returns${query}`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
@@ -152,7 +143,31 @@ export default function ReturnsPage() {
       </div>
 
       <div style={{ marginBottom: '24px' }}>
-        <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} initialStartDate={dateRange.start} initialEndDate={dateRange.end} />
+        {(!dateRange.start && !dateRange.end) ? (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-emerald-950/30 border border-emerald-500/30 px-4 py-2.5 rounded-xl text-xs text-emerald-300 gap-2 mb-4">
+            <div className="flex items-center gap-2 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+              <span className="font-semibold text-emerald-300">Auto Mode Active:</span>
+              <span>All discounts and returns across days are automatically preserved and live-aggregated.</span>
+            </div>
+            <span className="text-[11px] bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30 font-semibold self-start sm:self-auto shrink-0">Continuous Tracking</span>
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-cyan-950/30 border border-cyan-500/30 px-4 py-2.5 rounded-xl text-xs text-cyan-300 gap-2 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0"></span>
+              <span className="font-semibold text-cyan-300">Filtered Date Range:</span>
+              <span>Showing records from <strong className="text-white">{dateRange.start}</strong> to <strong className="text-white">{dateRange.end}</strong></span>
+            </div>
+            <button 
+              onClick={() => handleDateChange('', '')}
+              className="text-[11px] bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 px-2.5 py-1 rounded-lg border border-cyan-500/40 font-semibold transition-colors self-start sm:self-auto shrink-0"
+            >
+              Reset to Auto (All Days)
+            </button>
+          </div>
+        )}
+        <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} initialStartDate={dateRange.start} initialEndDate={dateRange.end} initialPreset="auto" />
       </div>
 
       <div className="flex gap-4 mb-6 border-b border-slate-700">
@@ -216,7 +231,32 @@ export default function ReturnsPage() {
       )}
 
       {activeTab === 'DISCOUNTS' && (
-        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden mb-6">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div className="bg-slate-800/70 border border-slate-700/80 rounded-xl p-4 shadow-sm">
+              <span className="text-xs uppercase text-slate-400 font-semibold tracking-wider">Total Discounts Given</span>
+              <p className="text-2xl font-bold text-amber-400 mt-1">
+                {format(discounts.reduce((sum, d) => sum + Number(d.amount || 0), 0))}
+              </p>
+              <span className="text-xs text-slate-400">{discounts.length} total applied discount records</span>
+            </div>
+            <div className="bg-slate-800/70 border border-slate-700/80 rounded-xl p-4 shadow-sm">
+              <span className="text-xs uppercase text-slate-400 font-semibold tracking-wider">POS Restaurant / Bar Discounts</span>
+              <p className="text-2xl font-bold text-orange-400 mt-1">
+                {format(discounts.filter(d => d.source === 'POS').reduce((sum, d) => sum + Number(d.amount || 0), 0))}
+              </p>
+              <span className="text-xs text-slate-400">{discounts.filter(d => d.source === 'POS').length} dining & bar orders</span>
+            </div>
+            <div className="bg-slate-800/70 border border-slate-700/80 rounded-xl p-4 shadow-sm">
+              <span className="text-xs uppercase text-slate-400 font-semibold tracking-wider">Folio Rate Adjustments</span>
+              <p className="text-2xl font-bold text-blue-400 mt-1">
+                {format(discounts.filter(d => d.source === 'FOLIO').reduce((sum, d) => sum + Number(d.amount || 0), 0))}
+              </p>
+              <span className="text-xs text-slate-400">{discounts.filter(d => d.source === 'FOLIO').length} room folio adjustments</span>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden mb-6">
           <table className="w-full text-left text-sm text-slate-300">
             <thead className="bg-slate-900/50 text-slate-400">
               <tr>
@@ -243,7 +283,8 @@ export default function ReturnsPage() {
             </tbody>
           </table>
         </div>
-      )}
+      </div>
+    )}
 
       <style>{`
         .returns-layout { padding: 24px; }

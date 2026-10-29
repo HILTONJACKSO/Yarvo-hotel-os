@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import domtoimage from 'dom-to-image-more';
 import { useAuth } from '@/lib/auth-provider';
-import { Plus, Receipt, Search, Filter, Trash2, ArrowUpRight, ArrowDownRight, DollarSign, Wallet } from 'lucide-react';
+import { Plus, Receipt, Search, Filter, Trash2, ArrowUpRight, ArrowDownRight, DollarSign, Wallet, Sparkles } from 'lucide-react';
 import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
@@ -137,6 +137,7 @@ export default function ExpensesPage() {
   const [activeTab, setActiveTab] = useState<'ALL' | 'PURCHASES' | 'EXPENSE' | 'ASSETS_LIABILITY' | 'OTHER_REVENUE'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentDateRange, setCurrentDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
   
   const [formData, setFormData] = useState({
     amount: '',
@@ -191,6 +192,7 @@ export default function ExpensesPage() {
   }, [fetchExpenses]);
 
   const handleDateChange = (start: string, end: string) => {
+    setCurrentDateRange({ start: start || '', end: end || '' });
     fetchExpenses(start, end);
   };
 
@@ -288,7 +290,7 @@ export default function ExpensesPage() {
       }
 
       setIsModalOpen(false);
-      await fetchExpenses();
+      await fetchExpenses(currentDateRange.start, currentDateRange.end);
     } catch (err) {
       console.error(err);
       alert('Error recording transaction. Please try again.');
@@ -314,7 +316,7 @@ export default function ExpensesPage() {
           retryCount: 0
         });
       }
-      await fetchExpenses();
+      await fetchExpenses(currentDateRange.start, currentDateRange.end);
     } catch (err) {
       console.error(err);
     }
@@ -422,7 +424,32 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} />
+      {(!currentDateRange.start && !currentDateRange.end) ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-emerald-950/30 border border-emerald-500/30 px-4 py-2.5 rounded-xl text-xs text-emerald-300 gap-2">
+          <div className="flex items-center gap-2 font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+            <span className="font-semibold text-emerald-300">Auto Mode Active:</span>
+            <span>All expenses across days (yesterday, today, and prior) are automatically preserved and live-aggregated.</span>
+          </div>
+          <span className="text-[11px] bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30 font-semibold self-start sm:self-auto shrink-0">Continuous Tracking</span>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-cyan-950/30 border border-cyan-500/30 px-4 py-2.5 rounded-xl text-xs text-cyan-300 gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0"></span>
+            <span className="font-semibold text-cyan-300">Filtered Date Range:</span>
+            <span>Showing expenses from <strong className="text-white">{currentDateRange.start}</strong> to <strong className="text-white">{currentDateRange.end}</strong></span>
+          </div>
+          <button 
+            onClick={() => handleDateChange('', '')}
+            className="text-[11px] bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 px-2.5 py-1 rounded-lg border border-cyan-500/40 font-semibold transition-colors self-start sm:self-auto shrink-0"
+          >
+            Reset to Auto (All Days)
+          </button>
+        </div>
+      )}
+
+      <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} initialPreset="auto" />
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-slate-700/80 pb-3">
