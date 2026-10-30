@@ -207,15 +207,6 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
       .filter(s => s.length > 0 && s !== '*' && s.toLowerCase() !== 'null')
   ));
 
-  // Determine a clean, natural description sentence without raw asterisks
-  let cleanDescription = room.description || `Experience the perfect blend of comfort and style in our ${room.name}.`;
-  if (cleanDescription.includes('*')) {
-    const parts = cleanDescription.split('*').map((s: string) => s.trim()).filter(Boolean);
-    cleanDescription = parts.length > 0 
-      ? (parts[0].endsWith('.') ? parts[0] : `${parts[0]}.`)
-      : `Experience coastal luxury and tranquil ocean breezes in our ${room.name}.`;
-  }
-
   const cleanName = (room.name || '').replace(/\s*coming\s*soon\.*/gi, '').trim();
   const n = cleanName.toLowerCase();
   let count = room.maxAdults ? room.maxAdults + (room.maxChildren || 0) : null;
@@ -226,6 +217,28 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
     else count = 2;
   }
   const guestLabel = count === 1 ? 'Up to 1 Guest' : `Up to ${count} Guests`;
+
+  // Determine a clean, natural description sentence without raw asterisks
+  let cleanDescription = '';
+  if (n.includes('suite')) {
+    cleanDescription = 'Exclusive luxury rooftop suite featuring a private rooftop pool, complimentary breakfast, and full pool and beach access.';
+  } else if (n.includes('family')) {
+    cleanDescription = 'Spacious coastal retreat designed for families and groups, featuring complimentary breakfast, pool and beach access, and ocean views.';
+  } else if (n.includes('regular') || n.includes('standard')) {
+    cleanDescription = 'Comfortable oceanfront room with complimentary breakfast, direct pool and beach access, air conditioning, and coastal breezes.';
+  } else if (n.includes('tent')) {
+    cleanDescription = 'Premium beachfront glamping tent just steps from the ocean waves, complete with daily breakfast, plush bedding, and coastal serenity.';
+  } else if (room.description) {
+    if (room.description.includes('*')) {
+      const parts = room.description.split('*').map((s: string) => s.trim()).filter(Boolean);
+      const longPart = parts.find((p: string) => p.length > 30);
+      cleanDescription = longPart || `Experience the perfect coastal getaway in our ${cleanName}.`;
+    } else {
+      cleanDescription = room.description;
+    }
+  } else {
+    cleanDescription = `Experience coastal luxury and tranquil ocean breezes in our ${cleanName}.`;
+  }
 
   return (
     <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col">
@@ -257,7 +270,7 @@ function RoomCard({ room, isLarge = false }: { room: any, isLarge?: boolean }) {
 
         {uniqueFeatures.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-8">
-            {uniqueFeatures.slice(0, 6).map((feat, i) => (
+            {uniqueFeatures.slice(0, 8).map((feat, i) => (
               <span key={i} className="text-xs px-3 py-1.5 bg-[#FAF9F4] text-[#1F1F1F] rounded-full border border-gray-200/80 font-medium flex items-center gap-1.5 shadow-xs">
                 <Check size={13} className="text-[#CA9851] shrink-0" />
                 <span>{feat}</span>

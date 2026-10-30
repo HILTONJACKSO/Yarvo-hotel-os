@@ -160,7 +160,8 @@ export class PublicService {
 
     // 4. Calculate total amount
     const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24));
-    let totalAmount = Number(roomType.baseRateUsd) * nights;
+    const roomsCount = Math.max(1, Number(dto.roomsCount || 1));
+    let totalAmount = Number(roomType.baseRateUsd) * nights * roomsCount;
     
     // 4.5. Process Activities
     const activityItems = [];
@@ -179,6 +180,11 @@ export class PublicService {
       }
     }
 
+    const specialReqWithRooms = [
+      roomsCount > 1 ? `[Requested Accommodations: ${roomsCount} Rooms/Tents]` : '',
+      dto.specialRequests || ''
+    ].filter(Boolean).join('\n');
+
     // 5. Create confirmed reservation
     const reservation = await this.prisma.reservation.create({
       data: {
@@ -190,7 +196,7 @@ export class PublicService {
         checkOutDate,
         adultsCount: dto.adultsCount,
         childrenCount: dto.childrenCount || 0,
-        specialRequests: dto.specialRequests,
+        specialRequests: specialReqWithRooms,
         status: 'CONFIRMED',
         totalAmount: totalAmount,
         activities: {

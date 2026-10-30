@@ -196,14 +196,27 @@ const ServicesSection = ({ data }: { data?: RoomsTentsSectionContent }) => {
           else count = 2;
         }
         const guestText = count === 1 ? 'Up to 1 Guest' : `Up to ${count} Guests`;
+        let parsedAmenities: string[] = [];
+        try {
+          if (Array.isArray(rt.amenities)) {
+            parsedAmenities = rt.amenities.flatMap((a: any) => typeof a === 'string' ? a.split('*') : [String(a)]);
+          } else if (typeof rt.amenities === 'string') {
+            const p = JSON.parse(rt.amenities);
+            parsedAmenities = Array.isArray(p) ? p.flatMap((a: any) => typeof a === 'string' ? a.split('*') : [String(a)]) : rt.amenities.split('*');
+          }
+        } catch {
+          if (typeof rt.amenities === 'string') parsedAmenities = rt.amenities.split('*');
+        }
+        parsedAmenities = parsedAmenities.map(s => s.trim()).filter(s => s.length > 0 && s !== '*');
+        const displayFeatures = [guestText, ...parsedAmenities.slice(0, 2)].join(' • ');
 
         return {
           id: rt.id,
           name: cleanName,
           image: resolveRoomImageUrl(rt),
           rating: '5.0',
-          location: rt.description ? (rt.description.length > 45 ? `${rt.description.slice(0, 42)}...` : rt.description) : 'Kwalee Oceanfront Retreat',
-          features: guestText,
+          location: 'Kwalee Beach Resort • Oceanfront',
+          features: displayFeatures,
           price: `$${Number(rt.baseRateUsd || 35).toFixed(0)}/night`,
           bookUrl: '/stay',
         };

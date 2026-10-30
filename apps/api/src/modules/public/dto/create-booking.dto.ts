@@ -69,6 +69,12 @@ export class CreateBookingDto {
   @IsOptional()
   childrenCount?: number;
 
+  @ApiPropertyOptional({ example: 1 })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  roomsCount?: number;
+
   @ApiPropertyOptional({ type: [BookingActivityDto] })
   @IsArray()
   @ValidateNested({ each: true })
