@@ -43,26 +43,56 @@ export const BookingBarInteractive = () => {
     setCheckIn(today.toISOString().split('T')[0]);
     setCheckOut(tomorrow.toISOString().split('T')[0]);
     
-    // Fetch room types
-    fetch('/api/booking')
+    // Fetch CMS to check for blocked rooms, then load active room types
+    fetch('/api/cms')
       .then(res => res.json())
-      .then(data => {
-        if (data.success && data.data && data.data.length > 0) {
-          setRoomTypes(data.data);
-          setRoomTypeId(data.data[0].id);
-        } else {
-          // Fallback to public endpoint
-          fetch('/api/v1/public/room-types')
-            .then(r => r.json())
-            .then(d => {
-              if (d.data && d.data.length > 0) {
-                setRoomTypes(d.data);
-                setRoomTypeId(d.data[0].id);
-              }
-            });
+      .then(cmsRes => {
+        const blockedNames = new Set<string>();
+        if (cmsRes.success && cmsRes.data?.rooms?.items) {
+          cmsRes.data.rooms.items.forEach((it: any) => {
+            if (it.isBlocked || it.blocked) {
+              blockedNames.add((it.name || '').toLowerCase().replace(/[^a-z0-9]/g, ''));
+            }
+          });
         }
+        return blockedNames;
       })
-      .catch(err => console.error('Failed to fetch room types', err));
+      .catch(() => new Set<string>())
+      .then(blockedNames => {
+        fetch('/api/booking')
+          .then(res => res.json())
+          .then(data => {
+            const list = data.success && Array.isArray(data.data) && data.data.length > 0 ? data.data : [];
+            const filterActive = (arr: any[]) => arr.filter(rt => {
+              const norm = (rt.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              for (const b of blockedNames) {
+                if (b && norm.includes(b)) return false;
+              }
+              return true;
+            });
+
+            if (list.length > 0) {
+              const active = filterActive(list);
+              if (active.length > 0) {
+                setRoomTypes(active);
+                setRoomTypeId(active[0].id);
+              }
+            } else {
+              fetch('/api/v1/public/room-types')
+                .then(r => r.json())
+                .then(d => {
+                  if (d.data && d.data.length > 0) {
+                    const active = filterActive(d.data);
+                    if (active.length > 0) {
+                      setRoomTypes(active);
+                      setRoomTypeId(active[0].id);
+                    }
+                  }
+                });
+            }
+          })
+          .catch(err => console.error('Failed to fetch room types', err));
+      });
 
     // Fetch activities
     fetch('/api/activities')
@@ -174,38 +204,45 @@ export const BookingBarInteractive = () => {
     <>
       <section id="booking-bar" className="relative z-20 -mt-16 max-w-6xl mx-auto px-4 sm:px-6">
         <div id="book" className="bg-white shadow-2xl rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 border border-[#E8E1D7]">
-          <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 border-b md:border-b-0 md:border-r border-[#E8E1D7] pb-6 md:pb-0 md:pr-6">
+          <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 border-b md:border-b-0 md:border-r border-[#E8E1D7] pb-6 md:pb-0 md:pr-6">
             
-            {/* Dates */}
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2">Check-in — Check-out</label>
+            {/* Check-in Date */}
+            <div className="min-w-0">
+              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2 truncate">Check-In</label>
               <div className="flex items-center gap-2 border-b border-[#1F1F1F] py-2">
                 <Calendar size={18} className="text-[#C4A47C] shrink-0" />
                 <input 
                   type="date" 
                   value={checkIn}
                   onChange={(e) => setCheckIn(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm font-medium" 
+                  className="w-full min-w-0 bg-transparent outline-none text-[#1F1F1F] text-xs lg:text-sm font-medium cursor-pointer" 
                 />
-                <span className="text-[#6B6F72]">-</span>
+              </div>
+            </div>
+
+            {/* Check-out Date */}
+            <div className="min-w-0">
+              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2 truncate">Check-Out</label>
+              <div className="flex items-center gap-2 border-b border-[#1F1F1F] py-2">
+                <Calendar size={18} className="text-[#C4A47C] shrink-0" />
                 <input 
                   type="date" 
                   value={checkOut}
                   onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm font-medium" 
+                  className="w-full min-w-0 bg-transparent outline-none text-[#1F1F1F] text-xs lg:text-sm font-medium cursor-pointer" 
                 />
               </div>
             </div>
 
             {/* Room */}
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2">Accommodation</label>
-              <div className="flex items-center gap-3 border-b border-[#1F1F1F] py-2">
+            <div className="min-w-0">
+              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2 truncate">Accommodation</label>
+              <div className="flex items-center gap-2 border-b border-[#1F1F1F] py-2">
                 <HomeIcon size={18} className="text-[#C4A47C] shrink-0" />
                 <select 
                   value={roomTypeId}
                   onChange={(e) => setRoomTypeId(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm font-medium cursor-pointer"
+                  className="w-full min-w-0 bg-transparent outline-none text-[#1F1F1F] text-xs lg:text-sm font-medium cursor-pointer truncate"
                 >
                   {roomTypes.map(rt => (
                     <option key={rt.id} value={rt.id}>{rt.name}</option>
@@ -215,14 +252,14 @@ export const BookingBarInteractive = () => {
             </div>
 
             {/* Rooms/Tents Quantity */}
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2">Rooms / Tents</label>
-              <div className="flex items-center gap-3 border-b border-[#1F1F1F] py-2">
+            <div className="min-w-0">
+              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2 truncate">Rooms / Tents</label>
+              <div className="flex items-center gap-2 border-b border-[#1F1F1F] py-2">
                 <Bed size={18} className="text-[#C4A47C] shrink-0" />
                 <select 
                   value={roomsCount}
                   onChange={(e) => setRoomsCount(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm font-medium cursor-pointer"
+                  className="w-full min-w-0 bg-transparent outline-none text-[#1F1F1F] text-xs lg:text-sm font-medium cursor-pointer"
                 >
                   <option value="1">1 Room / Tent</option>
                   <option value="2">2 Rooms / Tents</option>
@@ -234,14 +271,14 @@ export const BookingBarInteractive = () => {
             </div>
 
             {/* Guests */}
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2">Guests</label>
-              <div className="flex items-center gap-3 border-b border-[#1F1F1F] py-2">
+            <div className="min-w-0">
+              <label className="block text-xs uppercase tracking-widest text-[#6B6F72] font-semibold mb-2 truncate">Guests</label>
+              <div className="flex items-center gap-2 border-b border-[#1F1F1F] py-2">
                 <Users size={18} className="text-[#C4A47C] shrink-0" />
                 <select 
                   value={guests}
                   onChange={(e) => setGuests(e.target.value)}
-                  className="w-full bg-transparent outline-none text-[#1F1F1F] text-sm font-medium cursor-pointer"
+                  className="w-full min-w-0 bg-transparent outline-none text-[#1F1F1F] text-xs lg:text-sm font-medium cursor-pointer"
                 >
                   <option value="1">1 Guest</option>
                   <option value="2">2 Guests</option>
@@ -607,7 +644,7 @@ export const BookingBarInteractive = () => {
               <div className="bg-white p-5 border-t border-[#E8E1D7] shrink-0 flex flex-col gap-3">
                 <div className="flex items-center justify-center text-center gap-2 text-xs text-[#6B6F72] px-2 leading-relaxed">
                   <ShieldCheck size={16} className="text-[#CA9851] shrink-0" />
-                  <span>Pre-payment is required to secure your booking • Pay via Mobile Money or other payment method recommended by the resort</span>
+                  <span>No immediate payment is required • Pay via Mobile Money or other payment method recommended by the resort</span>
                 </div>
                 <button 
                   type="submit" 

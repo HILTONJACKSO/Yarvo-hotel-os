@@ -66,12 +66,12 @@ export default async function BookingConfirmationPage({ params }: { params: Prom
               <ArrowLeft size={16} /> Return Home
             </Link>
             <a 
-              href="https://wa.me/23100000000" 
+              href={`https://wa.me/231774340843?text=${encodeURIComponent(`Hello Kwalee Beach Resort, I am inquiring about my reservation ${code}.`)}`} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#F5A623] text-white uppercase tracking-widest text-xs font-bold rounded-xl hover:bg-[#D08C1D] transition-all shadow-lg shadow-[#F5A623]/20"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#25D366] hover:bg-[#1EBE5D] text-white uppercase tracking-widest text-xs font-bold rounded-xl transition-all shadow-lg shadow-[#25D366]/20 cursor-pointer"
             >
-              <MessageCircle size={16} /> Contact Hotel
+              <MessageCircle size={16} /> Contact on WhatsApp
             </a>
           </div>
         </div>

@@ -74,9 +74,10 @@ export function AddRoomModal({ isOpen, onClose, onSuccess, initialData }: Props)
         floor: initialData.floor,
         roomTypeId: initialData.roomType?.id || initialData.roomTypeId,
         notes: initialData.notes || '',
+        status: initialData.status || 'AVAILABLE',
       });
     } else {
-      reset({ floor: 1, number: '', roomTypeId: '', notes: '' });
+      reset({ floor: 1, number: '', roomTypeId: '', notes: '', status: 'AVAILABLE' });
     }
     
     setSubmitError(null);
@@ -176,6 +177,19 @@ export function AddRoomModal({ isOpen, onClose, onSuccess, initialData }: Props)
               ))}
             </select>
             {errors.roomTypeId && <span className="error-text">{errors.roomTypeId.message}</span>}
+          </div>
+
+          <div className="form-group">
+            <label>Room Status</label>
+            <select {...register('status')}>
+              <option value="AVAILABLE">AVAILABLE (Active & Ready)</option>
+              <option value="CLEAN">CLEAN</option>
+              <option value="DIRTY">DIRTY</option>
+              <option value="OCCUPIED">OCCUPIED</option>
+              <option value="MAINTENANCE">MAINTENANCE (Temporarily Unavailable)</option>
+              <option value="OUT_OF_ORDER">OUT OF ORDER</option>
+              <option value="BLOCKED">BLOCKED (Locked / Problem with room)</option>
+            </select>
           </div>
 
           <div className="form-group">

@@ -184,44 +184,89 @@ const ServicesSection = ({ data }: { data?: RoomsTentsSectionContent }) => {
   const roomsData = data || DEFAULT_CMS_CONTENT.rooms;
   const defaultItems = roomsData.items && roomsData.items.length > 0 ? roomsData.items : DEFAULT_CMS_CONTENT.rooms.items;
 
-  const items = liveRooms.length > 0
-    ? liveRooms.map(rt => {
-        const cleanName = (rt.name || '').replace(/\s*coming\s*soon\.*/gi, '').trim();
-        const n = cleanName.toLowerCase();
-        let count = rt.maxAdults ? rt.maxAdults + (rt.maxChildren || 0) : null;
-        if (!count) {
-          if (n.includes('family')) count = 4;
-          else if (n.includes('suite') || n.includes('triple')) count = 3;
-          else if (n.includes('solo')) count = 1;
-          else count = 2;
-        }
-        const guestText = count === 1 ? 'Up to 1 Guest' : `Up to ${count} Guests`;
-        let parsedAmenities: string[] = [];
-        try {
-          if (Array.isArray(rt.amenities)) {
-            parsedAmenities = rt.amenities.flatMap((a: any) => typeof a === 'string' ? a.split('*') : [String(a)]);
-          } else if (typeof rt.amenities === 'string') {
-            const p = JSON.parse(rt.amenities);
-            parsedAmenities = Array.isArray(p) ? p.flatMap((a: any) => typeof a === 'string' ? a.split('*') : [String(a)]) : rt.amenities.split('*');
-          }
-        } catch {
-          if (typeof rt.amenities === 'string') parsedAmenities = rt.amenities.split('*');
-        }
-        parsedAmenities = parsedAmenities.map(s => s.trim()).filter(s => s.length > 0 && s !== '*');
-        const displayFeatures = [guestText, ...parsedAmenities.slice(0, 2)].join(' • ');
+  const sortAccommodations = (a: any, b: any) => {
+    const aName = (a.name || '').toLowerCase();
+    const bName = (b.name || '').toLowerCase();
+    const aIsTent = aName.includes('tent') || (a.code || '').toLowerCase().includes('tnt') || a.type === 'tent';
+    const bIsTent = bName.includes('tent') || (b.code || '').toLowerCase().includes('tnt') || b.type === 'tent';
 
-        return {
-          id: rt.id,
-          name: cleanName,
-          image: resolveRoomImageUrl(rt),
-          rating: '5.0',
-          location: 'Kwalee Beach Resort • Oceanfront',
-          features: displayFeatures,
-          price: `$${Number(rt.baseRateUsd || 35).toFixed(0)}/night`,
-          bookUrl: '/stay',
-        };
-      })
-    : defaultItems;
+    if (!aIsTent && bIsTent) return -1;
+    if (aIsTent && !bIsTent) return 1;
+
+    // Both are rooms: Regular Room -> Family Room -> Suite
+    if (!aIsTent && !bIsTent) {
+      const getRoomRank = (name: string) => {
+        if (name.includes('regular') || name.includes('standard')) return 1;
+        if (name.includes('family')) return 2;
+        if (name.includes('suite')) return 3;
+        return 4;
+      };
+      return getRoomRank(aName) - getRoomRank(bName);
+    }
+
+    // Both are tents: Solo -> Double -> Triple
+    const getTentRank = (name: string) => {
+      if (name.includes('solo')) return 1;
+      if (name.includes('double')) return 2;
+      if (name.includes('triple')) return 3;
+      return 4;
+    };
+    return getTentRank(aName) - getTentRank(bName);
+  };
+
+  const blockedNames = new Set(
+    (roomsData.items || [])
+      .filter((it: any) => it.isBlocked === true || it.blocked === true)
+      .map((it: any) => (it.name || '').toLowerCase().replace(/[^a-z0-9]/g, ''))
+  );
+
+  const items = liveRooms.length > 0
+    ? [...liveRooms]
+        .filter(rt => {
+          const norm = (rt.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          for (const b of blockedNames) {
+            if (b && norm.includes(b)) return false;
+          }
+          return true;
+        })
+        .sort(sortAccommodations)
+        .map(rt => {
+          const cleanName = (rt.name || '').replace(/\s*coming\s*soon\.*/gi, '').trim();
+          const n = cleanName.toLowerCase();
+          let count = rt.maxAdults ? rt.maxAdults + (rt.maxChildren || 0) : null;
+          if (!count) {
+            if (n.includes('family')) count = 4;
+            else if (n.includes('suite') || n.includes('triple')) count = 3;
+            else if (n.includes('solo')) count = 1;
+            else count = 2;
+          }
+          const guestText = count === 1 ? 'Up to 1 Guest' : `Up to ${count} Guests`;
+          let parsedAmenities: string[] = [];
+          try {
+            if (Array.isArray(rt.amenities)) {
+              parsedAmenities = rt.amenities.flatMap((a: any) => typeof a === 'string' ? a.split('*') : [String(a)]);
+            } else if (typeof rt.amenities === 'string') {
+              const p = JSON.parse(rt.amenities);
+              parsedAmenities = Array.isArray(p) ? p.flatMap((a: any) => typeof a === 'string' ? a.split('*') : [String(a)]) : rt.amenities.split('*');
+            }
+          } catch {
+            if (typeof rt.amenities === 'string') parsedAmenities = rt.amenities.split('*');
+          }
+          parsedAmenities = parsedAmenities.map(s => s.trim()).filter(s => s.length > 0 && s !== '*');
+          const displayFeatures = [guestText, ...parsedAmenities.slice(0, 2)].join(' • ');
+
+          return {
+            id: rt.id,
+            name: cleanName,
+            image: resolveRoomImageUrl(rt),
+            rating: '5.0',
+            location: 'Kwalee Beach Resort • Oceanfront',
+            features: displayFeatures,
+            price: `$${Number(rt.baseRateUsd || 35).toFixed(0)}/night`,
+            bookUrl: '/stay',
+          };
+        })
+    : [...defaultItems].filter((it: any) => !it.isBlocked && !it.blocked).sort(sortAccommodations);
 
   const badge = roomsData.badge || DEFAULT_CMS_CONTENT.rooms.badge;
   const title = roomsData.title || DEFAULT_CMS_CONTENT.rooms.title;

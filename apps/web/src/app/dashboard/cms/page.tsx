@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { 
   Globe, Save, RotateCcw, ExternalLink, Upload, Image as ImageIcon, 
-  Trash2, Plus, Sparkles, Check, AlertCircle, Eye, ArrowUpRight,
+  Trash2, Plus, Sparkles, Check, AlertCircle, Eye, EyeOff, ShieldAlert, ArrowUpRight,
   Layers, MessageSquare, Camera, Compass, PhoneCall, ChevronDown, ChevronRight,
   BedDouble
 } from 'lucide-react';
@@ -684,10 +684,25 @@ export default function CmsDashboardPage() {
               </button>
             </div>
 
+            {/* How to block a room helper note */}
+            <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 flex items-start gap-3 text-xs text-amber-900 leading-relaxed">
+              <ShieldAlert size={18} className="text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Need to block or hide a room on the website?</span>
+                <p className="mt-0.5 text-amber-800">
+                  If there is an issue with a room or tent (e.g. maintenance, plumbing, or reserved privately), click the <strong className="text-amber-950 font-semibold">Block on Website</strong> button on that card below and click <strong className="text-amber-950 font-semibold">Save &amp; Publish Changes</strong>. It will immediately be hidden from public browsing and direct booking until you click <strong className="text-emerald-800 font-semibold">Unblock</strong>.
+                </p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {(content.rooms?.items || []).map((item, idx) => (
-                <div key={item.id || idx} className="bg-gray-50 border border-gray-200 rounded-2xl p-6 space-y-4 relative group">
-                  <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                <div key={item.id || idx} className={`border rounded-2xl p-6 space-y-4 relative group transition-all ${
+                  item.isBlocked 
+                    ? 'bg-rose-50/40 border-rose-200 opacity-80' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <div className="flex flex-wrap justify-between items-center border-b border-gray-200 pb-3 gap-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-gray-800">Card #{idx + 1}</span>
                       <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
@@ -699,21 +714,65 @@ export default function CmsDashboardPage() {
                       }`}>
                         {item.type}
                       </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                        item.isBlocked 
+                          ? 'bg-rose-100 text-rose-800 border border-rose-300' 
+                          : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      }`}>
+                        {item.isBlocked ? (
+                          <>
+                            <EyeOff size={11} /> Blocked on Website
+                          </>
+                        ) : (
+                          <>
+                            <Eye size={11} /> Active on Website
+                          </>
+                        )}
+                      </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const updated = content.rooms.items.filter((_, i) => i !== idx);
-                        setContent({
-                          ...content,
-                          rooms: { ...content.rooms, items: updated },
-                        });
-                      }}
-                      className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                      title="Remove card"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = [...content.rooms.items];
+                          updated[idx] = { ...updated[idx], isBlocked: !updated[idx].isBlocked };
+                          setContent({
+                            ...content,
+                            rooms: { ...content.rooms, items: updated },
+                          });
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                          item.isBlocked
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                        }`}
+                        title={item.isBlocked ? 'Click to make this room visible and bookable again' : 'Click to hide/block this room on the website'}
+                      >
+                        {item.isBlocked ? (
+                          <>
+                            <Eye size={13} /> Unblock
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff size={13} /> Block on Website
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = content.rooms.items.filter((_, i) => i !== idx);
+                          setContent({
+                            ...content,
+                            rooms: { ...content.rooms, items: updated },
+                          });
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                        title="Remove card"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Photo Uploader */}

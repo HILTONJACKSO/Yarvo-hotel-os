@@ -46,11 +46,63 @@ export default function StayPage() {
   }, []);
 
   // Split into tents and standard rooms based on API room types or fallback to CMS
-  const apiTents = roomTypes.filter(rt => rt.name?.toLowerCase().includes('tent') || rt.code?.toLowerCase().includes('tnt'));
-  const apiRooms = roomTypes.filter(rt => !rt.name?.toLowerCase().includes('tent') && !rt.code?.toLowerCase().includes('tnt'));
+  const blockedNames = new Set(
+    (cmsContent.rooms?.items || [])
+      .filter((it: any) => it.isBlocked === true || it.blocked === true)
+      .map((it: any) => (it.name || '').toLowerCase().replace(/[^a-z0-9]/g, ''))
+  );
 
-  const cmsTents = (cmsContent.rooms?.items || []).filter(item => item.type === 'tent');
-  const cmsRooms = (cmsContent.rooms?.items || []).filter(item => item.type === 'room' || item.type === 'suite');
+  const isBlocked = (item: any) => {
+    const norm = (item.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (const b of blockedNames) {
+      if (b && norm.includes(b)) return true;
+    }
+    return false;
+  };
+
+  const sortRooms = (a: any, b: any) => {
+    const aName = (a.name || '').toLowerCase();
+    const bName = (b.name || '').toLowerCase();
+    const getRank = (n: string) => {
+      if (n.includes('regular') || n.includes('standard')) return 1;
+      if (n.includes('family')) return 2;
+      if (n.includes('suite')) return 3;
+      return 4;
+    };
+    return getRank(aName) - getRank(bName);
+  };
+
+  const sortTents = (a: any, b: any) => {
+    const aName = (a.name || '').toLowerCase();
+    const bName = (b.name || '').toLowerCase();
+    const getRank = (n: string) => {
+      if (n.includes('solo')) return 1;
+      if (n.includes('double')) return 2;
+      if (n.includes('triple')) return 3;
+      return 4;
+    };
+    return getRank(aName) - getRank(bName);
+  };
+
+  const apiTents = roomTypes
+    .filter(rt => rt.name?.toLowerCase().includes('tent') || rt.code?.toLowerCase().includes('tnt'))
+    .filter(rt => !isBlocked(rt))
+    .sort(sortTents);
+
+  const apiRooms = roomTypes
+    .filter(rt => !rt.name?.toLowerCase().includes('tent') && !rt.code?.toLowerCase().includes('tnt'))
+    .filter(rt => !isBlocked(rt))
+    .sort(sortRooms);
+
+  const cmsTents = (cmsContent.rooms?.items || [])
+    .filter(item => item.type === 'tent')
+    .filter(it => !(it as any).isBlocked && !(it as any).blocked)
+    .sort(sortTents);
+
+  const cmsRooms = (cmsContent.rooms?.items || [])
+    .filter(item => item.type === 'room' || item.type === 'suite')
+    .filter(it => !(it as any).isBlocked && !(it as any).blocked)
+    .sort(sortRooms);
 
   const tents = apiTents.length > 0 ? apiTents : cmsTents;
   const rooms = apiRooms.length > 0 ? apiRooms : cmsRooms;
@@ -124,8 +176,8 @@ export default function StayPage() {
           {isLoading ? (
              <div className="flex justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1F1F1F]"></div></div>
           ) : tents.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-              {tents.map((tent, idx) => <RoomCard key={tent.id || idx} room={tent} isLarge />)}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {tents.map((tent, idx) => <RoomCard key={tent.id || idx} room={tent} />)}
             </div>
           ) : (
             <p className="text-center text-[#6B6F72]">No tents available at the moment.</p>

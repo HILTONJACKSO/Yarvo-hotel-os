@@ -151,6 +151,7 @@ export interface RoomTentItem {
   description: string;
   image: string;
   bookUrl?: string;
+  isBlocked?: boolean;
 }
 
 export interface RoomsTentsSectionContent {

@@ -1,4 +1,4 @@
-import { WebsiteContent } from '@/types/cms';
+import { WebsiteContent, RoomTentItem } from '@/types/cms';
 
 export const DEFAULT_CMS_CONTENT: WebsiteContent = {
   hero: {
@@ -67,39 +67,81 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
     items: [
       {
         id: "room-1",
-        name: "Oceanfront Double Tent",
-        type: "tent",
-        location: "Kpakpa Kon, Marshall, Liberia",
-        features: "2 Bed • 2 Bath",
-        price: "$35/night",
-        rating: "4.8",
-        description: "Beachfront glamping tent with ocean breeze, comfortable double beds, private bathroom, and direct beach access.",
-        image: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80",
-        bookUrl: "/stay"
+        name: "Regular Room",
+        type: "room",
+        location: "Beachfront Ocean View",
+        features: "Up to 2 Guests • Breakfast • Pool Access",
+        price: "$75/night",
+        rating: "5.0",
+        description: "Comfortable oceanfront room with complimentary breakfast, direct pool and beach access, air conditioning, and coastal breezes.",
+        image: "/uploads/1793228984433-512577530-image12.jpeg",
+        bookUrl: "/stay",
+        isBlocked: false,
       },
       {
         id: "room-2",
-        name: "Family Triple Tent",
-        type: "tent",
-        location: "Kpakpa Kon, Marshall, Liberia",
-        features: "3 Bed • 2 Bath",
-        price: "$45/night",
-        rating: "4.8",
-        description: "Spacious triple glamping tent designed for families or groups, blending coastal nature with modern luxury.",
-        image: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80",
-        bookUrl: "/stay"
+        name: "Family Room",
+        type: "room",
+        location: "Beachfront Ocean View",
+        features: "Up to 4 Guests • Breakfast • Pool Access",
+        price: "$125/night",
+        rating: "5.0",
+        description: "Spacious coastal retreat designed for families and groups, featuring complimentary breakfast, pool and beach access, and ocean views.",
+        image: "/uploads/1793229100620-506710008-image12.jpeg",
+        bookUrl: "/stay",
+        isBlocked: false,
       },
       {
         id: "room-3",
-        name: "Deluxe Family Suite",
-        type: "room",
-        location: "Kpakpa Kon, Marshall, Liberia",
-        features: "4 Bed • 3 Bath",
-        price: "$120/night",
+        name: "Suite with pool",
+        type: "suite",
+        location: "Exclusive Rooftop Oceanview",
+        features: "Up to 3 Guests • Private Rooftop Pool • Breakfast",
+        price: "$250/night",
+        rating: "5.0",
+        description: "Exclusive luxury rooftop suite featuring a private rooftop pool, complimentary breakfast, and full pool and beach access.",
+        image: "/uploads/1793229130861-168412466-image0.jpeg",
+        bookUrl: "/stay",
+        isBlocked: false,
+      },
+      {
+        id: "tent-1",
+        name: "Tent Solo",
+        type: "tent",
+        location: "Steps From The Water",
+        features: "Up to 1 Guest • Breakfast Included",
+        price: "$20/night",
+        rating: "4.8",
+        description: "Large beachfront tent with ventilation window, cushioned mattress, beach towels, free Wi-Fi, and breakfast included.",
+        image: "/uploads/1793297738035-103750194-Tent1.jpg",
+        bookUrl: "/stay",
+        isBlocked: false,
+      },
+      {
+        id: "tent-2",
+        name: "Tent Double",
+        type: "tent",
+        location: "Beachfront Glamping",
+        features: "Up to 2 Guests • Breakfast Included",
+        price: "$35/night",
+        rating: "4.8",
+        description: "Beachfront glamping tent with ocean breeze, comfortable double bed, private bathroom access, and direct beach access.",
+        image: "/uploads/1793297764225-435469240-Tent1.jpg",
+        bookUrl: "/stay",
+        isBlocked: false,
+      },
+      {
+        id: "tent-3",
+        name: "Tent Triple",
+        type: "tent",
+        location: "Beachfront Glamping",
+        features: "Up to 3 Guests • Breakfast Included",
+        price: "$45/night",
         rating: "4.9",
-        description: "Expansive premium oceanview suite with private terrace, king beds, deluxe amenities, and VIP room service.",
-        image: "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80",
-        bookUrl: "/stay"
+        description: "Large beachfront glamping tent designed for 3 guests, blending coastal nature with modern comfort and breakfast included.",
+        image: "/uploads/1793297791764-282121806-Tent1.jpg",
+        bookUrl: "/stay",
+        isBlocked: false,
       }
     ]
   },
@@ -265,9 +307,21 @@ export function mergeWithDefaultContent(input: any): WebsiteContent {
     rooms: {
       ...DEFAULT_CMS_CONTENT.rooms,
       ...(input.rooms || {}),
-      items: Array.isArray(input.rooms?.items) && input.rooms.items.length > 0
-        ? input.rooms.items
-        : DEFAULT_CMS_CONTENT.rooms.items
+      items: (() => {
+        const storedItems: RoomTentItem[] = Array.isArray(input.rooms?.items) ? input.rooms.items : [];
+        if (storedItems.length === 0) return DEFAULT_CMS_CONTENT.rooms.items;
+        const storedNormNames = new Set(
+          storedItems.map((s: any) => (s.name || '').toLowerCase().replace(/[^a-z0-9]/g, ''))
+        );
+        const missingDefaults = DEFAULT_CMS_CONTENT.rooms.items.filter((defItem: any) => {
+          const normDef = (defItem.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          for (const s of storedNormNames) {
+            if (s && (normDef.includes(s) || s.includes(normDef))) return false;
+          }
+          return true;
+        });
+        return [...storedItems, ...missingDefaults];
+      })()
     },
     coverflow: Array.isArray(input.coverflow) && input.coverflow.length > 0
       ? input.coverflow
