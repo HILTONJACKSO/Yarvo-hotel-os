@@ -498,6 +498,25 @@ export default function CashierPage() {
       } catch (err) {
         console.error('Failed to fetch stats:', err);
       }
+    } else if (!navigator.onLine) {
+      const allOrders = await db.posOrders.toArray();
+      const today = new Date().toISOString().split('T')[0];
+      const settled = allOrders.filter(o => 
+        (o.updatedAt || o.createdAt || "").startsWith(today) && 
+        ['PAID', 'BILLED_TO_ROOM'].includes(o.status)
+      );
+      let totalRev = 0;
+      settled.forEach((o: any) => {
+        let orderGross = 0;
+        (o.items || []).forEach((item: any) => {
+          if (['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'].includes(item.status)) return;
+          if (item.returnRequest && item.returnRequest.status !== 'REJECTED') return;
+          orderGross += (item.quantity || 1) * Number(item.menuItem?.price || 0);
+        });
+        const discount = Number(o.discountAmount || 0);
+        totalRev += Math.max(0, orderGross - discount);
+      });
+      setStats({ totalOrders: settled.length, totalRevenue: Number(totalRev.toFixed(2)) });
     }
   };
 

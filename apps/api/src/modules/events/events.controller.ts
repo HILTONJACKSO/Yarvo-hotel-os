@@ -4,8 +4,10 @@ import { EventsService } from './events.service';
 import { CreateEventSpaceDto, UpdateEventSpaceDto, CreateEventBookingDto, UpdateEventBookingDto } from './dto/event.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
+import { RolesGuard } from '../../common/guards/roles.guard';
+
 @Controller('events')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
@@ -21,16 +23,19 @@ export class EventsController {
   }
 
   @Post('spaces')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   createSpace(@Body() data: CreateEventSpaceDto) {
     return this.eventsService.createSpace(data);
   }
 
   @Put('spaces/:id')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   updateSpace(@Param('id') id: string, @Body() data: UpdateEventSpaceDto) {
     return this.eventsService.updateSpace(id, data);
   }
 
   @Delete('spaces/:id')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   deleteSpace(@Param('id') id: string) {
     return this.eventsService.deleteSpace(id);
   }
@@ -52,11 +57,13 @@ export class EventsController {
   }
 
   @Put('bookings/:id')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   updateBooking(@Param('id') id: string, @Body() data: UpdateEventBookingDto) {
     return this.eventsService.updateBooking(id, data);
   }
 
   @Delete('bookings/:id')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
   deleteBooking(@Param('id') id: string) {
     return this.eventsService.deleteBooking(id);
   }

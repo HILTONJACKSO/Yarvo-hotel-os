@@ -53,6 +53,34 @@ export default function KitchenPage() {
       } catch (err) {
         console.error('Failed to fetch stats:', err);
       }
+    } else if (!navigator.onLine) {
+      const allOrders = await db.posOrders.toArray();
+      const today = new Date().toISOString().split('T')[0];
+      const todayOrders = allOrders.filter(o => (o.createdAt || "").startsWith(today) && o.status !== 'CANCELLED');
+      let totalFoodOrders = 0;
+      let totalFoodRev = 0;
+      todayOrders.forEach((o: any) => {
+        let hasFood = false;
+        let foodGross = 0;
+        let orderGross = 0;
+        (o.items || []).forEach((item: any) => {
+          if (['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'].includes(item.status)) return;
+          if (item.returnRequest && item.returnRequest.status !== 'REJECTED') return;
+          const itemTotal = (item.quantity || 1) * Number(item.menuItem?.price || 0);
+          orderGross += itemTotal;
+          if (item.menuItem?.type === 'FOOD') {
+            hasFood = true;
+            foodGross += itemTotal;
+          }
+        });
+        if (hasFood && orderGross > 0) {
+          const discount = Number(o.discountAmount || 0);
+          const foodDiscount = Math.min(foodGross, discount * (foodGross / orderGross));
+          totalFoodRev += Math.max(0, foodGross - foodDiscount);
+          totalFoodOrders++;
+        }
+      });
+      setStats({ totalOrders: totalFoodOrders, totalRevenue: Number(totalFoodRev.toFixed(2)) });
     }
   };
 

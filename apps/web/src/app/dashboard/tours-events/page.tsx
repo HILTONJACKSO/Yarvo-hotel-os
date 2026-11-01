@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, MapPin, Compass, Calendar, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Edit2, Trash2, MapPin, Compass, Calendar, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/lib/auth-provider';
 import { useCurrency } from '@/lib/currency';
 import { MultiImageUpload } from '@/components/ui/MultiImageUpload';
@@ -130,66 +131,95 @@ export default function ToursEventsPage() {
 
   return (
     <div className="p-6 page-container">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
             <Compass className="text-amber-500" />
-            Tours, Events, Packages & Activities Management
+            Tours & Activities Management
           </h1>
-          <p className="text-slate-400">Manage activities offered to guests</p>
+          <p className="text-slate-400">Manage boat cruises, excursions, tours, and resort activities for guests</p>
         </div>
         <button 
           onClick={() => openModal()}
-          className="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
+          className="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors w-fit"
         >
           <Plus size={18} />
           Create Activity
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {activities.map(act => (
-          <div key={act.id} className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
-            <div className="h-48 bg-slate-700 relative">
-              {act.image ? (
-                <img src={act.image} alt={act.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-500">No Image</div>
-              )}
-              <div className="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded text-xs font-medium text-white backdrop-blur-sm">
-                {act.type}
-              </div>
-            </div>
-            <div className="p-5">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-bold text-slate-100">{act.name}</h3>
-                <span className="text-amber-500 font-bold">{format(Number(act.price))}</span>
-              </div>
-              <p className="text-slate-400 text-sm mb-4 line-clamp-2">{act.description}</p>
-              
-              <div className="flex justify-between items-center pt-4 border-t border-slate-700">
-                <div className="flex items-center gap-1">
-                  <div className={`w-2 h-2 rounded-full ${act.isActive ? 'bg-emerald-500' : 'bg-slate-500'}`} />
-                  <span className="text-xs text-slate-300">{act.isActive ? 'Active' : 'Inactive'}</span>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => openModal(act)} className="p-1.5 text-blue-400 hover:bg-blue-400/10 rounded">
-                    <Edit2 size={16} />
-                  </button>
-                  <button onClick={() => handleDelete(act.id)} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-        {activities.length === 0 && !loading && (
-          <div className="col-span-full py-12 text-center text-slate-400">
-            No tours or events found. Create one to get started!
-          </div>
-        )}
+      <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-amber-400">Looking for Banquets, Conference Rooms, or Private Dining Bookings?</div>
+          <div className="text-xs text-slate-400">Manage event spaces and guest reservations in the dedicated Events & Spaces section.</div>
+        </div>
+        <Link 
+          href="/dashboard/events" 
+          className="text-xs font-semibold px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 transition-all inline-flex items-center gap-1.5 w-fit"
+        >
+          Go to Events & Spaces <ArrowRight size={14} />
+        </Link>
       </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map(n => (
+            <div key={n} className="bg-slate-800/40 border border-slate-700/60 rounded-xl overflow-hidden animate-pulse">
+              <div className="h-48 bg-slate-700/50" />
+              <div className="p-5 space-y-3">
+                <div className="h-5 bg-slate-700/50 rounded w-2/3" />
+                <div className="h-4 bg-slate-700/30 rounded w-full" />
+                <div className="h-4 bg-slate-700/30 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {activities.map(act => (
+            <div key={act.id} className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
+              <div className="h-48 bg-slate-700 relative">
+                {act.image ? (
+                  <img src={act.image} alt={act.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-500">No Image</div>
+                )}
+                <div className="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded text-xs font-medium text-white backdrop-blur-sm">
+                  {act.type}
+                </div>
+              </div>
+              <div className="p-5">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-lg font-bold text-slate-100">{act.name}</h3>
+                  <span className="text-amber-500 font-bold">{format(Number(act.price))}</span>
+                </div>
+                <p className="text-slate-400 text-sm mb-4 line-clamp-2">{act.description}</p>
+                
+                <div className="flex justify-between items-center pt-4 border-t border-slate-700">
+                  <div className="flex items-center gap-1">
+                    <div className={`w-2 h-2 rounded-full ${act.isActive ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+                    <span className="text-xs text-slate-300">{act.isActive ? 'Active' : 'Inactive'}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => openModal(act)} className="p-1.5 text-blue-400 hover:bg-blue-400/10 rounded">
+                      <Edit2 size={16} />
+                    </button>
+                    <button onClick={() => handleDelete(act.id)} className="p-1.5 text-red-400 hover:bg-red-400/10 rounded">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+          {activities.length === 0 && (
+            <div className="col-span-full py-12 text-center text-slate-400 bg-slate-900/40 border border-slate-800 rounded-xl">
+              <Compass className="mx-auto text-slate-600 mb-2" size={32} />
+              No tours or activities found yet. Click <strong>Create Activity</strong> to get started!
+            </div>
+          )}
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">

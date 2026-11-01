@@ -36,9 +36,16 @@ export class EventsService {
   }
 
   async deleteSpace(id: string) {
-    return this.prisma.eventSpace.delete({
-      where: { id },
-    });
+    try {
+      return await this.prisma.eventSpace.delete({
+        where: { id },
+      });
+    } catch (e: any) {
+      if (e?.code === 'P2025') {
+        return { success: true, id, message: 'Event space already deleted or not found' };
+      }
+      throw e;
+    }
   }
 
   // Event Bookings
@@ -91,9 +98,16 @@ export class EventsService {
   }
 
   async deleteBooking(id: string) {
-    return this.prisma.eventBooking.delete({
-      where: { id },
-    });
+    try {
+      return await this.prisma.eventBooking.delete({
+        where: { id },
+      });
+    } catch (e: any) {
+      if (e?.code === 'P2025') {
+        return { success: true, id, message: 'Event booking already deleted or not found' };
+      }
+      throw e;
+    }
   }
 
   async getDailyStats() {

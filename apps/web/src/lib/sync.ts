@@ -360,6 +360,13 @@ export async function downloadLatestData() {
     if (spacesRes.ok) {
       const d = await spacesRes.json();
       const spaces = extractArray(d);
+      const serverIds = new Set(spaces.map((s: any) => s.id));
+      const localSpaces = await db.eventSpaces.toArray();
+      for (const ls of localSpaces) {
+        if (!serverIds.has(ls.id)) {
+          await db.eventSpaces.delete(ls.id).catch(() => {});
+        }
+      }
       if (spaces.length > 0) {
         await db.eventSpaces.bulkPut(spaces);
       }
@@ -368,6 +375,13 @@ export async function downloadLatestData() {
     if (bookingsRes.ok) {
       const d = await bookingsRes.json();
       const bookings = extractArray(d);
+      const serverIds = new Set(bookings.map((b: any) => b.id));
+      const localBookings = await db.eventBookings.toArray();
+      for (const lb of localBookings) {
+        if (!serverIds.has(lb.id)) {
+          await db.eventBookings.delete(lb.id).catch(() => {});
+        }
+      }
       if (bookings.length > 0) {
         await db.eventBookings.bulkPut(bookings);
       }

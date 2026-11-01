@@ -192,61 +192,107 @@ export class PosService {
     const utcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
     const startOfDay = new Date(Math.min(localMidnight.getTime(), utcMidnight.getTime()));
 
-    const items = await this.prisma.posOrderItem.findMany({
+    const orders = await this.prisma.posOrder.findMany({
       where: {
         createdAt: { gte: startOfDay },
-        ...(propertyId ? { order: { OR: [{ propertyId }, { propertyId: null }] } } : {}),
-        menuItem: {
-          type: type === 'FOOD' ? 'FOOD' : { in: ['DRINK', 'BAR'] }
-        },
-        status: { notIn: ['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'] }
+        status: { not: 'CANCELLED' },
+        ...(propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {}),
       },
       include: {
-        menuItem: true,
-        order: true
+        items: {
+          include: {
+            menuItem: true,
+            returnRequest: true
+          }
+        }
       }
     });
 
-    const totalOrders = items.reduce((sum, item) => sum + item.quantity, 0);
-    const totalRevenue = items.reduce((sum, item) => {
-      // Exclude cancelled orders
-      if (item.order && item.order.status !== 'CANCELLED') {
-        return sum + (Number(item.menuItem.price) * item.quantity);
-      }
-      return sum;
-    }, 0);
+    let totalOrders = 0;
+    let totalRevenue = 0;
 
-    return { totalOrders, totalRevenue };
+    for (const order of orders) {
+      // 1. Filter out all cancelled, returned, or return-requested items
+      const activeItems = (order.items || []).filter(item => {
+        if (['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'].includes(item.status)) return false;
+        if (item.returnRequest && item.returnRequest.status !== 'REJECTED') return false;
+        return true;
+      });
+
+      if (activeItems.length === 0) continue;
+
+      // 2. Order gross across all active items
+      const orderGross = activeItems.reduce((sum, item) => sum + (Number(item.menuItem?.price || 0) * item.quantity), 0);
+      if (orderGross <= 0) continue;
+
+      // 3. Department active items
+      const deptItems = activeItems.filter(item => {
+        const itemType = item.menuItem?.type;
+        return type === 'FOOD' ? itemType === 'FOOD' : (itemType === 'DRINK' || itemType === 'BAR');
+      });
+
+      if (deptItems.length === 0) continue;
+
+      const deptGross = deptItems.reduce((sum, item) => sum + (Number(item.menuItem?.price || 0) * item.quantity), 0);
+      const deptCount = deptItems.reduce((sum, item) => sum + item.quantity, 0);
+
+      // 4. Proportional discount deduction (so discounts never increase department revenue)
+      const orderDiscount = Number(order.discountAmount || 0);
+      const allocatedDiscount = Math.min(deptGross, orderDiscount * (deptGross / orderGross));
+      const deptNet = Math.max(0, deptGross - allocatedDiscount);
+
+      totalOrders += deptCount;
+      totalRevenue += deptNet;
+    }
+
+    return { totalOrders, totalRevenue: Number(totalRevenue.toFixed(2)) };
   }
 
-  
   async getDailyWaitstaffStats(userId: string) {
     const now = new Date();
     const localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const utcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
     const today = new Date(Math.min(localMidnight.getTime(), utcMidnight.getTime()));
 
-    const items = await this.prisma.posOrderItem.findMany({
+    const orders = await this.prisma.posOrder.findMany({
       where: {
         createdAt: { gte: today },
-        order: { userId },
-        status: { notIn: ['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'] },
+        userId,
+        status: { not: 'CANCELLED' }
       },
       include: {
-        menuItem: true,
-        order: true
+        items: {
+          include: {
+            menuItem: true,
+            returnRequest: true
+          }
+        }
       }
     });
 
-    const totalOrders = items.reduce((sum, item) => sum + item.quantity, 0);
-    const totalRevenue = items.reduce((sum, item) => {
-      if (item.order && item.order.status !== 'CANCELLED') {
-        return sum + (Number(item.menuItem.price) * item.quantity);
-      }
-      return sum;
-    }, 0);
+    let totalOrders = 0;
+    let totalRevenue = 0;
 
-    return { totalOrders, totalRevenue };
+    for (const order of orders) {
+      const activeItems = (order.items || []).filter(item => {
+        if (['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'].includes(item.status)) return false;
+        if (item.returnRequest && item.returnRequest.status !== 'REJECTED') return false;
+        return true;
+      });
+
+      if (activeItems.length === 0) continue;
+
+      const orderGross = activeItems.reduce((sum, item) => sum + (Number(item.menuItem?.price || 0) * item.quantity), 0);
+      if (orderGross <= 0) continue;
+
+      const orderDiscount = Number(order.discountAmount || 0);
+      const netRevenue = Math.max(0, orderGross - orderDiscount);
+
+      totalOrders += activeItems.reduce((sum, item) => sum + item.quantity, 0);
+      totalRevenue += netRevenue;
+    }
+
+    return { totalOrders, totalRevenue: Number(totalRevenue.toFixed(2)) };
   }
 
   async getDailyCashierStats(propertyId?: string) {
@@ -257,31 +303,38 @@ export class PosService {
 
     const propertyFilter = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
 
-    // 1. Get all orders settled today
+    // Get all orders settled today (PAID or BILLED_TO_ROOM)
     const settledOrders = await this.prisma.posOrder.findMany({
       where: {
         status: { in: ['PAID', 'BILLED_TO_ROOM'] },
         updatedAt: { gte: startOfDay },
         ...propertyFilter,
+      },
+      include: {
+        items: {
+          include: {
+            menuItem: true,
+            returnRequest: true
+          }
+        }
       }
     });
 
-    const totalOrders = settledOrders.length;
-    const ordersRevenue = settledOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
+    let totalRevenue = 0;
+    for (const order of settledOrders) {
+      const activeItems = (order.items || []).filter(item => {
+        if (['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'].includes(item.status)) return false;
+        if (item.returnRequest && item.returnRequest.status !== 'REJECTED') return false;
+        return true;
+      });
 
-    // 2. Payments aggregate as safety check
-    const paymentsAgg = await this.prisma.posPayment.aggregate({
-      _sum: { amount: true },
-      where: {
-        createdAt: { gte: startOfDay },
-        ...(propertyId ? { OR: [{ propertyId }, { order: { propertyId } }, { propertyId: null }] } : {}),
-      }
-    });
-    const paymentsRevenue = paymentsAgg._sum.amount ? Number(paymentsAgg._sum.amount) : 0;
+      const orderGross = activeItems.reduce((sum, item) => sum + (Number(item.menuItem?.price || 0) * item.quantity), 0);
+      const discount = Number(order.discountAmount || 0);
+      const netOrderTotal = Math.max(0, orderGross - discount);
+      totalRevenue += netOrderTotal;
+    }
 
-    const totalRevenue = Math.max(ordersRevenue, paymentsRevenue);
-
-    return { totalOrders, totalRevenue };
+    return { totalOrders: settledOrders.length, totalRevenue: Number(totalRevenue.toFixed(2)) };
   }
 
   async getActiveOrders(propertyId?: string) {

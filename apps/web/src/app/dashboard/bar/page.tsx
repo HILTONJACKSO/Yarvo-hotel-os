@@ -59,22 +59,31 @@ export default function BarPage() {
       // Local fallback calculation if offline
       if (!navigator.onLine) {
         const today = new Date().toISOString().split('T')[0];
-        const todayOrders = allOrders.filter(o => (o.createdAt || "").startsWith(today));
+        const todayOrders = allOrders.filter(o => (o.createdAt || "").startsWith(today) && o.status !== 'CANCELLED');
         let totalBarOrders = 0;
         let totalBarRev = 0;
         todayOrders.forEach((o: any) => {
           let hasBar = false;
+          let barGross = 0;
+          let orderGross = 0;
           (o.items || []).forEach((item: any) => {
+            if (['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'].includes(item.status)) return;
+            if (item.returnRequest && item.returnRequest.status !== 'REJECTED') return;
+            const itemTotal = (item.quantity || 1) * Number(item.menuItem?.price || 0);
+            orderGross += itemTotal;
             if (item.menuItem?.type === 'DRINK' || item.menuItem?.type === 'BAR') {
               hasBar = true;
-              if (item.status === 'SERVED' || item.status === 'READY') {
-                 totalBarRev += (item.quantity || 1) * Number(item.menuItem.price || 0);
-              }
+              barGross += itemTotal;
             }
           });
-          if (hasBar) totalBarOrders++;
+          if (hasBar && orderGross > 0) {
+            const discount = Number(o.discountAmount || 0);
+            const barDiscount = Math.min(barGross, discount * (barGross / orderGross));
+            totalBarRev += Math.max(0, barGross - barDiscount);
+            totalBarOrders++;
+          }
         });
-        setStats({ totalOrders: totalBarOrders, totalRevenue: totalBarRev });
+        setStats({ totalOrders: totalBarOrders, totalRevenue: Number(totalBarRev.toFixed(2)) });
       }
     } catch (err) {
       console.error(err);

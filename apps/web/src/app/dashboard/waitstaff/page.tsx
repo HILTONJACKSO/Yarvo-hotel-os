@@ -61,6 +61,28 @@ export default function WaitstaffPage() {
       } catch (err) {
         console.error('Failed to fetch stats:', err);
       }
+    } else if (!navigator.onLine) {
+      const allOrders = await db.posOrders.toArray();
+      const today = new Date().toISOString().split('T')[0];
+      const todayOrders = allOrders.filter(o => (o.createdAt || "").startsWith(today) && o.status !== 'CANCELLED');
+      let totalCount = 0;
+      let totalRev = 0;
+      todayOrders.forEach((o: any) => {
+        let orderGross = 0;
+        let activeCount = 0;
+        (o.items || []).forEach((item: any) => {
+          if (['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'].includes(item.status)) return;
+          if (item.returnRequest && item.returnRequest.status !== 'REJECTED') return;
+          orderGross += (item.quantity || 1) * Number(item.menuItem?.price || 0);
+          activeCount += (item.quantity || 1);
+        });
+        if (orderGross > 0) {
+          const discount = Number(o.discountAmount || 0);
+          totalRev += Math.max(0, orderGross - discount);
+          totalCount += activeCount;
+        }
+      });
+      setStats({ totalOrders: totalCount, totalRevenue: Number(totalRev.toFixed(2)) });
     }
   };
 

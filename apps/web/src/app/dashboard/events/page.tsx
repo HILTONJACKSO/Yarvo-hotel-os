@@ -38,6 +38,15 @@ type EventBooking = {
 };
 
 export default function EventsPage() {
+  const { user } = useAuth();
+  const userRoles = (user?.roles || []).map((r: any) => 
+    (typeof r === 'string' ? r : r?.name || '').toUpperCase()
+  );
+  // Apart from Admin, CEO, Manager - block all staff from editing or deleting Events list view and spaces
+  const canManageEvents = userRoles.some(r => 
+    ['ADMIN', 'SUPER_ADMIN', 'CEO', 'MANAGER'].includes(r)
+  );
+
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
 
   const router = useRouter();
@@ -68,17 +77,35 @@ export default function EventsPage() {
           if (sRes.ok) {
             const sData = await sRes.json();
             const sArr = sData?.data || sData || [];
-            if (Array.isArray(sArr) && sArr.length > 0) {
+            if (Array.isArray(sArr)) {
               setSpaces(sArr);
-              await db.eventSpaces.bulkPut(sArr).catch(() => {});
+              const serverIds = new Set(sArr.map((s: any) => s.id));
+              const localSpaces = await db.eventSpaces.toArray();
+              for (const ls of localSpaces) {
+                if (!serverIds.has(ls.id)) {
+                  await db.eventSpaces.delete(ls.id).catch(() => {});
+                }
+              }
+              if (sArr.length > 0) {
+                await db.eventSpaces.bulkPut(sArr).catch(() => {});
+              }
             }
           }
           if (bRes.ok) {
             const bData = await bRes.json();
             const bArr = bData?.data || bData || [];
-            if (Array.isArray(bArr) && bArr.length > 0) {
+            if (Array.isArray(bArr)) {
               setBookings(bArr);
-              await db.eventBookings.bulkPut(bArr).catch(() => {});
+              const serverIds = new Set(bArr.map((b: any) => b.id));
+              const localBookings = await db.eventBookings.toArray();
+              for (const lb of localBookings) {
+                if (!serverIds.has(lb.id)) {
+                  await db.eventBookings.delete(lb.id).catch(() => {});
+                }
+              }
+              if (bArr.length > 0) {
+                await db.eventBookings.bulkPut(bArr).catch(() => {});
+              }
             }
           }
         } catch (e) {
@@ -86,13 +113,12 @@ export default function EventsPage() {
         }
 
         await downloadLatestData().catch(() => {});
+      } else {
+        const allSpaces = await db.eventSpaces.toArray();
+        const allBookings = await db.eventBookings.toArray();
+        setSpaces(allSpaces as any[]);
+        setBookings(allBookings as any[]);
       }
-
-      const allSpaces = await db.eventSpaces.toArray();
-      const allBookings = await db.eventBookings.toArray();
-
-      if (allSpaces.length > 0) setSpaces(allSpaces as any[]);
-      if (allBookings.length > 0) setBookings(allBookings as any[]);
     } catch (err) {
       console.error('Failed to fetch events data', err);
     } finally {
@@ -115,7 +141,7 @@ export default function EventsPage() {
 
       <div className="page-header">
         <h1 className="page-title">Event Management</h1>
-        <p className="page-description">Manage event spaces, conference rooms, and bookings.</p>
+        <p className="page-description">Manage event spaces, conference rooms, banquets, and reservations.</p>
       </div>
 
       <div className="tabs">
@@ -143,9 +169,9 @@ export default function EventsPage() {
         <div style={{ padding: '2rem', textAlign: 'center', color: 'hsl(215, 20%, 65%)' }}>Loading...</div>
       ) : (
         <>
-          {activeTab === 'calendar' && <CalendarTab bookings={bookings} spaces={spaces} refresh={fetchData} />}
-          {activeTab === 'bookings' && <BookingsTab bookings={bookings} spaces={spaces} refresh={fetchData} />}
-          {activeTab === 'spaces' && <SpacesTab spaces={spaces} refresh={fetchData} />}
+          {activeTab === 'calendar' && <CalendarTab bookings={bookings} spaces={spaces} refresh={fetchData} canManageEvents={canManageEvents} />}
+          {activeTab === 'bookings' && <BookingsTab bookings={bookings} spaces={spaces} refresh={fetchData} canManageEvents={canManageEvents} />}
+          {activeTab === 'spaces' && <SpacesTab spaces={spaces} refresh={fetchData} canManageEvents={canManageEvents} />}
         </>
       )}
 
@@ -226,7 +252,7 @@ export default function EventsPage() {
 // -----------------------------------------------------------------------------
 // CALENDAR TAB
 // -----------------------------------------------------------------------------
-function CalendarTab({ bookings, spaces, refresh }: { bookings: EventBooking[], spaces: EventSpace[], refresh: () => void }) {
+function CalendarTab({ bookings, spaces, refresh, canManageEvents }: { bookings: EventBooking[], spaces: EventSpace[], refresh: () => void, canManageEvents?: boolean }) {
   // Simple grouping by Date
   const groupedBookings = bookings.reduce((acc, booking) => {
     // Group by standard YYYY-MM-DD to avoid timezone/locale parse errors on 'new Date(string)'
@@ -284,7 +310,7 @@ function CalendarTab({ bookings, spaces, refresh }: { bookings: EventBooking[], 
 // -----------------------------------------------------------------------------
 // BOOKINGS TAB
 // -----------------------------------------------------------------------------
-function BookingsTab({ bookings, spaces, refresh }: { bookings: EventBooking[], spaces: EventSpace[], refresh: () => void }) {
+function BookingsTab({ bookings, spaces, refresh, canManageEvents }: { bookings: EventBooking[], spaces: EventSpace[], refresh: () => void, canManageEvents: boolean }) {
   const { format } = useCurrency();
   const [showModal, setShowModal] = useState(false);
   const [editingBooking, setEditingBooking] = useState<EventBooking | null>(null);
@@ -340,7 +366,9 @@ function BookingsTab({ bookings, spaces, refresh }: { bookings: EventBooking[], 
                   </div>
                 </td>
                 <td>
-                  <button className="btn-secondary" onClick={() => { setEditingBooking(b); setShowModal(true); }}>Edit</button>
+                  <button className="btn-secondary" onClick={() => { setEditingBooking(b); setShowModal(true); }}>
+                    {canManageEvents ? 'Edit' : 'View'}
+                  </button>
                 </td>
               </tr>
             ))}
@@ -357,6 +385,7 @@ function BookingsTab({ bookings, spaces, refresh }: { bookings: EventBooking[], 
         <BookingModal 
           booking={editingBooking} 
           spaces={spaces} 
+          canManageEvents={canManageEvents}
           onClose={() => setShowModal(false)} 
           onSave={() => { setShowModal(false); refresh(); }} 
         />
@@ -368,7 +397,7 @@ function BookingsTab({ bookings, spaces, refresh }: { bookings: EventBooking[], 
 // -----------------------------------------------------------------------------
 // SPACES TAB
 // -----------------------------------------------------------------------------
-function SpacesTab({ spaces, refresh }: { spaces: EventSpace[], refresh: () => void }) {
+function SpacesTab({ spaces, refresh, canManageEvents }: { spaces: EventSpace[], refresh: () => void, canManageEvents: boolean }) {
   const { format } = useCurrency();
   const [showModal, setShowModal] = useState(false);
   const [editingSpace, setEditingSpace] = useState<EventSpace | null>(null);
@@ -382,9 +411,11 @@ function SpacesTab({ spaces, refresh }: { spaces: EventSpace[], refresh: () => v
     <div className="panel">
       <div className="header-actions">
         <h3>Event Spaces</h3>
-        <button className="btn-primary" onClick={handleOpenNew}>
-          <Plus size={16} /> Add Space
-        </button>
+        {canManageEvents && (
+          <button className="btn-primary" onClick={handleOpenNew}>
+            <Plus size={16} /> Add Space
+          </button>
+        )}
       </div>
       
       <div className="table-responsive">
@@ -412,7 +443,9 @@ function SpacesTab({ spaces, refresh }: { spaces: EventSpace[], refresh: () => v
                   </span>
                 </td>
                 <td>
-                  <button className="btn-secondary" onClick={() => { setEditingSpace(s); setShowModal(true); }}>Edit</button>
+                  <button className="btn-secondary" onClick={() => { setEditingSpace(s); setShowModal(true); }}>
+                    {canManageEvents ? 'Edit' : 'View'}
+                  </button>
                 </td>
               </tr>
             ))}
@@ -428,6 +461,7 @@ function SpacesTab({ spaces, refresh }: { spaces: EventSpace[], refresh: () => v
       {showModal && (
         <SpaceModal 
           space={editingSpace} 
+          canManageEvents={canManageEvents}
           onClose={() => setShowModal(false)} 
           onSave={() => { setShowModal(false); refresh(); }} 
         />
@@ -440,10 +474,8 @@ function SpacesTab({ spaces, refresh }: { spaces: EventSpace[], refresh: () => v
 // MODALS
 // -----------------------------------------------------------------------------
 
-function BookingModal({ booking, spaces, onClose, onSave }: any) {
-  const { user } = useAuth();
+function BookingModal({ booking, spaces, onClose, onSave, canManageEvents }: any) {
   const { format, currency } = useCurrency();
-  const isAdminOrCEO = user?.roles?.includes('ADMIN') || user?.roles?.includes('CEO') || user?.roles?.includes('SUPER_ADMIN');
 
   const [spaceId, setSpaceId] = useState(booking?.spaceId || (spaces[0]?.id || ''));
   const [guestName, setGuestName] = useState(booking?.guestName || '');
@@ -472,20 +504,30 @@ function BookingModal({ booking, spaces, onClose, onSave }: any) {
         method: 'DELETE',
         credentials: 'include'
       });
-      if (res.ok) {
+      await db.eventBookings.delete(booking.id).catch(() => {});
+      if (res.ok || res.status === 404) {
         onSave();
       } else {
         const errorData = await res.json().catch(() => ({}));
-        alert(`Failed to delete: ${errorData.message || 'Unknown error'}`);
+        if (errorData?.message?.includes('not found') || errorData?.statusCode === 404) {
+          onSave();
+        } else {
+          alert(`Failed to delete: ${errorData.message || 'Unknown error'}`);
+        }
       }
     } catch (err: any) {
       console.error(err);
-      alert('Error deleting booking');
+      await db.eventBookings.delete(booking.id).catch(() => {});
+      onSave();
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageEvents && booking) {
+      alert('Only Admin, CEO, and Managers can edit or modify existing event bookings.');
+      return;
+    }
     
     // Safely format ISO dates to include seconds + Z if they are local partials
     let parsedStart = startTime;
@@ -512,6 +554,11 @@ function BookingModal({ booking, spaces, onClose, onSave }: any) {
         credentials: 'include'
       });
       if (res.ok) {
+        const resData = await res.json().catch(() => null);
+        const saved = resData?.data || resData;
+        if (saved && saved.id) {
+          await db.eventBookings.put(saved).catch(() => {});
+        }
         onSave();
       } else {
         const errorData = await res.json().catch(() => ({}));
@@ -524,51 +571,53 @@ function BookingModal({ booking, spaces, onClose, onSave }: any) {
     }
   };
 
+  const isReadOnly = booking && !canManageEvents;
+
   return (
     <div className="modal-overlay">
       <div className="modal-content" style={{ maxWidth: '600px' }}>
         <div className="modal-header">
-          <h3>{booking ? 'Edit Booking' : 'New Event Booking'}</h3>
+          <h3>{booking ? (canManageEvents ? 'Edit Booking' : 'View Booking Details') : 'New Event Booking'}</h3>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minHeight: 0 }}>
           <div className="modal-body">
             <div className="form-grid">
               <div className="form-group full">
                 <label>Event Space</label>
-                <select className="form-select" value={spaceId} onChange={e => setSpaceId(e.target.value)} required>
+                <select className="form-select" value={spaceId} onChange={e => setSpaceId(e.target.value)} required disabled={isReadOnly}>
                   {spaces.map((s: any) => <option key={s.id} value={s.id}>{s.name} - {format(Number(s.pricePerHour))}/hr</option>)}
                 </select>
               </div>
               
               <div className="form-group">
                 <label>Guest/Organizer Name</label>
-                <input className="form-input" value={guestName} onChange={e => setGuestName(e.target.value)} required />
+                <input className="form-input" value={guestName} onChange={e => setGuestName(e.target.value)} required disabled={isReadOnly} />
               </div>
               <div className="form-group">
                 <label>Phone</label>
-                <input className="form-input" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} required />
+                <input className="form-input" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} required disabled={isReadOnly} />
               </div>
               <div className="form-group">
                 <label>Event Type</label>
-                <input className="form-input" placeholder="e.g. Wedding, Conference" value={eventType} onChange={e => setEventType(e.target.value)} required />
+                <input className="form-input" placeholder="e.g. Wedding, Conference" value={eventType} onChange={e => setEventType(e.target.value)} required disabled={isReadOnly} />
               </div>
               <div className="form-group">
                 <label>Attendees</label>
-                <input className="form-input" type="number" value={attendeesCount} onChange={e => setAttendeesCount(Number(e.target.value))} />
+                <input className="form-input" type="number" value={attendeesCount} onChange={e => setAttendeesCount(Number(e.target.value))} disabled={isReadOnly} />
               </div>
               
               <div className="form-group">
                 <label>Start Time</label>
-                <input className="form-input" type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} required />
+                <input className="form-input" type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} required disabled={isReadOnly} />
               </div>
               <div className="form-group">
                 <label>End Time</label>
-                <input className="form-input" type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} required />
+                <input className="form-input" type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} required disabled={isReadOnly} />
               </div>
               
               <div className="form-group">
                 <label>Status</label>
-                <select className="form-select" value={status} onChange={e => setStatus(e.target.value)}>
+                <select className="form-select" value={status} onChange={e => setStatus(e.target.value)} disabled={isReadOnly}>
                   <option value="PENDING">Pending</option>
                   <option value="CONFIRMED">Confirmed</option>
                   <option value="COMPLETED">Completed</option>
@@ -577,25 +626,29 @@ function BookingModal({ booking, spaces, onClose, onSave }: any) {
               </div>
               <div className="form-group">
                 <label>Total Amount ({currency})</label>
-                <input className="form-input" type="number" step="0.01" value={totalAmount} onChange={e => setTotalAmount(Number(e.target.value))} required />
+                <input className="form-input" type="number" step="0.01" value={totalAmount} onChange={e => setTotalAmount(Number(e.target.value))} required disabled={isReadOnly} />
               </div>
               <div className="form-group">
                 <label>Amount Paid ({currency})</label>
-                <input className="form-input" type="number" step="0.01" value={amountPaid} onChange={e => setAmountPaid(Number(e.target.value))} />
+                <input className="form-input" type="number" step="0.01" value={amountPaid} onChange={e => setAmountPaid(Number(e.target.value))} disabled={isReadOnly} />
               </div>
             </div>
           </div>
           <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              {booking && isAdminOrCEO && (
-                <button type="button" className="btn-danger" onClick={handleDelete} style={{ background: '#ef4444', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
+              {booking && canManageEvents && (
+                <button type="button" className="btn-danger" onClick={handleDelete} style={{ background: '#ef4444', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
                   Delete Booking
                 </button>
               )}
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn-primary">Save Booking</button>
+              <button type="button" className="btn-secondary" onClick={onClose}>
+                {isReadOnly ? 'Close' : 'Cancel'}
+              </button>
+              {!isReadOnly && (
+                <button type="submit" className="btn-primary">Save Booking</button>
+              )}
             </div>
           </div>
         </form>
@@ -604,7 +657,7 @@ function BookingModal({ booking, spaces, onClose, onSave }: any) {
   );
 }
 
-function SpaceModal({ space, onClose, onSave }: any) {
+function SpaceModal({ space, onClose, onSave, canManageEvents }: any) {
   const { currency } = useCurrency();
   const [name, setName] = useState(space?.name || '');
   const [capacity, setCapacity] = useState(space?.capacity || 50);
@@ -612,8 +665,40 @@ function SpaceModal({ space, onClose, onSave }: any) {
   const [pricePerDay, setPricePerDay] = useState(Number(space?.pricePerDay || 800));
   const [isActive, setIsActive] = useState(space ? space.isActive : true);
 
+  const isReadOnly = !canManageEvents;
+
+  const handleDelete = async () => {
+    if (!space) return;
+    if (!confirm('Are you sure you want to permanently delete this event space?')) return;
+    try {
+      const res = await fetch(`/api/v1/events/spaces/${space.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      await db.eventSpaces.delete(space.id).catch(() => {});
+      if (res.ok || res.status === 404) {
+        onSave();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        if (errorData?.message?.includes('not found') || errorData?.statusCode === 404) {
+          onSave();
+        } else {
+          alert(`Failed to delete: ${errorData.message || 'Unknown error'}`);
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      await db.eventSpaces.delete(space.id).catch(() => {});
+      onSave();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) {
+      alert('Only Admin, CEO, and Managers can edit or create event spaces.');
+      return;
+    }
     const payload = { name, capacity: Number(capacity), pricePerHour: Number(pricePerHour), pricePerDay: Number(pricePerDay), isActive };
 
     const url = space ? `/api/v1/events/spaces/${space.id}` : `/api/v1/events/spaces`;
@@ -649,40 +734,53 @@ function SpaceModal({ space, onClose, onSave }: any) {
     <div className="modal-overlay">
       <div className="modal-content">
         <div className="modal-header">
-          <h3>{space ? 'Edit Space' : 'New Event Space'}</h3>
+          <h3>{space ? (canManageEvents ? 'Edit Space' : 'View Event Space') : 'New Event Space'}</h3>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minHeight: 0 }}>
           <div className="modal-body">
             <div className="form-grid">
               <div className="form-group full">
                 <label>Space Name</label>
-                <input className="form-input" value={name} onChange={e => setName(e.target.value)} required />
+                <input className="form-input" value={name} onChange={e => setName(e.target.value)} required disabled={isReadOnly} />
               </div>
               <div className="form-group">
                 <label>Capacity</label>
-                <input className="form-input" type="number" value={capacity} onChange={e => setCapacity(Number(e.target.value))} required />
+                <input className="form-input" type="number" value={capacity} onChange={e => setCapacity(Number(e.target.value))} required disabled={isReadOnly} />
               </div>
               <div className="form-group">
                 <label>Status</label>
-                <select className="form-select" value={isActive ? 'true' : 'false'} onChange={e => setIsActive(e.target.value === 'true')}>
+                <select className="form-select" value={isActive ? 'true' : 'false'} onChange={e => setIsActive(e.target.value === 'true')} disabled={isReadOnly}>
                   <option value="true">Active</option>
                   <option value="false">Inactive</option>
                 </select>
               </div>
               <div className="form-group">
                 <label>Hourly Rate ({currency})</label>
-                <input className="form-input" type="number" step="0.01" value={pricePerHour} onChange={e => setPricePerHour(Number(e.target.value))} required />
+                <input className="form-input" type="number" step="0.01" value={pricePerHour} onChange={e => setPricePerHour(Number(e.target.value))} required disabled={isReadOnly} />
               </div>
               <div className="form-group">
                 <label>Daily Rate ({currency})</label>
-                <input className="form-input" type="number" step="0.01" value={pricePerDay} onChange={e => setPricePerDay(Number(e.target.value))} required />
+                <input className="form-input" type="number" step="0.01" value={pricePerDay} onChange={e => setPricePerDay(Number(e.target.value))} required disabled={isReadOnly} />
               </div>
             </div>
           </div>
           
-          <div className="modal-footer">
-            <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-primary">Save Space</button>
+          <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              {space && canManageEvents && (
+                <button type="button" className="btn-danger" onClick={handleDelete} style={{ background: '#ef4444', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
+                  Delete Space
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="button" className="btn-secondary" onClick={onClose}>
+                {isReadOnly ? 'Close' : 'Cancel'}
+              </button>
+              {!isReadOnly && (
+                <button type="submit" className="btn-primary">Save Space</button>
+              )}
+            </div>
           </div>
         </form>
       </div>
