@@ -47,14 +47,66 @@ export default function InventoryPage() {
     const [searchQuery, setSearchQuery] = useState('');
 
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const [printReportPeriod, setPrintReportPeriod] = useState('WEEKLY');
+  const [printReportPeriod, setPrintReportPeriod] = useState('DAILY');
   const [printReportDate, setPrintReportDate] = useState(new Date().toISOString().split('T')[0]);
   const [printEndDate, setPrintEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [printLocation, setPrintLocation] = useState('ALL');
 
-  const handlePrint = () => {
+  // Stock In / Out movements tracking
+  const [activeInvTab, setActiveInvTab] = useState<'CATALOG' | 'MOVEMENTS'>('CATALOG');
+  const [movements, setMovements] = useState<any[]>([]);
+  const [movStartDate, setMovStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split('T')[0];
+  });
+  const [movEndDate, setMovEndDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const fetchMovements = async (sDate = movStartDate, eDate = movEndDate) => {
+    try {
+      const qs = new URLSearchParams();
+      if (sDate) qs.set('startDate', sDate);
+      if (eDate) qs.set('endDate', eDate);
+      const res = await fetch(`${API_URL}/api/v1/inventory/movements?${qs.toString()}`, { credentials: 'include' });
+      if (res.ok) {
+        const json = await res.json();
+        const list = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+        setMovements(list);
+        return list;
+      }
+    } catch (e) {
+      console.error('Failed to fetch stock movements:', e);
+    }
+    return movements;
+  };
+
+  // Compute per-item Stock In and Stock Out totals for the selected period
+  const itemMovementMap = movements.reduce((acc: Record<string, { stockIn: number; stockOut: number; lastStaff: string }>, m: any) => {
+    const key = m.itemId || m.itemName;
+    if (!acc[key]) acc[key] = { stockIn: 0, stockOut: 0, lastStaff: '' };
+    if (m.type === 'STOCK_IN') acc[key].stockIn += Number(m.amount || 0);
+    if (m.type === 'STOCK_OUT') acc[key].stockOut += Number(m.amount || 0);
+    if (!acc[key].lastStaff && m.staffName) acc[key].lastStaff = m.staffName;
+    return acc;
+  }, {});
+
+  const handlePrint = async () => {
+    let activeMovements = movements;
+    if (printReportDate || printEndDate) {
+      activeMovements = await fetchMovements(printReportDate, printEndDate);
+    }
+
+    const periodMap = activeMovements.reduce((acc: Record<string, { stockIn: number; stockOut: number; lastStaff: string }>, m: any) => {
+      const key = m.itemId || m.itemName;
+      if (!acc[key]) acc[key] = { stockIn: 0, stockOut: 0, lastStaff: '' };
+      if (m.type === 'STOCK_IN') acc[key].stockIn += Number(m.amount || 0);
+      if (m.type === 'STOCK_OUT') acc[key].stockOut += Number(m.amount || 0);
+      if (!acc[key].lastStaff && m.staffName) acc[key].lastStaff = m.staffName;
+      return acc;
+    }, {});
+
     const iframe = document.createElement('iframe');
-        iframe.style.position = 'absolute';
+    iframe.style.position = 'absolute';
     iframe.style.left = '-9999px';
     iframe.style.top = '-9999px';
     iframe.style.width = '100%';
@@ -65,11 +117,95 @@ export default function InventoryPage() {
     const doc = iframe.contentWindow?.document;
     if (!doc) return;
 
+    const propertyName = user?.propertyName || 'Kwalee Beach Resort — Stock & Inventory';
+
+    if (printLocation === 'STOCK_IN_OUT' || printLocation === 'STOCK_IN' || printLocation === 'STOCK_OUT') {
+      const filteredLogs = activeMovements.filter((m: any) => {
+        if (printLocation === 'STOCK_IN') return m.type === 'STOCK_IN';
+        if (printLocation === 'STOCK_OUT') return m.type === 'STOCK_OUT';
+        return m.type === 'STOCK_IN' || m.type === 'STOCK_OUT' || m.type === 'TRANSFER';
+      });
+
+      const totalStockInQty = filteredLogs.filter((m: any) => m.type === 'STOCK_IN').reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
+      const totalStockOutQty = filteredLogs.filter((m: any) => m.type === 'STOCK_OUT').reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
+
+      const logRowsHtml = filteredLogs.map((m: any) => `
+        <tr>
+          <td>${new Date(m.createdAt).toLocaleString()}</td>
+          <td><strong>${m.itemName}</strong></td>
+          <td>${m.category}</td>
+          <td><span style="font-weight:bold; color:${m.type === 'STOCK_IN' ? '#15803d' : m.type === 'STOCK_OUT' ? '#b91c1c' : '#1d4ed8'};">${m.type.replace('_', ' ')}</span></td>
+          <td><strong>${m.type === 'STOCK_IN' ? '+' : m.type === 'STOCK_OUT' ? '-' : ''}${Number(m.amount || 0).toFixed(2)} ${m.unit}</strong></td>
+          <td>${Number(m.previousStock || 0).toFixed(2)} → <strong>${Number(m.newStock || 0).toFixed(2)}</strong></td>
+          <td>${m.location || 'MAIN'}</td>
+          <td>${m.staffName || 'Staff'}</td>
+          <td>${m.reason || '-'}</td>
+        </tr>
+      `).join('');
+
+      doc.open();
+      doc.write(`
+        <html>
+        <head>
+          <title>${propertyName} - Stock In / Stock Out Record</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #1e293b; }
+            .header-box { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 16px; }
+            h1 { margin: 0 0 6px 0; font-size: 22px; color: #0f172a; }
+            .meta { font-size: 13px; color: #64748b; margin: 3px 0; }
+            .summary-card { display: flex; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 16px; border-radius: 6px; margin: 16px 0; font-size: 13px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+            th, td { border: 1px solid #cbd5e1; padding: 7px 10px; text-align: left; }
+            th { background-color: #f1f5f9; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; color: #334155; }
+            tr:nth-child(even) { background-color: #f8fafc; }
+          </style>
+        </head>
+        <body>
+          <div class="header-box">
+            <h1>${propertyName}</h1>
+            <div class="meta"><strong>${printLocation === 'STOCK_IN' ? 'Current Stock In Record' : printLocation === 'STOCK_OUT' ? 'Current Stock Out Record' : 'Current Stock In / Out Record'}</strong> (${printReportPeriod})</div>
+            <div class="meta">Date Range: <strong>${printReportDate} to ${printEndDate}</strong> | Printed: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</div>
+          </div>
+          <div class="summary-card">
+            <span>Total Movements Recorded: <strong>${filteredLogs.length}</strong></span>
+            <span>Total Stock In: <strong style="color:#15803d;">+${totalStockInQty.toFixed(2)}</strong></span>
+            <span>Total Stock Out: <strong style="color:#b91c1c;">-${totalStockOutQty.toFixed(2)}</strong></span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date & Time</th>
+                <th>Item Name</th>
+                <th>Category</th>
+                <th>Movement</th>
+                <th>Qty In / Out</th>
+                <th>Stock Before → After</th>
+                <th>Department / Location</th>
+                <th>Staff Name</th>
+                <th>Reason / Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${logRowsHtml || '<tr><td colspan="9" style="text-align:center;padding:20px;color:#94a3b8;">No Stock In or Stock Out actions recorded during this period.</td></tr>'}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `);
+      doc.close();
+      iframe.contentWindow?.focus();
+      setTimeout(() => {
+        iframe.contentWindow?.print();
+        setTimeout(() => { document.body.removeChild(iframe); setShowPrintModal(false); }, 1000);
+      }, 250);
+      return;
+    }
+
     let headersHtml = '';
     if (printLocation === 'ALL') {
-      headersHtml = `<th>Item Name</th><th>Category</th><th>Unit</th><th>Main</th><th>Kitchen</th><th>Bar</th><th>H.Keeping</th><th>Boutique</th><th>Total Stock</th><th>Cost/Unit</th><th>Total Value</th>`;
+      headersHtml = `<th>Item Name</th><th>Category</th><th>Unit</th><th>Stock In</th><th>Stock Out</th><th>Main</th><th>Kitchen</th><th>Bar</th><th>H.Keeping</th><th>Boutique</th><th>Total Stock</th><th>Cost/Unit</th><th>Total Value</th>`;
     } else {
-      headersHtml = `<th>Item Name</th><th>Category</th><th>Unit</th><th>${printLocation.charAt(0) + printLocation.slice(1).toLowerCase()} Stock</th><th>Cost/Unit</th><th>Value</th>`;
+      headersHtml = `<th>Item Name</th><th>Category</th><th>Unit</th><th>Stock In</th><th>Stock Out</th><th>${printLocation.charAt(0) + printLocation.slice(1).toLowerCase()} Stock</th><th>Cost/Unit</th><th>Value</th>`;
     }
 
     let rowsHtml = '';
@@ -94,6 +230,7 @@ export default function InventoryPage() {
 
     sortedItems.forEach(item => {
       const cost = Number(item.costPerUnit || 0);
+      const mov = periodMap[item.id] || periodMap[item.name] || { stockIn: 0, stockOut: 0 };
       let cols = '';
       if (printLocation === 'ALL') {
         const totalStock = Number(item.stockLevel || 0);
@@ -103,6 +240,8 @@ export default function InventoryPage() {
           <td>${item.name}</td>
           <td>${item.category}</td>
           <td>${item.unit}</td>
+          <td style="color:#15803d;font-weight:600;">+${Number(mov.stockIn || 0).toFixed(2)}</td>
+          <td style="color:#b91c1c;font-weight:600;">-${Number(mov.stockOut || 0).toFixed(2)}</td>
           <td>${Number(item.stockMain || 0).toFixed(2)}</td>
           <td>${Number(item.stockKitchen || 0).toFixed(2)}</td>
           <td>${Number(item.stockBar || 0).toFixed(2)}</td>
@@ -126,6 +265,8 @@ export default function InventoryPage() {
           <td>${item.name}</td>
           <td>${item.category}</td>
           <td>${item.unit}</td>
+          <td style="color:#15803d;font-weight:600;">+${Number(mov.stockIn || 0).toFixed(2)}</td>
+          <td style="color:#b91c1c;font-weight:600;">-${Number(mov.stockOut || 0).toFixed(2)}</td>
           <td><strong>${val.toFixed(2)}</strong></td>
           <td>${currencySymbol} ${cost.toFixed(2)}</td>
           <td><strong>${currencySymbol} ${itemVal.toFixed(2)}</strong></td>
@@ -133,8 +274,6 @@ export default function InventoryPage() {
       }
       rowsHtml += `<tr>${cols}</tr>`;
     });
-
-    const propertyName = user?.propertyName || 'Hotel Stock & Inventory';
 
     doc.open();
     doc.write(`
@@ -157,7 +296,7 @@ export default function InventoryPage() {
       <body>
         <div class="header-box">
           <h1>${propertyName}</h1>
-          <div class="meta"><strong>Inventory Stock & Valuation Report</strong> (${printReportPeriod})</div>
+          <div class="meta"><strong>Inventory Stock & Stock In/Out Report</strong> (${printReportPeriod}: ${printReportDate} to ${printEndDate})</div>
           <div class="meta">Department Scope: <strong>${printLocation === 'ALL' ? 'All Hotel Departments' : printLocation}</strong> | Printed: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</div>
         </div>
         <div class="summary-card">
@@ -167,8 +306,8 @@ export default function InventoryPage() {
         <table>
           <thead><tr>${headersHtml}</tr></thead>
           <tbody>
-            ${rowsHtml || '<tr><td colspan="11" style="text-align:center;padding:20px;color:#94a3b8;">No inventory items found for this department.</td></tr>'}
-            ${sortedItems.length > 0 ? `<tr class="total-row"><td colspan="${printLocation === 'ALL' ? 10 : 5}" style="text-align:right;">Grand Total Stock Value:</td><td><strong>${currencySymbol} ${grandTotalValue.toFixed(2)}</strong></td></tr>` : ''}
+            ${rowsHtml || '<tr><td colspan="13" style="text-align:center;padding:20px;color:#94a3b8;">No inventory items found for this department.</td></tr>'}
+            ${sortedItems.length > 0 ? `<tr class="total-row"><td colspan="${printLocation === 'ALL' ? 12 : 7}" style="text-align:right;">Grand Total Stock Value:</td><td><strong>${currencySymbol} ${grandTotalValue.toFixed(2)}</strong></td></tr>` : ''}
           </tbody>
         </table>
       </body>
@@ -201,7 +340,10 @@ export default function InventoryPage() {
   const [newItem, setNewItem] = useState({ name: '', category: 'GENERAL', unit: '', stockLevel: 0, minThreshold: 10, costPerUnit: 0 });
 
   const fetchItems = async () => {
-    if (navigator.onLine) await downloadLatestData();
+    if (navigator.onLine) {
+      await downloadLatestData();
+      await fetchMovements();
+    }
   };
 
   useEffect(() => {
@@ -384,7 +526,46 @@ export default function InventoryPage() {
   return (
     <div className="inventory-layout">
       <div className="inv-header">
-        <h2>Inventory Management</h2>
+        <div>
+          <h2>Inventory Management</h2>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+            <button
+              type="button"
+              onClick={() => setActiveInvTab('CATALOG')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '13px',
+                border: activeInvTab === 'CATALOG' ? '1px solid hsl(43,96%,56%)' : '1px solid hsl(217,20%,24%)',
+                background: activeInvTab === 'CATALOG' ? 'hsla(43,96%,56%,0.18)' : 'hsl(220,25%,14%)',
+                color: activeInvTab === 'CATALOG' ? 'hsl(43,96%,56%)' : '#94a3b8',
+                cursor: 'pointer'
+              }}
+            >
+              Inventory Catalog (Current Stock & Stock In/Out)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveInvTab('MOVEMENTS');
+                fetchMovements();
+              }}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '13px',
+                border: activeInvTab === 'MOVEMENTS' ? '1px solid hsl(43,96%,56%)' : '1px solid hsl(217,20%,24%)',
+                background: activeInvTab === 'MOVEMENTS' ? 'hsla(43,96%,56%,0.18)' : 'hsl(220,25%,14%)',
+                color: activeInvTab === 'MOVEMENTS' ? 'hsl(43,96%,56%)' : '#94a3b8',
+                cursor: 'pointer'
+              }}
+            >
+              Current Stock In / Stock Out Record
+            </button>
+          </div>
+        </div>
         <div className="header-actions">
           <div className="search-bar-container">
             <Search className="search-icon" size={18} />
@@ -400,7 +581,25 @@ export default function InventoryPage() {
             <button 
               type="button" 
               className="btn-secondary" 
-              onClick={() => setShowPrintModal(true)}
+              onClick={() => {
+                setPrintLocation('STOCK_IN_OUT');
+                setShowPrintModal(true);
+              }}
+              title="Print Stock In / Out Record"
+              style={{ borderColor: 'hsl(142, 76%, 45%)', color: 'hsl(142, 76%, 65%)' }}
+            >
+              <Printer size={17} />
+              <span>Print Stock In/Out</span>
+            </button>
+          )}
+          {canPrint && (
+            <button 
+              type="button" 
+              className="btn-secondary" 
+              onClick={() => {
+                setPrintLocation('ALL');
+                setShowPrintModal(true);
+              }}
               title="Print stock inventory report"
             >
               <Printer size={17} />
@@ -425,6 +624,72 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      {/* Period Filter Bar for Stock In / Stock Out */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: 'hsl(222, 35%, 10%)', border: '1px solid hsl(217, 20%, 18%)', padding: '12px 16px', borderRadius: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Stock In/Out Period:</span>
+          <input
+            type="date"
+            value={movStartDate}
+            onChange={(e) => {
+              setMovStartDate(e.target.value);
+              fetchMovements(e.target.value, movEndDate);
+            }}
+            style={{ background: 'hsl(220, 30%, 8%)', border: '1px solid hsl(217, 20%, 24%)', color: 'white', padding: '6px 10px', borderRadius: '6px', fontSize: '12px' }}
+          />
+          <span style={{ color: '#64748b' }}>to</span>
+          <input
+            type="date"
+            value={movEndDate}
+            onChange={(e) => {
+              setMovEndDate(e.target.value);
+              fetchMovements(movStartDate, e.target.value);
+            }}
+            style={{ background: 'hsl(220, 30%, 8%)', border: '1px solid hsl(217, 20%, 24%)', color: 'white', padding: '6px 10px', borderRadius: '6px', fontSize: '12px' }}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const today = new Date().toISOString().split('T')[0];
+              setMovStartDate(today);
+              setMovEndDate(today);
+              setPrintReportDate(today);
+              setPrintEndDate(today);
+              fetchMovements(today, today);
+            }}
+            style={{ background: 'hsl(220, 25%, 18%)', color: '#e2e8f0', border: '1px solid hsl(217, 20%, 28%)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const d = new Date();
+              d.setDate(d.getDate() - 7);
+              const wStart = d.toISOString().split('T')[0];
+              const today = new Date().toISOString().split('T')[0];
+              setMovStartDate(wStart);
+              setMovEndDate(today);
+              setPrintReportDate(wStart);
+              setPrintEndDate(today);
+              fetchMovements(wStart, today);
+            }}
+            style={{ background: 'hsl(220, 25%, 18%)', color: '#e2e8f0', border: '1px solid hsl(217, 20%, 28%)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
+          >
+            This Week
+          </button>
+        </div>
+        <div style={{ display: 'flex', gap: '16px', fontSize: '13px' }}>
+          <span style={{ color: '#4ade80', fontWeight: 700 }}>
+            Total Stock In: +{movements.filter(m => m.type === 'STOCK_IN').reduce((s, m) => s + Number(m.amount || 0), 0).toFixed(2)}
+          </span>
+          <span style={{ color: '#f87171', fontWeight: 700 }}>
+            Total Stock Out: -{movements.filter(m => m.type === 'STOCK_OUT').reduce((s, m) => s + Number(m.amount || 0), 0).toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      {activeInvTab === 'CATALOG' ? (
       <div className="inv-table-container">
         <table className="inv-table">
           <thead>
@@ -433,11 +698,13 @@ export default function InventoryPage() {
               <th>Category</th>
               <th>Unit</th>
               <th>Total Stock</th>
+              <th style={{ color: '#4ade80' }}>Current Stock In</th>
+              <th style={{ color: '#f87171' }}>Current Stock Out</th>
               <th>Main</th>
               <th>Kitchen</th>
               <th>Bar</th>
               <th>H.Keeping</th>
-                <th>Boutique</th>
+              <th>Boutique</th>
               <th>Status</th>
               <th>Cost/Unit</th>
               <th>Actions</th>
@@ -446,7 +713,7 @@ export default function InventoryPage() {
           <tbody>
             {filteredItems.length === 0 && (
               <tr>
-                <td colSpan={11} className="empty-state-cell">
+                <td colSpan={14} className="empty-state-cell">
                   <div className="empty-inventory-state">
                     <PackagePlus size={44} className="empty-icon" />
                     <h4 className="empty-title">
@@ -479,6 +746,7 @@ export default function InventoryPage() {
               const stock = Number(item.stockLevel);
               const min = Number(item.minThreshold);
               const isLow = stock <= min;
+              const mov = itemMovementMap[item.id] || itemMovementMap[item.name] || { stockIn: 0, stockOut: 0 };
 
               return (
                 <tr key={item.id} className={isLow ? 'row-warning' : ''}>
@@ -486,6 +754,12 @@ export default function InventoryPage() {
                   <td className="text-sm" style={{ color: 'hsl(215, 20%, 65%)' }}>{item.category}</td>
                   <td>{item.unit}</td>
                   <td className="font-bold">{stock.toFixed(2)}</td>
+                  <td style={{ color: mov.stockIn > 0 ? '#4ade80' : '#64748b', fontWeight: mov.stockIn > 0 ? 700 : 400 }}>
+                    +{Number(mov.stockIn || 0).toFixed(2)}
+                  </td>
+                  <td style={{ color: mov.stockOut > 0 ? '#f87171' : '#64748b', fontWeight: mov.stockOut > 0 ? 700 : 400 }}>
+                    -{Number(mov.stockOut || 0).toFixed(2)}
+                  </td>
                   <td>{Number(item.stockMain || 0).toFixed(2)}</td>
                   <td>{Number(item.stockKitchen || 0).toFixed(2)}</td>
                   <td>{Number(item.stockBar || 0).toFixed(2)}</td>
@@ -553,6 +827,64 @@ export default function InventoryPage() {
           </tbody>
         </table>
       </div>
+      ) : (
+      <div className="inv-table-container">
+        <table className="inv-table">
+          <thead>
+            <tr>
+              <th>Date & Time</th>
+              <th>Item Name</th>
+              <th>Category</th>
+              <th>Action (Stock In / Out)</th>
+              <th>Quantity</th>
+              <th>Before → After</th>
+              <th>Department / Location</th>
+              <th>Staff Name</th>
+              <th>Reason / Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            {movements.filter(m =>
+              !searchQuery.trim() ||
+              (m.itemName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (m.staffName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (m.type || '').toLowerCase().includes(searchQuery.toLowerCase())
+            ).length === 0 ? (
+              <tr>
+                <td colSpan={9} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                  No Stock In or Stock Out records found for {movStartDate} to {movEndDate}.
+                </td>
+              </tr>
+            ) : (
+              movements.filter(m =>
+                !searchQuery.trim() ||
+                (m.itemName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (m.staffName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (m.type || '').toLowerCase().includes(searchQuery.toLowerCase())
+              ).map((m: any) => (
+                <tr key={m.id}>
+                  <td style={{ fontSize: '12px', color: '#94a3b8' }}>{new Date(m.createdAt).toLocaleString()}</td>
+                  <td className="font-medium">{m.itemName}</td>
+                  <td style={{ fontSize: '12px', color: '#94a3b8' }}>{m.category}</td>
+                  <td>
+                    <span className={`badge ${m.type === 'STOCK_IN' ? 'badge-success' : m.type === 'STOCK_OUT' ? 'badge-error' : ''}`} style={m.type === 'TRANSFER' ? { background: 'rgba(59,130,246,0.2)', color: '#60a5fa' } : {}}>
+                      {m.type.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td style={{ fontWeight: 700, color: m.type === 'STOCK_IN' ? '#4ade80' : m.type === 'STOCK_OUT' ? '#f87171' : '#60a5fa' }}>
+                    {m.type === 'STOCK_IN' ? '+' : m.type === 'STOCK_OUT' ? '-' : ''}{Number(m.amount || 0).toFixed(2)} {m.unit}
+                  </td>
+                  <td>{Number(m.previousStock || 0).toFixed(2)} → <strong>{Number(m.newStock || 0).toFixed(2)}</strong></td>
+                  <td>{m.location || 'MAIN'}</td>
+                  <td><strong>{m.staffName || 'Staff'}</strong></td>
+                  <td style={{ fontSize: '12px', color: '#cbd5e1' }}>{m.reason || '-'}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      )}
 
       {showStockInModal && stockItem && (
         <div className="modal-overlay">
@@ -621,14 +953,15 @@ export default function InventoryPage() {
         </div>
       )}
 
-            {/* PRINT MODAL */}
+      {/* PRINT MODAL */}
       {showPrintModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '400px' }}>
-            <h3>Print Inventory Report</h3>
+          <div className="modal-content" style={{ maxWidth: '420px' }}>
+            <h3>Print Inventory & Stock In/Out Report</h3>
             <div className="form-group">
               <label>Report Period</label>
               <select value={printReportPeriod} onChange={e => setPrintReportPeriod(e.target.value)} className="form-select w-full">
+                <option value="DAILY">Daily Record</option>
                 <option value="WEEKLY">Weekly Record</option>
                 <option value="MONTHLY">Monthly Record</option>
                 <option value="ANNUAL">Annual Record</option>
@@ -636,16 +969,19 @@ export default function InventoryPage() {
             </div>
             <div className="form-group">
               <label>Start Date</label>
-                <input type="date" value={printReportDate} onChange={e => setPrintReportDate(e.target.value)} className="form-control w-full" />
-              </div>
-              <div className="form-group">
-                <label>End Date</label>
-                <input type="date" value={printEndDate} onChange={e => setPrintEndDate(e.target.value)} className="form-control w-full" />
+              <input type="date" value={printReportDate} onChange={e => setPrintReportDate(e.target.value)} className="form-control w-full" />
             </div>
             <div className="form-group">
-              <label>Department / Location</label>
+              <label>End Date</label>
+              <input type="date" value={printEndDate} onChange={e => setPrintEndDate(e.target.value)} className="form-control w-full" />
+            </div>
+            <div className="form-group">
+              <label>Department / Record Type</label>
               <select value={printLocation} onChange={e => setPrintLocation(e.target.value)} className="form-select w-full">
-                <option value="ALL">All Stock</option>
+                <option value="ALL">All Stock (with Stock In/Out)</option>
+                <option value="STOCK_IN_OUT">Current Stock In / Out Record</option>
+                <option value="STOCK_IN">Current Stock In Record</option>
+                <option value="STOCK_OUT">Current Stock Out Record</option>
                 <option value="MAIN">Main Stock</option>
                 <option value="BAR">Bar Stock</option>
                 <option value="KITCHEN">Kitchen Stock</option>

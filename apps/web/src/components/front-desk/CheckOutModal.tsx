@@ -29,10 +29,23 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const fetchStatement = async () => {
-    if (!reservation?.folio?.id) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/folios/${reservation.folio.id}/statement`);
+      let folioId = reservation?.folio?.id;
+      if (!folioId && reservation?.id) {
+        const foliosRes = await fetch(`/api/v1/folios?status=OPEN`, { credentials: 'include' });
+        if (foliosRes.ok) {
+          const foliosJson = await foliosRes.json();
+          const foliosArr = Array.isArray(foliosJson?.data) ? foliosJson.data : (Array.isArray(foliosJson) ? foliosJson : []);
+          const found = foliosArr.find((f: any) => f.reservationId === reservation.id);
+          if (found) folioId = found.id;
+        }
+      }
+      if (!folioId) {
+        setLoading(false);
+        return;
+      }
+      const res = await fetch(`/api/v1/folios/${folioId}/statement`, { credentials: 'include' });
       if (res.ok) {
         const json = await res.json();
         const folioData = json.data || json;
@@ -59,6 +72,7 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
     try {
       const res = await fetch(`/api/v1/folios/${statement.id}/payments`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: Number(paymentAmount),
@@ -84,13 +98,29 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
     if (!reservation) return;
     setIsCheckingOut(true);
     try {
+      const curBal = Number(statement?.balance || 0);
       const res = await fetch(`/api/v1/reservations/${reservation.id}/check-out`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ billToCompany })
+        body: JSON.stringify({ billToCompany, closeFolio: curBal <= 0 && billToCompany === false ? true : false })
       });
       if (res.ok) {
-        showToast('Check-out successful! Folio closed.', 'success', 'Checked Out');
+        try {
+          const { downloadLatestData } = await import('@/lib/sync');
+          await downloadLatestData();
+        } catch (e) {
+          // Non-blocking sync
+        }
+        if (curBal > 0 && !billToCompany) {
+          showToast(
+            `Guest checked out! Room marked Vacant Dirty. Pending bill ($${curBal.toFixed(2)}) remains under Billing (Ref: ${reservation.confirmationCode}).`,
+            'success',
+            'Checked Out (Pending Bill)'
+          );
+        } else {
+          showToast('Check-out successful! Room marked Vacant Dirty.', 'success', 'Checked Out');
+        }
         onSuccess();
         onClose();
       } else {
@@ -269,8 +299,12 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
         <div className="checkout-modal-content">
           <div className="folio-summary">
             <div className="fs-row">
+              <span className="fs-label">Booking Reference:</span>
+              <span className="fs-value" style={{ color: '#f59e0b', fontWeight: 700 }}>{reservation.confirmationCode || reservation.id?.substring(0, 8).toUpperCase()}</span>
+            </div>
+            <div className="fs-row">
               <span className="fs-label">Guest:</span>
-              <span className="fs-value">{reservation.guest.firstName} {reservation.guest.lastName}</span>
+              <span className="fs-value">{reservation.guest?.firstName} {reservation.guest?.lastName}</span>
             </div>
             <div className="fs-row">
               <span className="fs-label">Room:</span>
@@ -304,7 +338,7 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
 
           {!isPaid && (
             <div className="payment-section">
-              <h4>Process Payment</h4>
+              <h4>Process Payment (Optional Before Check-Out)</h4>
               <form onSubmit={handlePayment} className="payment-form">
                 <div className="form-group">
                   <label>Amount ($)</label>
@@ -330,6 +364,9 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
                   {isProcessing ? 'Processing...' : 'Add Payment'}
                 </button>
               </form>
+              <div style={{ marginTop: '12px', padding: '10px 14px', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '8px', fontSize: '12px', color: '#fcd34d', lineHeight: 1.5 }}>
+                <strong>Pending Bill Policy:</strong> Checking out with an unpaid balance of <strong>${balance.toFixed(2)}</strong> will set Room <strong>{reservation.room?.number || 'N/A'}</strong> to <strong>Vacant Dirty</strong> while keeping the client&apos;s pending bill active on the <strong>Billing</strong> page under Booking Ref <strong>{reservation.confirmationCode}</strong>.
+              </div>
             </div>
           )}
           
@@ -356,10 +393,14 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
             <button 
               type="button" 
               className="btn-primary" 
-              disabled={!isPaid || isCheckingOut}
+              disabled={isCheckingOut}
               onClick={handleCompleteCheckOut}
             >
-              {isCheckingOut ? 'Processing...' : 'Complete Check-Out'}
+              {isCheckingOut
+                ? 'Processing...'
+                : !isPaid
+                  ? 'Check Out (Keep Bill Pending)'
+                  : 'Complete Check-Out'}
             </button>
           </div>
 

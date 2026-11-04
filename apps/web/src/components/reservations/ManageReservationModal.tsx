@@ -148,8 +148,8 @@ export function ManageReservationModal({ isOpen, onClose, onSuccess, reservation
               <select {...register('status')} className={errors.status ? 'error' : ''}>
                 <option value="PENDING">Pending</option>
                 <option value="CONFIRMED">Confirmed</option>
-                <option value="CHECKED_IN" disabled>Checked In (Use Front Desk)</option>
-                <option value="CHECKED_OUT" disabled>Checked Out (Use Front Desk)</option>
+                <option value="CHECKED_IN">Checked In (Sends Client to Billing)</option>
+                <option value="CHECKED_OUT">Checked Out (Room - Vacant Dirty)</option>
                 <option value="CANCELLED">Cancelled</option>
                 <option value="NO_SHOW">No Show</option>
               </select>

@@ -379,11 +379,90 @@ export class InventoryService {
         action: 'TRANSFER_INVENTORY_STOCK',
         entity: 'InventoryItem',
         entityId: id,
-        oldValues: item,
+        oldValues: { ...item, _transferDetails: data },
         newValues: newRecord
       });
 
       return newRecord;
+    });
+  }
+
+  async getStockMovements(startDate?: string, endDate?: string, propertyId?: string) {
+    const where: any = {
+      entity: 'InventoryItem',
+      action: {
+        in: ['STOCK_IN', 'STOCK_OUT', 'CREATE_INVENTORY_ITEM', 'TRANSFER_INVENTORY_STOCK', 'UPDATE_INVENTORY_STOCK'],
+      },
+    };
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        const s = new Date(`${startDate}T00:00:00.000`);
+        if (!isNaN(s.getTime())) where.createdAt.gte = s;
+      }
+      if (endDate) {
+        const e = new Date(`${endDate}T23:59:59.999`);
+        if (!isNaN(e.getTime())) where.createdAt.lte = e;
+      }
+    }
+
+    const logs = await this.prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 1000,
+    });
+
+    const userIds = [...new Set(logs.map(l => l.userId).filter(Boolean))] as string[];
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    return logs.map(log => {
+      const oldVal: any = log.oldValues || {};
+      const newVal: any = log.newValues || {};
+      const user = log.userId ? userMap.get(log.userId) : null;
+      const loggedStaffName =
+        oldVal?._stockOutDetails?.staffName ||
+        (user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Staff');
+
+      const oldStock = Number(oldVal?.stockLevel ?? 0);
+      const newStock = Number(newVal?.stockLevel ?? 0);
+      let amount = Math.abs(newStock - oldStock);
+      if (log.action === 'STOCK_OUT' && oldVal?._stockOutDetails?.amount) {
+        amount = Number(oldVal._stockOutDetails.amount);
+      } else if (log.action === 'TRANSFER_INVENTORY_STOCK' && oldVal?._transferDetails?.amount) {
+        amount = Number(oldVal._transferDetails.amount);
+      } else if (log.action === 'CREATE_INVENTORY_ITEM') {
+        amount = Number(newVal?.stockLevel ?? 0);
+      }
+
+      const type =
+        log.action === 'STOCK_IN' || (log.action === 'CREATE_INVENTORY_ITEM' && amount > 0) || (log.action === 'UPDATE_INVENTORY_STOCK' && newStock > oldStock)
+          ? 'STOCK_IN'
+          : log.action === 'STOCK_OUT' || (log.action === 'UPDATE_INVENTORY_STOCK' && newStock < oldStock)
+          ? 'STOCK_OUT'
+          : 'TRANSFER';
+
+      return {
+        id: log.id,
+        itemId: log.entityId,
+        itemName: newVal?.name || oldVal?.name || 'Unknown Item',
+        category: newVal?.category || oldVal?.category || 'GENERAL',
+        unit: newVal?.unit || oldVal?.unit || 'units',
+        action: log.action,
+        type,
+        amount,
+        previousStock: oldStock,
+        newStock,
+        costPerUnit: Number(newVal?.costPerUnit ?? oldVal?.costPerUnit ?? 0),
+        location: oldVal?._stockOutDetails?.location || (oldVal?._transferDetails ? `${oldVal._transferDetails.from} → ${oldVal._transferDetails.to}` : 'MAIN'),
+        reason: oldVal?._stockOutDetails?.reason || (log.action === 'STOCK_IN' ? 'Stock In (Restock)' : log.action === 'CREATE_INVENTORY_ITEM' ? 'Initial Stock' : ''),
+        staffName: loggedStaffName,
+        createdAt: log.createdAt,
+      };
     });
   }
 }

@@ -76,7 +76,7 @@ function ImagePicker({ label, value, onChange, description, recommendedSize }: I
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         {/* Thumbnail Preview */}
         <div className="relative w-24 h-20 sm:w-28 sm:h-20 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex-shrink-0 group">
-          {value ? (
+          {value && value !== 'NONE' ? (
             <>
               <img src={value} alt={label} className="w-full h-full object-cover" />
               <button
@@ -88,6 +88,11 @@ function ImagePicker({ label, value, onChange, description, recommendedSize }: I
                 <Trash2 size={16} />
               </button>
             </>
+          ) : value === 'NONE' ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-red-50 text-red-500 p-1 text-center">
+              <Trash2 size={16} />
+              <span className="text-[9px] mt-1 font-bold uppercase tracking-wider">Removed</span>
+            </div>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
               <ImageIcon size={20} />
@@ -98,13 +103,13 @@ function ImagePicker({ label, value, onChange, description, recommendedSize }: I
 
         {/* Input & Action */}
         <div className="flex-1 w-full space-y-2">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               type="text"
-              value={value || ''}
+              value={value === 'NONE' ? '' : (value || '')}
               onChange={(e) => onChange(e.target.value)}
-              placeholder="Paste image URL (https://...) or upload below"
-              className="flex-1 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623]"
+              placeholder={value === 'NONE' ? 'Picture removed — upload or paste URL to add back' : 'Paste image URL (https://...) or upload below'}
+              className="flex-1 min-w-[180px] bg-white border border-gray-200 text-gray-800 text-xs rounded-lg px-3 py-2 outline-none focus:border-[#F5A623] focus:ring-1 focus:ring-[#F5A623]"
             />
             <input
               type="file"
@@ -120,8 +125,19 @@ function ImagePicker({ label, value, onChange, description, recommendedSize }: I
               className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50 whitespace-nowrap cursor-pointer"
             >
               <Upload size={14} className={isUploading ? 'animate-bounce' : ''} />
-              {isUploading ? 'Uploading...' : 'Upload File'}
+              {isUploading ? 'Uploading...' : 'Change / Upload'}
             </button>
+            {value && value !== 'NONE' && (
+              <button
+                type="button"
+                onClick={() => onChange('')}
+                className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap cursor-pointer"
+                title="Remove this picture"
+              >
+                <Trash2 size={14} />
+                Remove Picture
+              </button>
+            )}
           </div>
           {description && <p className="text-[11px] text-gray-500">{description}</p>}
         </div>
@@ -140,6 +156,8 @@ export default function CmsDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'hero' | 'features' | 'rooms' | 'slides' | 'events_gallery' | 'subpages' | 'general'>('hero');
+  const [liveEventSpaces, setLiveEventSpaces] = useState<any[]>([]);
+  const [newsletterSubscribers, setNewsletterSubscribers] = useState<Array<{ email: string; subscribedAt: string }>>([]);
 
   // Load published CMS content
   useEffect(() => {
@@ -150,7 +168,22 @@ export default function CmsDashboardPage() {
         if (json.success && json.data) {
           setContent(mergeWithDefaultContent(json.data));
           if (json.propertyId) setPropertyId(json.propertyId);
+          if (Array.isArray(json.data.newsletterSubscribers)) {
+            setNewsletterSubscribers(json.data.newsletterSubscribers);
+          }
         }
+        fetch('/api/event-spaces', { cache: 'no-store' })
+          .then(r => r.json())
+          .then(d => {
+            if (Array.isArray(d?.data)) setLiveEventSpaces(d.data);
+          })
+          .catch(() => {});
+        fetch('/api/newsletter', { cache: 'no-store' })
+          .then(r => r.json())
+          .then(d => {
+            if (Array.isArray(d?.data) && d.data.length > 0) setNewsletterSubscribers(d.data);
+          })
+          .catch(() => {});
       } catch (err) {
         console.error('Failed to load CMS content:', err);
         showToast('Using local defaults. Could not reach server.', 'info', 'CMS Notice');
@@ -1480,39 +1513,105 @@ export default function CmsDashboardPage() {
               <div>
                 <span className="text-[10px] font-bold tracking-widest text-[#F5A623] uppercase">Event Spaces & Packages</span>
                 <h2 className="text-lg font-serif text-gray-900">Event Space Pictures & Packages</h2>
-                <p className="text-xs text-gray-500">Upload or customize the photo displayed for each event space on the website and booking forms.</p>
+                <p className="text-xs text-gray-500">Upload, change, or remove the photo displayed for each event space on the website (/events).</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                { name: 'Heartshape Beach Dinner', desc: 'Beach dinner inside romantic heart-shaped floral display' },
-                { name: 'Romantic Poolside Candlelight Dinner', desc: 'Intimate candlelit table beside illuminated resort pool' },
-                { name: 'Live Jazz Under the Stars', desc: 'Coastal live jazz performances and cocktail lounge' },
-                { name: 'Beachfront Karaoke Party', desc: 'Open mic karaoke with sound system and beach lounge' },
-                { name: 'Starlight Movie Night', desc: 'Big screen projection under palm trees with seating' },
-                { name: 'Oceanfront Bonfire & Acoustic Lounge', desc: 'Beach bonfire with acoustic music and marshmallows' },
-                { name: 'Private Dinner Party Banquet', desc: 'Banquet dining for up to 30 guests for celebrations' }
-              ].map((space) => {
-                const currentImg = content.events?.spaceImages?.[space.name] || '';
+              {(() => {
+                const defaultSpaces = [
+                  { id: '', name: 'Heartshape Beach Dinner', desc: 'Beach dinner inside romantic heart-shaped floral display' },
+                  { id: '', name: 'Romantic Poolside Candlelight Dinner', desc: 'Intimate candlelit table beside illuminated resort pool' },
+                  { id: '', name: 'Live Jazz Under the Stars', desc: 'Coastal live jazz performances and cocktail lounge' },
+                  { id: '', name: 'Beachfront Karaoke Party', desc: 'Open mic karaoke with sound system and beach lounge' },
+                  { id: '', name: 'Starlight Movie Night', desc: 'Big screen projection under palm trees with seating' },
+                  { id: '', name: 'Oceanfront Bonfire & Acoustic Lounge', desc: 'Beach bonfire with acoustic music and marshmallows' },
+                  { id: '', name: 'Private Dinner Party Banquet', desc: 'Banquet dining for up to 30 guests for celebrations' }
+                ];
+                const mergedMap = new Map<string, { id?: string; name: string; desc: string }>();
+                defaultSpaces.forEach(s => mergedMap.set(s.name.toLowerCase(), s));
+                liveEventSpaces.forEach((s: any) => {
+                  if (s?.name) {
+                    const key = s.name.toLowerCase();
+                    const existing = mergedMap.get(key);
+                    mergedMap.set(key, {
+                      id: s.id,
+                      name: s.name,
+                      desc: existing?.desc || `Event Space • Up to ${s.capacity || 30} guests`,
+                    });
+                  }
+                });
+                return Array.from(mergedMap.values());
+              })().map((space) => {
+                const rawImg = (space.id && content.events?.spaceImages?.[space.id]) || content.events?.spaceImages?.[space.name] || '';
+                const isRemoved = rawImg === 'NONE';
                 return (
-                  <div key={space.name} className="bg-gray-50/70 border border-gray-200 rounded-xl p-4 space-y-3">
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900">{space.name}</h4>
-                      <p className="text-[11px] text-gray-500">{space.desc}</p>
+                  <div key={space.id || space.name} className="bg-gray-50/70 border border-gray-200 rounded-xl p-4 space-y-3">
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900">{space.name}</h4>
+                        <p className="text-[11px] text-gray-500">{space.desc}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {!isRemoved && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextMap: Record<string, string> = {
+                                ...(content.events.spaceImages || {}),
+                                [space.name]: 'NONE',
+                              };
+                              if (space.id) nextMap[space.id] = 'NONE';
+                              setContent({
+                                ...content,
+                                events: {
+                                  ...content.events,
+                                  spaceImages: nextMap,
+                                },
+                              });
+                              showToast(`Removed picture for "${space.name}". Click Save & Publish to apply.`, 'info');
+                            }}
+                            className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
+                          >
+                            <Trash2 size={12} /> Remove Picture
+                          </button>
+                        )}
+                        {rawImg && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextMap: Record<string, string> = { ...(content.events.spaceImages || {}) };
+                              delete nextMap[space.name];
+                              if (space.id) delete nextMap[space.id];
+                              setContent({
+                                ...content,
+                                events: {
+                                  ...content.events,
+                                  spaceImages: nextMap,
+                                },
+                              });
+                            }}
+                            className="px-2.5 py-1 bg-white hover:bg-gray-100 text-gray-600 border border-gray-200 rounded-lg text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap"
+                          >
+                            Reset Default
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <ImagePicker
                       label="Event Space Picture"
-                      value={currentImg}
+                      value={rawImg}
                       onChange={(url) => {
+                        const nextMap: Record<string, string> = {
+                          ...(content.events.spaceImages || {}),
+                          [space.name]: url,
+                        };
+                        if (space.id) nextMap[space.id] = url;
                         setContent({
                           ...content,
                           events: {
                             ...content.events,
-                            spaceImages: {
-                              ...(content.events.spaceImages || {}),
-                              [space.name]: url
-                            }
+                            spaceImages: nextMap,
                           }
                         });
                       }}
@@ -2034,6 +2133,115 @@ export default function CmsDashboardPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Newsletter Subscribers List */}
+          <div className="bg-white rounded-2xl p-6 md:p-8 border border-gray-200 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+              <div>
+                <span className="text-[10px] font-bold tracking-widest text-[#F5A623] uppercase">Footer Newsletter</span>
+                <h2 className="text-lg font-serif text-gray-900">Newsletter Subscribers ({newsletterSubscribers.length})</h2>
+                <p className="text-xs text-gray-500">Emails received from visitors who requested to join the Kwalee Beach Resort newsletter.</p>
+              </div>
+              {newsletterSubscribers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allEmails = newsletterSubscribers.map(s => s.email).join(', ');
+                    navigator.clipboard.writeText(allEmails);
+                    showToast('All subscriber emails copied to clipboard!', 'success');
+                  }}
+                  className="px-3 py-2 bg-gray-900 hover:bg-black text-white rounded-lg text-xs font-medium transition-colors cursor-pointer self-start"
+                >
+                  Copy All Emails
+                </button>
+              )}
+            </div>
+
+            {newsletterSubscribers.length === 0 ? (
+              <p className="text-xs text-gray-500 py-4">No newsletter subscribers yet. When visitors enter their email in the website footer, their email will appear here and be sent to your resort email.</p>
+            ) : (
+              <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto border border-gray-200 rounded-xl">
+                {newsletterSubscribers.map((sub, idx) => (
+                  <div key={sub.email || idx} className="p-3 px-4 flex items-center justify-between text-xs hover:bg-gray-50">
+                    <div>
+                      <a href={`mailto:${sub.email}`} className="font-semibold text-gray-900 hover:text-[#F5A623]">
+                        {sub.email}
+                      </a>
+                      {sub.subscribedAt && (
+                        <span className="ml-3 text-[11px] text-gray-400">
+                          Joined {new Date(sub.subscribedAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    <a
+                      href={`mailto:${sub.email}?subject=${encodeURIComponent('Kwalee Beach Resort Newsletter')}`}
+                      className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md font-medium"
+                    >
+                      Send Email
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Terms of Service & Privacy Policy Customization */}
+          <div className="bg-white rounded-2xl p-6 md:p-8 border border-gray-200 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+              <div>
+                <span className="text-[10px] font-bold tracking-widest text-[#F5A623] uppercase">Legal Pages</span>
+                <h2 className="text-lg font-serif text-gray-900">Terms of Service & Privacy Policy</h2>
+                <p className="text-xs text-gray-500">View or customize the Terms of Service (/terms) and Privacy Policy (/privacy) pages linked in the website footer.</p>
+              </div>
+              <div className="flex gap-2">
+                <Link href="/terms" target="_blank" className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-1">
+                  View /terms <ArrowUpRight size={12} />
+                </Link>
+                <Link href="/privacy" target="_blank" className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-1">
+                  View /privacy <ArrowUpRight size={12} />
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-xs font-semibold text-gray-700 uppercase">Custom Terms of Service (Leave blank to use standard resort Terms)</label>
+                <textarea
+                  rows={6}
+                  value={(content as any).legal?.termsOfService || ''}
+                  onChange={(e) =>
+                    setContent({
+                      ...content,
+                      legal: {
+                        ...((content as any).legal || {}),
+                        termsOfService: e.target.value,
+                      },
+                    } as any)
+                  }
+                  placeholder="Optional custom Terms of Service text..."
+                  className="w-full mt-1.5 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg p-3 outline-none focus:border-[#F5A623]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-700 uppercase">Custom Privacy Policy (Leave blank to use standard resort Privacy Policy)</label>
+                <textarea
+                  rows={6}
+                  value={(content as any).legal?.privacyPolicy || ''}
+                  onChange={(e) =>
+                    setContent({
+                      ...content,
+                      legal: {
+                        ...((content as any).legal || {}),
+                        privacyPolicy: e.target.value,
+                      },
+                    } as any)
+                  }
+                  placeholder="Optional custom Privacy Policy text..."
+                  className="w-full mt-1.5 bg-white border border-gray-200 text-gray-800 text-xs rounded-lg p-3 outline-none focus:border-[#F5A623]"
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -21,15 +21,28 @@ async function getBooking(code: string) {
 
 export default async function BookingConfirmationPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
-  
-  // Need to implement public booking fetching. 
-  // Wait, I didn't add a GET route for bookings in public.service.ts!
-  // I will just use a nice UI for the page based on the code from params for now, 
-  // or I can fetch if I add the GET route.
-  // Actually, I can use Prisma directly if this is a server component since it's the same monorepo!
-  // But wait, apps/web doesn't directly import Prisma usually, they use API.
-  // I will just build a beautiful static-looking UI using the code, and maybe fetch data if possible.
-  
+  const booking = await getBooking(code);
+
+  const guestFullName = booking?.guest ? `${booking.guest.firstName || ''} ${booking.guest.lastName || ''}`.trim() : '';
+  const roomName = booking?.roomType?.name || 'Resort Accommodation';
+  const checkInStr = booking?.checkInDate ? new Date(booking.checkInDate).toISOString().split('T')[0] : '';
+  const checkOutStr = booking?.checkOutDate ? new Date(booking.checkOutDate).toISOString().split('T')[0] : '';
+  const totalStr = booking?.totalAmount !== undefined ? `$${Number(booking.totalAmount).toFixed(2)}` : '';
+
+  const whatsappSummary = [
+    `*KWALEE BEACH RESORT — BOOKING CONFIRMATION*`,
+    `Reservation Ref: *${code}*`,
+    guestFullName ? `Guest: ${guestFullName}` : '',
+    booking?.guest?.phone ? `Phone / WhatsApp: ${booking.guest.phone}` : '',
+    roomName ? `Accommodation: ${roomName}` : '',
+    checkInStr ? `Check-In: ${checkInStr}` : '',
+    checkOutStr ? `Check-Out: ${checkOutStr}` : '',
+    totalStr ? `Total Amount: ${totalStr}` : '',
+    `Status: CONFIRMED`,
+    ``,
+    `Hello Kwalee Beach Resort, please find my booking confirmation details above.`
+  ].filter(Boolean).join('\n');
+
   return (
     <main className="min-h-screen bg-[#FAF9F4] text-[#1F1F1F] flex items-center justify-center p-6">
       <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-[#E8E1D7]">
@@ -38,7 +51,7 @@ export default async function BookingConfirmationPage({ params }: { params: Prom
             <CheckCircle size={40} className="text-[#F5A623]" />
           </div>
           <h1 className="text-3xl font-serif mb-2">Booking Confirmed!</h1>
-          <p className="opacity-80">Your reservation has been successfully processed.</p>
+          <p className="opacity-80">Your reservation at Kwalee Beach Resort has been successfully processed.</p>
         </div>
         
         <div className="p-8 md:p-12">
@@ -53,12 +66,45 @@ export default async function BookingConfirmationPage({ params }: { params: Prom
               </span>
             </div>
           </div>
+
+          {booking && (
+            <div className="bg-[#FAF9F4] rounded-xl p-6 mb-8 border border-[#E8E1D7] space-y-3 text-sm">
+              {guestFullName && (
+                <div className="flex justify-between">
+                  <span className="text-[#6B6F72]">Guest Name</span>
+                  <span className="font-semibold text-[#1F1F1F]">{guestFullName}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-[#6B6F72]">Accommodation</span>
+                <span className="font-semibold text-[#1F1F1F]">{roomName}</span>
+              </div>
+              {checkInStr && (
+                <div className="flex justify-between">
+                  <span className="text-[#6B6F72]">Check-In Date</span>
+                  <span className="font-semibold text-[#1F1F1F]">{checkInStr}</span>
+                </div>
+              )}
+              {checkOutStr && (
+                <div className="flex justify-between">
+                  <span className="text-[#6B6F72]">Check-Out Date</span>
+                  <span className="font-semibold text-[#1F1F1F]">{checkOutStr}</span>
+                </div>
+              )}
+              {totalStr && (
+                <div className="flex justify-between pt-3 border-t border-[#E8E1D7]">
+                  <span className="font-bold text-[#1F1F1F]">Total Stay Amount</span>
+                  <span className="font-bold text-lg text-[#1B2418]">{totalStr}</span>
+                </div>
+              )}
+            </div>
+          )}
           
           <p className="text-[#6B6F72] mb-8 text-center text-sm leading-relaxed">
-            We have sent a confirmation email to your inbox and a message to your WhatsApp with all the details. We look forward to welcoming you to Kwalee Beach Resort!
+            Click <strong>Receive Confirmation on WhatsApp</strong> below to immediately receive and share your official booking confirmation slip on WhatsApp with Kwalee Beach Resort (+231 77 434 0843).
           </p>
 
-          <div className="flex flex-col md:flex-row gap-4 mt-10">
+          <div className="flex flex-col md:flex-row gap-4 mt-8">
             <Link 
               href="/" 
               className="flex-1 flex items-center justify-center gap-2 px-6 py-4 border border-[#1F1F1F] text-[#1F1F1F] uppercase tracking-widest text-xs font-bold rounded-xl hover:bg-[#1F1F1F] hover:text-white transition-all"
@@ -66,12 +112,12 @@ export default async function BookingConfirmationPage({ params }: { params: Prom
               <ArrowLeft size={16} /> Return Home
             </Link>
             <a 
-              href={`https://wa.me/231774340843?text=${encodeURIComponent(`Hello Kwalee Beach Resort, I am inquiring about my reservation ${code}.`)}`} 
+              href={`https://wa.me/231774340843?text=${encodeURIComponent(whatsappSummary)}`} 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-[#25D366] hover:bg-[#1EBE5D] text-white uppercase tracking-widest text-xs font-bold rounded-xl transition-all shadow-lg shadow-[#25D366]/20 cursor-pointer"
             >
-              <MessageCircle size={16} /> Contact on WhatsApp
+              <MessageCircle size={16} /> Receive Confirmation on WhatsApp
             </a>
           </div>
         </div>

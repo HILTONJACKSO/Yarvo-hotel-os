@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import { PublicService } from './public.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -46,6 +46,24 @@ export class PublicController {
   @ApiResponse({ status: 201, description: 'Booking successfully created in PENDING state.' })
   async createBooking(@Body() createBookingDto: CreateBookingDto) {
     return { data: await this.publicService.createBooking(createBookingDto) };
+  }
+
+  @Get('bookings/:code')
+  @ApiOperation({ summary: 'Get booking details by confirmation code' })
+  async getBookingByCode(@Param('code') code: string) {
+    return { data: await this.publicService.getBookingByCode(code) };
+  }
+
+  @Post('newsletter')
+  @ApiOperation({ summary: 'Subscribe an email to the resort newsletter' })
+  async subscribeNewsletter(@Body() body: { email: string }) {
+    return { data: await this.publicService.subscribeNewsletter(body?.email) };
+  }
+
+  @Get('newsletter')
+  @ApiOperation({ summary: 'Get all newsletter subscriber emails' })
+  async getNewsletterSubscribers() {
+    return { data: await this.publicService.getNewsletterSubscribers() };
   }
 
   @Get('menu')

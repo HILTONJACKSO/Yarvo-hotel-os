@@ -218,10 +218,121 @@ export class ReservationsService {
       include: {
         guest: true,
         roomType: true,
+        room: true,
+        folio: true,
       }
     });
 
-    return updatedRes;
+    if (reservation.status !== 'CHECKED_IN' && reservationUpdateData.status === 'CHECKED_IN') {
+      await this.ensureFolioAndRoomOnCheckIn(updatedRes, userId);
+    } else if (reservation.status !== 'CHECKED_OUT' && reservationUpdateData.status === 'CHECKED_OUT') {
+      if (updatedRes.roomId) {
+        await this.prisma.room.update({
+          where: { id: updatedRes.roomId },
+          data: { status: 'DIRTY' },
+        }).catch(() => {});
+      }
+    }
+
+    return this.findOne(id);
+  }
+
+  private async ensureFolioAndRoomOnCheckIn(reservation: any, userId?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      if (reservation.roomId) {
+        const room = await tx.room.findUnique({ where: { id: reservation.roomId } });
+        if (room && room.status !== 'OCCUPIED') {
+          await tx.room.update({
+            where: { id: reservation.roomId },
+            data: { status: 'OCCUPIED' },
+          });
+          await tx.roomStatusHistory.create({
+            data: {
+              roomId: reservation.roomId,
+              previousStatus: room.status,
+              newStatus: 'OCCUPIED',
+              reason: `Check-in for reservation ${reservation.confirmationCode}`,
+              changedById: userId,
+            },
+          });
+        }
+      }
+
+      const existingFolio = await tx.folio.findUnique({ where: { reservationId: reservation.id } });
+      if (existingFolio) {
+        if (existingFolio.status !== 'OPEN') {
+          await tx.folio.update({
+            where: { id: existingFolio.id },
+            data: { status: 'OPEN' },
+          });
+        }
+        return existingFolio;
+      }
+
+      const checkInTime = new Date(reservation.checkInDate).getTime();
+      const checkOutTime = new Date(reservation.checkOutDate).getTime();
+      let nights = Math.ceil((checkOutTime - checkInTime) / (1000 * 60 * 60 * 24));
+      if (nights < 1) nights = 1;
+
+      let roomsCount = 1;
+      const matchRooms = (reservation.specialRequests || '').match(/\[Requested Accommodations:\s*(\d+)/i);
+      if (matchRooms && matchRooms[1]) {
+        roomsCount = Math.max(1, parseInt(matchRooms[1], 10) || 1);
+      }
+
+      const roomType = reservation.roomType || await tx.roomType.findUnique({ where: { id: reservation.roomTypeId } });
+      const baseRate = Number(roomType?.baseRateUsd || 0);
+      const roomChargeTotal = nights * baseRate * roomsCount;
+
+      const activities = await tx.bookingActivity.findMany({
+        where: { reservationId: reservation.id },
+        include: { activity: true }
+      });
+
+      let activitiesTotal = 0;
+      for (const act of activities) {
+        activitiesTotal += Number(act.totalPrice);
+      }
+
+      const folio = await tx.folio.create({
+        data: {
+          reservationId: reservation.id,
+          status: 'OPEN',
+          balance: roomChargeTotal + activitiesTotal,
+        },
+      });
+
+      await tx.folioLineItem.create({
+        data: {
+          folioId: folio.id,
+          type: 'CHARGE',
+          category: 'ROOM',
+          amount: roomChargeTotal,
+          description: roomsCount > 1
+            ? `Room Charge (${roomsCount} accommodations × ${nights} night(s) @ $${baseRate.toFixed(2)})`
+            : `Room Charge (${nights} night(s) @ $${baseRate.toFixed(2)})`,
+          referenceCode: reservation.confirmationCode,
+          createdById: userId,
+        }
+      });
+
+      for (const act of activities) {
+        const catMap = { 'TOUR': 'TOUR', 'EVENT': 'EVENT', 'PACKAGE': 'PACKAGE', 'ACTIVITY': 'ACTIVITY' };
+        await tx.folioLineItem.create({
+          data: {
+            folioId: folio.id,
+            type: 'CHARGE',
+            category: (catMap as any)[act.activity.type] || 'OTHER',
+            amount: Number(act.totalPrice),
+            description: `${act.activity.type.charAt(0).toUpperCase() + act.activity.type.slice(1).toLowerCase()}: ${act.activity.name} (Qty: ${act.quantity})`,
+            referenceCode: reservation.confirmationCode,
+            createdById: userId,
+          }
+        });
+      }
+
+      return folio;
+    });
   }
 
   async updateStatus(id: string, updateDto: UpdateReservationStatusDto, userId?: string) {
@@ -250,53 +361,70 @@ export class ReservationsService {
         guest: true,
         roomType: true,
         room: true,
+        folio: true,
       },
     });
+
+    if (reservation.status !== 'CHECKED_IN' && updateDto.status === 'CHECKED_IN') {
+      await this.ensureFolioAndRoomOnCheckIn(updatedRes, userId);
+    } else if (reservation.status !== 'CHECKED_OUT' && updateDto.status === 'CHECKED_OUT') {
+      if (updatedRes.roomId) {
+        await this.prisma.room.update({
+          where: { id: updatedRes.roomId },
+          data: { status: 'DIRTY' },
+        }).catch(() => {});
+      }
+    }
 
     if (reservation.status !== 'CONFIRMED' && updateDto.status === 'CONFIRMED') {
       this.eventEmitter.emit('reservation.confirmed', updatedRes);
     }
 
-    return updatedRes;
+    return this.findOne(id);
   }
 
   async checkIn(id: string, roomId: string, userId?: string) {
     const reservation = await this.findOne(id);
     
-    if (reservation.status !== 'CONFIRMED') {
-      throw new BadRequestException(`Cannot check-in a reservation with status ${reservation.status}. Must be CONFIRMED.`);
+    if (reservation.status === 'CANCELLED' || reservation.status === 'CHECKED_OUT') {
+      throw new BadRequestException(`Cannot check-in a reservation with status ${reservation.status}.`);
     }
 
-    const roomToAssign = await this.prisma.room.findUnique({ where: { id: roomId } });
+    const targetRoomId = roomId || reservation.roomId;
+    if (!targetRoomId) {
+      throw new BadRequestException(`Please select a room to assign for check-in.`);
+    }
+
+    const roomToAssign = await this.prisma.room.findUnique({ where: { id: targetRoomId } });
     if (!roomToAssign) {
       throw new BadRequestException(`Room not found.`);
     }
     
-    if (['DIRTY', 'MAINTENANCE', 'OUT_OF_ORDER', 'BLOCKED'].includes(roomToAssign.status)) {
+    if (['MAINTENANCE', 'OUT_OF_ORDER', 'BLOCKED'].includes(roomToAssign.status)) {
       throw new BadRequestException(`Cannot check-in: Room ${roomToAssign.number} is currently ${roomToAssign.status}.`);
     }
 
     // Execute in a transaction
-    return this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       // 1. Update Reservation
-      const updatedRes = await tx.reservation.update({
+      await tx.reservation.update({
         where: { id },
         data: {
           status: 'CHECKED_IN',
-          roomId: roomId,
+          roomId: targetRoomId,
         },
       });
 
       // 2. Update Room Status and Log
       if (roomToAssign) {
         await tx.room.update({
-          where: { id: roomId },
+          where: { id: targetRoomId },
           data: { status: 'OCCUPIED' },
         });
 
         await tx.roomStatusHistory.create({
           data: {
-            roomId: roomId,
+            roomId: targetRoomId,
             previousStatus: roomToAssign.status,
             newStatus: 'OCCUPIED',
             reason: `Check-in for reservation ${reservation.confirmationCode}`,
@@ -304,161 +432,114 @@ export class ReservationsService {
           },
         });
       }
-
-      // 3. Initialize Folio and Room Charge
-      const checkInTime = new Date(reservation.checkInDate).getTime();
-      const checkOutTime = new Date(reservation.checkOutDate).getTime();
-      let nights = Math.ceil((checkOutTime - checkInTime) / (1000 * 60 * 60 * 24));
-      if (nights < 1) nights = 1;
-
-      const baseRate = Number(reservation.roomType.baseRateUsd);
-      let roomChargeTotal = nights * baseRate;
-
-      // Calculate activities total
-      const activities = await tx.bookingActivity.findMany({
-        where: { reservationId: id },
-        include: { activity: true }
-      });
-      
-      let activitiesTotal = 0;
-      for (const act of activities) {
-        activitiesTotal += Number(act.totalPrice);
-      }
-
-      const folio = await tx.folio.create({
-        data: {
-          reservationId: id,
-          status: 'OPEN',
-          balance: roomChargeTotal + activitiesTotal,
-        },
-      });
-
-      await tx.folioLineItem.create({
-        data: {
-          folioId: folio.id,
-          type: 'CHARGE',
-          category: 'ROOM',
-          amount: roomChargeTotal,
-          description: `Room Charge (${nights} night(s) @ $${baseRate.toFixed(2)})`,
-          createdById: userId,
-        }
-      });
-
-      for (const act of activities) {
-        const catMap = { 'TOUR': 'TOUR', 'EVENT': 'EVENT', 'PACKAGE': 'PACKAGE', 'ACTIVITY': 'ACTIVITY' };
-        await tx.folioLineItem.create({
-          data: {
-            folioId: folio.id,
-            type: 'CHARGE',
-            category: (catMap as any)[act.activity.type] || 'OTHER',
-            amount: Number(act.totalPrice),
-            description: `${act.activity.type.charAt(0).toUpperCase() + act.activity.type.slice(1).toLowerCase()}: ${act.activity.name} (Qty: ${act.quantity})`,
-            createdById: userId,
-          }
-        });
-      }
-
-      return updatedRes;
     });
+
+    const refreshedRes = await this.findOne(id);
+    await this.ensureFolioAndRoomOnCheckIn(refreshedRes, userId);
+    return this.findOne(id);
   }
 
-  async checkOut(id: string, checkOutDto: any, userId?: string) {
+  async checkOut(id: string, checkOutDto: any = {}, userId?: string) {
     const reservation = await this.findOne(id);
 
     if (reservation.status !== 'CHECKED_IN') {
       throw new BadRequestException(`Cannot check-out a reservation with status ${reservation.status}. Must be CHECKED_IN.`);
     }
 
-    if (!reservation.roomId) {
-      throw new BadRequestException(`Reservation is checked-in but has no assigned room.`);
-    }
-
     const roomId = reservation.roomId;
 
     return this.prisma.$transaction(async (tx) => {
-        const today = new Date();
-        const oldCheckOut = new Date(reservation.checkOutDate);
+      const today = new Date();
+      const oldCheckOut = new Date(reservation.checkOutDate);
+      
+      let newCheckOutDate = oldCheckOut;
+      let amountAdjustment = 0;
+      let diffNights = 0;
+
+      // If checking out early, adjust the checkout date to today and calculate refund
+      today.setHours(0, 0, 0, 0);
+      oldCheckOut.setHours(0, 0, 0, 0);
+      
+      if (today.getTime() < oldCheckOut.getTime()) {
+        newCheckOutDate = new Date();
+        const checkIn = new Date(reservation.checkInDate);
+        checkIn.setHours(0, 0, 0, 0);
         
-        let newCheckOutDate = oldCheckOut;
-        let amountAdjustment = 0;
-        let diffNights = 0;
-
-        // If checking out early, adjust the checkout date to today and calculate refund
-        today.setHours(0,0,0,0);
-        oldCheckOut.setHours(0,0,0,0);
+        let oldNights = Math.ceil((oldCheckOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+        if (oldNights < 1) oldNights = 1;
         
-        if (today.getTime() < oldCheckOut.getTime()) {
-          newCheckOutDate = new Date();
-          const checkIn = new Date(reservation.checkInDate);
-          checkIn.setHours(0,0,0,0);
-          
-          let oldNights = Math.ceil((oldCheckOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
-          if (oldNights < 1) oldNights = 1;
-          
-          let newNights = Math.ceil((today.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
-          if (newNights < 1) newNights = 1;
-          
-          diffNights = newNights - oldNights; // this will be negative
-          
-          const roomType = await tx.roomType.findUnique({ where: { id: reservation.roomTypeId } });
-          if (roomType) {
-            const baseRate = Number(roomType.baseRateUsd);
-            amountAdjustment = diffNights * baseRate; // this will be negative
-          }
+        let newNights = Math.ceil((today.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+        if (newNights < 1) newNights = 1;
+        
+        diffNights = newNights - oldNights; // this will be negative
+        
+        const roomType = await tx.roomType.findUnique({ where: { id: reservation.roomTypeId } });
+        if (roomType) {
+          const baseRate = Number(roomType.baseRateUsd);
+          amountAdjustment = diffNights * baseRate; // this will be negative
         }
+      }
 
-        // 1. Update Reservation
-        const updatedRes = await tx.reservation.update({
-          where: { id },
-          data: {
-            status: 'CHECKED_OUT',
-            checkOutDate: newCheckOutDate,
-          },
-        });
+      // 1. Update Reservation
+      const updatedRes = await tx.reservation.update({
+        where: { id },
+        data: {
+          status: 'CHECKED_OUT',
+          checkOutDate: newCheckOutDate,
+        },
+        include: {
+          guest: true,
+          roomType: true,
+          room: true,
+          folio: true,
+        },
+      });
 
-        // 1.5 Adjust Folio if checking out early
-        if (amountAdjustment !== 0) {
-          const folio = await tx.folio.findUnique({ where: { reservationId: id } });
-          if (folio) {
-            await tx.folioLineItem.create({
-              data: {
-                folioId: folio.id,
-                type: 'ADJUSTMENT',
-                category: 'ROOM',
-                amount: Math.abs(amountAdjustment), // Store positive amount for ADJUSTMENT
-                description: `Early Check-Out Refund (${Math.abs(diffNights)} night(s))`,
-                createdById: userId,
-              }
-            });
-            await tx.folio.update({
-              where: { id: folio.id },
-              data: { balance: { increment: amountAdjustment } } // amountAdjustment is negative
-            });
-          }
+      // 1.5 Adjust Folio if checking out early
+      if (amountAdjustment !== 0) {
+        const folio = await tx.folio.findUnique({ where: { reservationId: id } });
+        if (folio) {
+          await tx.folioLineItem.create({
+            data: {
+              folioId: folio.id,
+              type: 'ADJUSTMENT',
+              category: 'ROOM',
+              amount: Math.abs(amountAdjustment),
+              description: `Early Check-Out Refund (${Math.abs(diffNights)} night(s))`,
+              createdById: userId,
+            }
+          });
+          await tx.folio.update({
+            where: { id: folio.id },
+            data: { balance: { increment: amountAdjustment } }
+          });
         }
+      }
 
-      // 2. Update Room Status to DIRTY for Housekeeping
-      const room = await tx.room.findUnique({ where: { id: roomId } });
-      if (room) {
-        await tx.room.update({
-          where: { id: roomId },
-          data: { status: 'DIRTY' },
-        });
+      // 2. Update Room Status to DIRTY (Vacant Dirty) for Housekeeping
+      if (roomId) {
+        const room = await tx.room.findUnique({ where: { id: roomId } });
+        if (room) {
+          await tx.room.update({
+            where: { id: roomId },
+            data: { status: 'DIRTY' },
+          });
 
-        await tx.roomStatusHistory.create({
-          data: {
-            roomId: roomId,
-            previousStatus: room.status,
-            newStatus: 'DIRTY',
-            reason: `Check-out for reservation ${reservation.confirmationCode}`,
-            changedById: userId,
-          },
-        });
+          await tx.roomStatusHistory.create({
+            data: {
+              roomId: roomId,
+              previousStatus: room.status,
+              newStatus: 'DIRTY',
+              reason: `Check-out for reservation ${reservation.confirmationCode}`,
+              changedById: userId,
+            },
+          });
+        }
       }
 
       // 3. Handle Corporate Billing if requested
-      const folio = await tx.folio.findUnique({ where: { reservationId: id } });
-      if (folio && checkOutDto.billToCompany) {
+      let folio = await tx.folio.findUnique({ where: { reservationId: id } });
+      if (folio && checkOutDto?.billToCompany) {
         if (!reservation.companyId) {
           throw new BadRequestException('Cannot bill to company: Reservation is not linked to a company.');
         }
@@ -466,19 +547,17 @@ export class ReservationsService {
         if (folio.balance.toNumber() > 0) {
           const amountToTransfer = folio.balance;
 
-          // Add PAYMENT_CORPORATE line item to zero out folio
           await tx.folioLineItem.create({
             data: {
               folioId: folio.id,
               type: 'PAYMENT',
               category: 'PAYMENT_CORPORATE',
-              amount: amountToTransfer.times(-1), // Negative amount for payment
+              amount: amountToTransfer.times(-1),
               description: `Billed to Corporate Account`,
               createdById: userId,
             },
           });
 
-          // Transfer balance to Company
           await tx.company.update({
             where: { id: reservation.companyId },
             data: {
@@ -486,24 +565,33 @@ export class ReservationsService {
             },
           });
           
-          // Zero out Folio balance
-          await tx.folio.update({
+          folio = await tx.folio.update({
             where: { id: folio.id },
             data: { balance: 0 },
           });
         }
       }
 
-      // 4. Close Folio
-      const updatedFolio = await tx.folio.update({
-        where: { reservationId: id },
-        data: { status: 'CLOSED' },
-      });
-
-      this.eventEmitter.emit('folio.closed', {
-        folioId: updatedFolio.id,
-        reservationId: id,
-      });
+      // 4. Keep Folio OPEN on Billing if client has pending balance (or unless explicitly closed with 0 balance)
+      if (folio) {
+        const remainingBalance = Number(folio.balance || 0);
+        if (remainingBalance > 0) {
+          // Ensure pending bill stays OPEN in Billing under client's booking reference
+          await tx.folio.update({
+            where: { id: folio.id },
+            data: { status: 'OPEN' },
+          });
+        } else if (checkOutDto?.closeFolio === true) {
+          const updatedFolio = await tx.folio.update({
+            where: { id: folio.id },
+            data: { status: 'CLOSED' },
+          });
+          this.eventEmitter.emit('folio.closed', {
+            folioId: updatedFolio.id,
+            reservationId: id,
+          });
+        }
+      }
 
       return updatedRes;
     });

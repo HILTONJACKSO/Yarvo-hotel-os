@@ -38,17 +38,41 @@ export function CheckInModal({ isOpen, onClose, onSuccess, reservationId, roomTy
   });
 
   useEffect(() => {
-    if (!isOpen || !roomTypeId) return;
+    if (!isOpen) return;
     
     const fetchRooms = async () => {
       setLoadingData(true);
       try {
-        // Fetch rooms matching the reservation's roomType that are currently AVAILABLE
-        const res = await fetch(`/api/v1/rooms?typeId=${roomTypeId}&status=AVAILABLE`);
+        // Fetch all active rooms for this roomType (or all rooms if no roomTypeId)
+        const query = roomTypeId ? `/api/v1/rooms?typeId=${roomTypeId}` : `/api/v1/rooms`;
+        const res = await fetch(query, { credentials: 'include' });
+        let roomsList: any[] = [];
         if (res.ok) {
           const json = await res.json();
-          setAvailableRooms(json.data || json || []);
+          const raw = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+          roomsList = raw.filter((r: any) => 
+            r.status === 'AVAILABLE' || 
+            r.status === 'CLEAN' || 
+            (preAssignedRoomId && r.id === preAssignedRoomId)
+          );
+          if (roomsList.length === 0 && raw.length > 0) {
+            roomsList = raw.filter((r: any) => !['MAINTENANCE', 'OUT_OF_ORDER', 'BLOCKED'].includes(r.status));
+          }
         }
+        // Fallback: if still empty and roomTypeId was specified, fetch all available/clean rooms
+        if (roomsList.length === 0 && roomTypeId) {
+          const allRes = await fetch('/api/v1/rooms', { credentials: 'include' });
+          if (allRes.ok) {
+            const allJson = await allRes.json();
+            const allRaw = Array.isArray(allJson?.data) ? allJson.data : (Array.isArray(allJson) ? allJson : []);
+            roomsList = allRaw.filter((r: any) => r.status === 'AVAILABLE' || r.status === 'CLEAN' || r.id === preAssignedRoomId);
+          }
+        }
+        setAvailableRooms(roomsList);
+        const defaultRoomId = (preAssignedRoomId && roomsList.some((r: any) => r.id === preAssignedRoomId))
+          ? preAssignedRoomId
+          : (roomsList[0]?.id || preAssignedRoomId || "");
+        reset({ roomId: defaultRoomId });
       } catch (err) {
         console.error('Failed to load available rooms', err);
       } finally {
@@ -57,9 +81,8 @@ export function CheckInModal({ isOpen, onClose, onSuccess, reservationId, roomTy
     };
 
     fetchRooms();
-    reset({ roomId: preAssignedRoomId || "" });
     setSubmitError(null);
-  }, [isOpen, roomTypeId, reset]);
+  }, [isOpen, roomTypeId, preAssignedRoomId, reset]);
 
   const onSubmit = async (data: FormValues) => {
     if (!reservationId) return;
@@ -67,6 +90,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess, reservationId, roomTy
     try {
       const res = await fetch(`/api/v1/reservations/${reservationId}/check-in`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           roomId: data.roomId,
@@ -75,6 +99,13 @@ export function CheckInModal({ isOpen, onClose, onSuccess, reservationId, roomTy
       
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Failed to check in');
+
+      try {
+        const { downloadLatestData } = await import('@/lib/sync');
+        await downloadLatestData();
+      } catch (e) {
+        // Non-blocking sync
+      }
       
       onSuccess();
       onClose();

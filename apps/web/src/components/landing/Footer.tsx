@@ -11,6 +11,34 @@ interface FooterProps {
 
 const Footer = ({ general }: FooterProps) => {
   const [data, setData] = useState<GeneralContent>(general || DEFAULT_CMS_CONTENT.general);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [subscribeMsg, setSubscribeMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail.trim()) return;
+    setIsSubscribing(true);
+    setSubscribeMsg(null);
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail.trim() }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success) {
+        setSubscribeMsg({ type: 'success', text: 'Thank you! Your email has been registered for our newsletter.' });
+        setNewsletterEmail('');
+      } else {
+        setSubscribeMsg({ type: 'error', text: json.error || 'Could not subscribe. Please check your email.' });
+      }
+    } catch (err) {
+      setSubscribeMsg({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   useEffect(() => {
     if (general) {
@@ -104,16 +132,28 @@ const Footer = ({ general }: FooterProps) => {
         <div>
           <h4 className="text-xs uppercase tracking-[0.2em] mb-8 text-[#FAF9F4]/70">Newsletter</h4>
           <p className="text-sm opacity-60 font-light mb-6">Stay connected with Kwalee.</p>
-          <form className="flex border-b border-white/30 pb-2" onSubmit={(e) => e.preventDefault()}>
+          <form className="flex border-b border-white/30 pb-2" onSubmit={handleNewsletterSubmit}>
             <input 
               type="email" 
+              required
+              value={newsletterEmail}
+              onChange={(e) => setNewsletterEmail(e.target.value)}
               placeholder="Your email" 
               className="w-full bg-transparent outline-none text-sm placeholder:text-white/40" 
             />
-            <button type="submit" className="text-xs uppercase tracking-widest font-semibold ml-4 hover:text-[#FAF9F4]/70">
-              Join
+            <button
+              type="submit"
+              disabled={isSubscribing}
+              className="text-xs uppercase tracking-widest font-semibold ml-4 hover:text-[#F5A623] transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isSubscribing ? '...' : 'Join'}
             </button>
           </form>
+          {subscribeMsg && (
+            <p className={`text-xs mt-3 ${subscribeMsg.type === 'success' ? 'text-[#4ade80]' : 'text-rose-400'}`}>
+              {subscribeMsg.text}
+            </p>
+          )}
         </div>
       </div>
       

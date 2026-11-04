@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req, Query } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { ApiTags, ApiCookieAuth } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -13,6 +13,15 @@ export class InventoryController {
   @Get()
   getInventoryItems(@Req() req: any) {
     return this.inventoryService.getInventoryItems(req.user?.propertyId);
+  }
+
+  @Get('movements')
+  getStockMovements(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Req() req?: any,
+  ) {
+    return this.inventoryService.getStockMovements(startDate, endDate, req?.user?.propertyId);
   }
 
   @Post()

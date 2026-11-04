@@ -219,8 +219,111 @@ export class PublicService {
     return {
       confirmationCode: reservation.confirmationCode,
       status: reservation.status,
+      totalAmount: Number(reservation.totalAmount),
+      checkInDate: reservation.checkInDate,
+      checkOutDate: reservation.checkOutDate,
+      roomTypeName: reservation.roomType?.name,
+      roomNumber: reservation.room?.number,
+      guestName: `${reservation.guest?.firstName || ''} ${reservation.guest?.lastName || ''}`.trim(),
+      guestPhone: reservation.guest?.phone,
+      guestWhatsapp: reservation.guest?.whatsapp || reservation.guest?.phone,
       message: 'Booking confirmed successfully!',
     };
+  }
+
+  async getBookingByCode(code: string) {
+    if (!code) return null;
+    const reservation = await this.prisma.reservation.findFirst({
+      where: { confirmationCode: { equals: code, mode: 'insensitive' } },
+      include: {
+        roomType: true,
+        room: true,
+        guest: true,
+        activities: { include: { activity: true } },
+      },
+    });
+    return reservation;
+  }
+
+  async subscribeNewsletter(emailRaw: string) {
+    const email = (emailRaw || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      throw new BadRequestException('Please provide a valid email address.');
+    }
+
+    const property = await this.prisma.property.findFirst();
+    if (!property) {
+      throw new BadRequestException('Property configuration not found.');
+    }
+
+    const currentContent: any =
+      property.websiteContent && typeof property.websiteContent === 'object'
+        ? { ...(property.websiteContent as any) }
+        : {};
+
+    const existingList: Array<{ email: string; subscribedAt: string }> = Array.isArray(currentContent.newsletterSubscribers)
+      ? currentContent.newsletterSubscribers
+      : [];
+
+    const alreadyExists = existingList.some(item => (item.email || '').toLowerCase() === email);
+    const updatedList = alreadyExists
+      ? existingList
+      : [{ email, subscribedAt: new Date().toISOString() }, ...existingList];
+
+    currentContent.newsletterSubscribers = updatedList;
+
+    await this.prisma.property.update({
+      where: { id: property.id },
+      data: { websiteContent: currentContent },
+    });
+
+    // Notify resort email via Resend if configured
+    const resortEmail =
+      currentContent?.general?.email ||
+      process.env.ADMIN_EMAIL ||
+      'kwaleebeachresort1@gmail.com';
+
+    if (process.env.RESEND_API_KEY) {
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.HOTEL_EMAIL || 'reservations@kwaleebeachresort.com',
+          to: resortEmail,
+          subject: `New Newsletter Subscriber: ${email}`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1F1F1F;">
+              <h2 style="color: #1B2418;">New Newsletter Subscription</h2>
+              <p>A visitor on the Kwalee Beach Resort website has requested to join the newsletter:</p>
+              <div style="background: #FAF9F4; padding: 16px; border-radius: 8px; margin: 16px 0;">
+                <p><strong>Subscriber Email:</strong> <a href="mailto:${email}">${email}</a></p>
+                <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+                <p><strong>Total Subscribers:</strong> ${updatedList.length}</p>
+              </div>
+            </div>
+          `,
+        }),
+      }).catch(err => this.logger.error('Newsletter email notification error:', err));
+    }
+
+    return {
+      success: true,
+      email,
+      alreadySubscribed: alreadyExists,
+      totalSubscribers: updatedList.length,
+      message: 'Thank you for subscribing to the Kwalee Beach Resort newsletter!',
+    };
+  }
+
+  async getNewsletterSubscribers() {
+    const property = await this.prisma.property.findFirst({
+      select: { websiteContent: true },
+    });
+    const content: any = property?.websiteContent || {};
+    return Array.isArray(content.newsletterSubscribers) ? content.newsletterSubscribers : [];
   }
 
   private async sendNotifications(reservation: any) {

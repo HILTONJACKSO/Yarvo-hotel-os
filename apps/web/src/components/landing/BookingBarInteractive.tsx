@@ -176,8 +176,30 @@ export const BookingBarInteractive = () => {
       
       if (data.success) {
         setIsSuccess(true);
-        if (data.data?.confirmationCode) {
-          router.push('/booking/' + data.data.confirmationCode);
+        const code = data.data?.confirmationCode || '';
+        if (confirmationPreference === 'whatsapp' || confirmationPreference === 'both') {
+          const rmName = selectedRoom?.name || 'Accommodation';
+          const waMsg = [
+            `*KWALEE BEACH RESORT — BOOKING CONFIRMATION*`,
+            `Reservation Ref: *${code}*`,
+            `Guest: ${firstName} ${lastName}`,
+            `Phone / WhatsApp: ${finalWhatsapp || phone}`,
+            `Email: ${email}`,
+            `Accommodation: ${rmName} (${roomCountNum} ${roomCountNum > 1 ? 'Rooms/Tents' : 'Room/Tent'})`,
+            `Guests: ${guests}`,
+            `Check-In: ${checkIn}`,
+            `Check-Out: ${checkOut}`,
+            `Total Stay Amount: $${totalStayPrice}`,
+            specialRequests.trim() ? `Special Requests: ${specialRequests.trim()}` : '',
+            ``,
+            `Hello Kwalee Beach Resort, please confirm my reservation above!`
+          ].filter(Boolean).join('\n');
+          if (typeof window !== 'undefined') {
+            window.open(`https://wa.me/231774340843?text=${encodeURIComponent(waMsg)}`, '_blank', 'noopener,noreferrer');
+          }
+        }
+        if (code) {
+          router.push('/booking/' + code);
         }
         // Reset form
         setFirstName('');

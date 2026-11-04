@@ -30,6 +30,7 @@ export class FoliosService {
           include: {
             guest: true,
             room: true,
+            roomType: true,
           }
         },
         lineItems: {
@@ -46,6 +47,92 @@ export class FoliosService {
   }
 
   async getAllFolios(status?: 'OPEN' | 'CLOSED') {
+    try {
+      // 1. Auto-heal: Ensure any CHECKED_IN reservation has an OPEN folio
+      const checkedInWithoutFolio = await this.prisma.reservation.findMany({
+        where: {
+          status: 'CHECKED_IN',
+          folio: null,
+        },
+        include: {
+          roomType: true,
+        },
+      });
+
+      for (const res of checkedInWithoutFolio) {
+        const checkInTime = new Date(res.checkInDate).getTime();
+        const checkOutTime = new Date(res.checkOutDate).getTime();
+        let nights = Math.ceil((checkOutTime - checkInTime) / (1000 * 60 * 60 * 24));
+        if (nights < 1) nights = 1;
+
+        let roomsCount = 1;
+        const matchRooms = (res.specialRequests || '').match(/\[Requested Accommodations:\s*(\d+)/i);
+        if (matchRooms && matchRooms[1]) {
+          roomsCount = Math.max(1, parseInt(matchRooms[1], 10) || 1);
+        }
+
+        const baseRate = Number(res.roomType?.baseRateUsd || 0);
+        const roomChargeTotal = nights * baseRate * roomsCount;
+
+        const activities = await this.prisma.bookingActivity.findMany({
+          where: { reservationId: res.id },
+          include: { activity: true }
+        });
+        let activitiesTotal = 0;
+        for (const act of activities) {
+          activitiesTotal += Number(act.totalPrice);
+        }
+
+        const newFolio = await this.prisma.folio.create({
+          data: {
+            reservationId: res.id,
+            status: 'OPEN',
+            balance: roomChargeTotal + activitiesTotal,
+          },
+        });
+
+        await this.prisma.folioLineItem.create({
+          data: {
+            folioId: newFolio.id,
+            type: 'CHARGE',
+            category: 'ROOM',
+            amount: roomChargeTotal,
+            description: roomsCount > 1
+              ? `Room Charge (${roomsCount} accommodations × ${nights} night(s) @ $${baseRate.toFixed(2)})`
+              : `Room Charge (${nights} night(s) @ $${baseRate.toFixed(2)})`,
+            referenceCode: res.confirmationCode,
+          },
+        });
+
+        for (const act of activities) {
+          const catMap = { 'TOUR': 'TOUR', 'EVENT': 'EVENT', 'PACKAGE': 'PACKAGE', 'ACTIVITY': 'ACTIVITY' };
+          await this.prisma.folioLineItem.create({
+            data: {
+              folioId: newFolio.id,
+              type: 'CHARGE',
+              category: (catMap as any)[act.activity.type] || 'OTHER',
+              amount: Number(act.totalPrice),
+              description: `${act.activity.type.charAt(0).toUpperCase() + act.activity.type.slice(1).toLowerCase()}: ${act.activity.name} (Qty: ${act.quantity})`,
+              referenceCode: res.confirmationCode,
+            },
+          });
+        }
+      }
+
+      // 2. Auto-heal: Reopen any CLOSED folio that still has a positive pending balance (> 0)
+      await this.prisma.folio.updateMany({
+        where: {
+          status: 'CLOSED',
+          balance: { gt: 0 },
+        },
+        data: {
+          status: 'OPEN',
+        },
+      });
+    } catch (e) {
+      // Non-blocking auto-heal
+    }
+
     const where: any = {};
     if (status) {
       where.status = status;
@@ -58,6 +145,7 @@ export class FoliosService {
           include: {
             guest: true,
             room: true,
+            roomType: true,
           }
         },
         lineItems: {

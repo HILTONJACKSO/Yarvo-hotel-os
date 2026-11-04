@@ -31,9 +31,11 @@ export default function BillingPage() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const { showToast } = useToast();
   const [bills, setBills] = useState<any[]>([]);
+  const [billSearchQuery, setBillSearchQuery] = useState("");
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
   const [selectedBillType, setSelectedBillType] = useState<"FOLIO" | "POS_ORDER" | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isCheckingOutRoom, setIsCheckingOutRoom] = useState(false);
 
   // Derived selectedBill - eliminates circular object reference re-renders
   const selectedBill = bills.find(b => b.id === selectedBillId && b.type === selectedBillType) || null;
@@ -51,9 +53,23 @@ export default function BillingPage() {
 
   const fetchBills = async () => {
     try {
-      if (navigator.onLine) await downloadLatestData();
+      if (navigator.onLine) {
+        try {
+          const foliosRes = await fetch('/api/v1/folios?status=OPEN', { credentials: 'include' });
+          if (foliosRes.ok) {
+            const fJson = await foliosRes.json();
+            const fArr = Array.isArray(fJson?.data) ? fJson.data : (Array.isArray(fJson) ? fJson : []);
+            if (fArr.length > 0) {
+              await db.folios.bulkPut(fArr);
+            }
+          }
+        } catch (e) {
+          // Fallback to downloadLatestData
+        }
+        await downloadLatestData();
+      }
       
-      const folios = (await db.folios.toArray()).filter((f: any) => f.status === 'OPEN').map((f: any) => ({ ...f, type: "FOLIO" }));
+      const folios = (await db.folios.toArray()).filter((f: any) => f.status === 'OPEN' || Number(f.balance || 0) > 0).map((f: any) => ({ ...f, type: "FOLIO" }));
       const allPos = await db.posOrders.toArray();
       const invoicedPos = allPos.filter((o: any) => o.status === "SERVED" || o.status === "OPEN");
       const posOrders = invoicedPos.map((o: any) => ({ ...o, type: "POS_ORDER" }));
@@ -70,10 +86,54 @@ export default function BillingPage() {
         return String(a.id).localeCompare(String(b.id));
       });
       setBills(allBills);
+
+      // Auto-select folio if reservationId or folioId is in URL
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const targetResId = params.get('reservationId');
+        const targetFolioId = params.get('folioId');
+        if (targetResId || targetFolioId) {
+          const matched = folios.find((f: any) => 
+            (targetFolioId && f.id === targetFolioId) || 
+            (targetResId && (f.reservationId === targetResId || f.reservation?.id === targetResId))
+          );
+          if (matched) {
+            setSelectedBillId(matched.id);
+            setSelectedBillType("FOLIO");
+            selectFolio(matched.id);
+          }
+        }
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCheckOutRoomOnly = async () => {
+    if (!selectedBill?.reservation?.id) return;
+    if (!confirm(`Check out guest ${selectedBill.reservation?.guest?.firstName || ''} ${selectedBill.reservation?.guest?.lastName || ''} and set Room ${selectedBill.reservation?.room?.number || ''} to Vacant Dirty while keeping their bill on Billing?`)) return;
+    setIsCheckingOutRoom(true);
+    try {
+      const res = await fetch(`/api/v1/reservations/${selectedBill.reservation.id}/check-out`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ billToCompany: false, closeFolio: false })
+      });
+      if (res.ok) {
+        showToast(`Room ${selectedBill.reservation?.room?.number || ''} set to Vacant Dirty. Pending bill remains under Billing (Ref: ${selectedBill.reservation?.confirmationCode}).`, 'success');
+        await fetchBills();
+        if (selectedBill.id) selectFolio(selectedBill.id);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.message || 'Failed to check out room', 'error');
+      }
+    } catch (err) {
+      showToast('Network error checking out room', 'error');
+    } finally {
+      setIsCheckingOutRoom(false);
     }
   };
 
@@ -551,17 +611,38 @@ export default function BillingPage() {
       <div className="flex flex-1 gap-6 min-h-0 items-start">
         {/* Sidebar: List of Bills */}
         <div className="w-[320px] bg-slate-800/80 backdrop-blur-md border border-slate-700/60 shadow-xl rounded-2xl flex flex-col shrink-0 sticky top-[80px] max-h-[calc(100vh-100px)] overflow-hidden">
-          <div className="p-5 border-b border-slate-700/60 bg-slate-900/40">
-            <h3 className="text-lg font-bold text-slate-100 tracking-tight">Active Bills</h3>
+          <div className="p-4 border-b border-slate-700/60 bg-slate-900/40 space-y-2.5">
+            <h3 className="text-lg font-bold text-slate-100 tracking-tight">Active & Pending Bills</h3>
+            <input
+              type="text"
+              value={billSearchQuery}
+              onChange={(e) => setBillSearchQuery(e.target.value)}
+              placeholder="Search booking ref, guest, or room..."
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:border-cyan-500"
+            />
           </div>
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar">
-            {bills.length === 0 ? (
+            {bills.filter(b => {
+              if (!billSearchQuery.trim()) return true;
+              const q = billSearchQuery.toLowerCase();
+              const ref = (b.reservation?.confirmationCode || '').toLowerCase();
+              const guest = `${b.reservation?.guest?.firstName || b.guest?.firstName || ''} ${b.reservation?.guest?.lastName || b.guest?.lastName || ''}`.toLowerCase();
+              const room = (b.reservation?.room?.number || b.table?.number || '').toLowerCase();
+              return ref.includes(q) || guest.includes(q) || room.includes(q) || b.id.toLowerCase().includes(q);
+            }).length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-slate-500">
                 <Receipt size={32} className="mb-3 opacity-40" />
                 <p className="text-sm font-medium">No active bills found.</p>
               </div>
             ) : (
-              bills.map(b => (
+              bills.filter(b => {
+                if (!billSearchQuery.trim()) return true;
+                const q = billSearchQuery.toLowerCase();
+                const ref = (b.reservation?.confirmationCode || '').toLowerCase();
+                const guest = `${b.reservation?.guest?.firstName || b.guest?.firstName || ''} ${b.reservation?.guest?.lastName || b.guest?.lastName || ''}`.toLowerCase();
+                const room = (b.reservation?.room?.number || b.table?.number || '').toLowerCase();
+                return ref.includes(q) || guest.includes(q) || room.includes(q) || b.id.toLowerCase().includes(q);
+              }).map(b => (
                 <div 
                   key={b.id} 
                   className={`bg-slate-900/60 border rounded-xl p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${(selectedBillId === b.id && selectedBillType === b.type) ? 'border-cyan-500 bg-cyan-950/30 shadow-cyan-900/20' : 'border-slate-700/50 hover:border-slate-600'}`}
@@ -570,10 +651,20 @@ export default function BillingPage() {
                   {b.type === 'FOLIO' ? (
                     <>
                       <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-slate-200 text-sm">Bill: {b.reservation?.guest?.lastName}</span>
+                        <span className="font-bold text-slate-200 text-sm">
+                          {b.reservation?.guest?.firstName} {b.reservation?.guest?.lastName || 'Guest'}
+                        </span>
                         <span className={`font-bold ${b.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{format(Number(b.balance))}</span>
                       </div>
-                      <div className="text-xs text-slate-400">Room {b.reservation?.room?.number || 'N/A'}</div>
+                      <div className="flex items-center justify-between text-xs text-slate-400 mt-1">
+                        <span>Room {b.reservation?.room?.number || b.reservation?.roomType?.name || 'N/A'}</span>
+                        <span className="font-mono text-cyan-400 font-semibold">Ref: {b.reservation?.confirmationCode || b.id.substring(0, 6).toUpperCase()}</span>
+                      </div>
+                      {b.reservation?.status === 'CHECKED_OUT' && (
+                        <div className="mt-2 inline-block px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                          Checked Out • Pending Bill
+                        </div>
+                      )}
                     </>
                   ) : (
                     <>
@@ -605,11 +696,27 @@ export default function BillingPage() {
             <>
               <div className="p-8 border-b border-slate-700/60 bg-gradient-to-r from-slate-900/40 to-slate-800/40 flex justify-between items-center">
                 <div>
-                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 mb-3 uppercase tracking-wider">
-                    {selectedBill.status}
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 uppercase tracking-wider">
+                      {selectedBill.status}
+                    </div>
+                    {selectedBill.reservation?.confirmationCode && (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-xs font-mono font-bold text-cyan-400">
+                        Booking Ref: {selectedBill.reservation.confirmationCode}
+                      </div>
+                    )}
+                    {selectedBill.reservation?.status === 'CHECKED_OUT' && (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/15 border border-amber-500/30 text-xs font-bold text-amber-400 uppercase">
+                        Room Checked Out (Vacant Dirty) • Bill Pending
+                      </div>
+                    )}
                   </div>
-                  <h2 className="text-2xl font-extrabold text-white mb-1 tracking-tight">Bill: {selectedBill.reservation?.guest?.lastName}</h2>
-                  <div className="text-slate-400 font-medium">Room {selectedBill.reservation?.room?.number || 'N/A'}</div>
+                  <h2 className="text-2xl font-extrabold text-white mb-1 tracking-tight">
+                    Bill: {selectedBill.reservation?.guest?.firstName} {selectedBill.reservation?.guest?.lastName}
+                  </h2>
+                  <div className="text-slate-400 font-medium">
+                    Room {selectedBill.reservation?.room?.number || selectedBill.reservation?.roomType?.name || 'N/A'}
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Total Balance Due</div>
@@ -617,6 +724,16 @@ export default function BillingPage() {
                     {format(Number(selectedBill.balance))}
                   </div>
                   <div className="flex gap-2 justify-end mt-2 flex-wrap">
+                      {selectedBill.reservation?.status === 'CHECKED_IN' && (
+                        <button
+                          onClick={handleCheckOutRoomOnly}
+                          disabled={isCheckingOutRoom}
+                          className="bg-amber-600 hover:bg-amber-500 text-white text-xs px-3 py-1.5 rounded-md font-semibold transition-colors"
+                          title="Check out guest & set room to Vacant Dirty while keeping bill on Billing"
+                        >
+                          {isCheckingOutRoom ? 'Checking Out...' : 'Check Out Room (Vacant Dirty)'}
+                        </button>
+                      )}
                       {selectedBill.status === 'OPEN' && (
                           <button onClick={handleCloseFolio} disabled={Number(selectedBill.balance) !== 0} className={`text-xs px-3 py-1.5 rounded-md transition-colors ${Number(selectedBill.balance) === 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}>Close Bill</button>
                         )}

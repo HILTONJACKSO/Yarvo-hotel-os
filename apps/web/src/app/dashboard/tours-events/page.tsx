@@ -44,7 +44,8 @@ export default function ToursEventsPage() {
       const res = await fetch('/api/v1/activities', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setActivities(data || []);
+        const list = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+        setActivities(list);
       }
     } catch (err) {
       console.error('Failed to fetch activities:', err);

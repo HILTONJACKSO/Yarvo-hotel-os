@@ -664,8 +664,72 @@ function SpaceModal({ space, onClose, onSave, canManageEvents }: any) {
   const [pricePerHour, setPricePerHour] = useState(Number(space?.pricePerHour || 100));
   const [pricePerDay, setPricePerDay] = useState(Number(space?.pricePerDay || 800));
   const [isActive, setIsActive] = useState(space ? space.isActive : true);
+  const [spaceImage, setSpaceImage] = useState<string>('');
+  const [isUploadingImg, setIsUploadingImg] = useState(false);
 
   const isReadOnly = !canManageEvents;
+
+  useEffect(() => {
+    fetch('/api/cms', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(json => {
+        if (json.success && json.data?.events?.spaceImages) {
+          const map = json.data.events.spaceImages;
+          const existing = (space?.id && map[space.id]) || (space?.name && map[space.name]) || '';
+          setSpaceImage(existing);
+        }
+      })
+      .catch(() => {});
+  }, [space]);
+
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingImg(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok && data.success && data.url) {
+        setSpaceImage(data.url);
+      } else {
+        alert(data.error || 'Failed to upload image');
+      }
+    } catch (err) {
+      alert('Network error uploading image');
+    } finally {
+      setIsUploadingImg(false);
+    }
+  };
+
+  const saveImageToCms = async (imgVal: string, spaceName: string, spaceId?: string) => {
+    try {
+      const cmsRes = await fetch('/api/cms', { cache: 'no-store' });
+      const cmsJson = await cmsRes.json();
+      const currentContent = cmsJson?.data || {};
+      const currentEvents = currentContent.events || {};
+      const currentSpaceImages = { ...(currentEvents.spaceImages || {}) };
+      if (spaceName) currentSpaceImages[spaceName] = imgVal;
+      if (spaceId) currentSpaceImages[spaceId] = imgVal;
+      await fetch('/api/cms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: {
+            ...currentContent,
+            events: {
+              ...currentEvents,
+              spaceImages: currentSpaceImages,
+            },
+          },
+          propertyId: cmsJson?.propertyId,
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to sync event image to CMS:', e);
+    }
+  };
 
   const handleDelete = async () => {
     if (!space) return;
@@ -723,6 +787,10 @@ function SpaceModal({ space, onClose, onSave, canManageEvents }: any) {
       });
       if (navigator.onLine) syncOfflineMutations();
 
+      if (spaceImage !== '') {
+        await saveImageToCms(spaceImage, name, space?.id);
+      }
+
       onSave();
     } catch (err) {
       console.error(err);
@@ -734,7 +802,7 @@ function SpaceModal({ space, onClose, onSave, canManageEvents }: any) {
     <div className="modal-overlay">
       <div className="modal-content">
         <div className="modal-header">
-          <h3>{space ? (canManageEvents ? 'Edit Space' : 'View Event Space') : 'New Event Space'}</h3>
+          <h3>{space ? (canManageEvents ? 'Edit Space & Picture' : 'View Event Space') : 'New Event Space'}</h3>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minHeight: 0 }}>
           <div className="modal-body">
@@ -762,6 +830,51 @@ function SpaceModal({ space, onClose, onSave, canManageEvents }: any) {
                 <label>Daily Rate ({currency})</label>
                 <input className="form-input" type="number" step="0.01" value={pricePerDay} onChange={e => setPricePerDay(Number(e.target.value))} required disabled={isReadOnly} />
               </div>
+
+              {!isReadOnly && (
+                <div className="form-group full" style={{ marginTop: '8px', padding: '12px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '8px', border: '1px solid rgba(148, 163, 184, 0.2)' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Event Picture on Website</label>
+                  {spaceImage && spaceImage !== 'NONE' ? (
+                    <div style={{ marginBottom: '10px', position: 'relative', height: '120px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #334155' }}>
+                      <img src={spaceImage} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  ) : spaceImage === 'NONE' ? (
+                    <div style={{ marginBottom: '10px', padding: '12px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', fontSize: '12px', fontWeight: 600 }}>
+                      Picture Removed (No image will be shown on the website for this event)
+                    </div>
+                  ) : (
+                    <div style={{ marginBottom: '10px', fontSize: '12px', color: '#94a3b8' }}>
+                      Using default event picture. Upload a new picture or click Remove Picture below.
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <label style={{ background: '#3b82f6', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                      {isUploadingImg ? 'Uploading...' : 'Change / Upload Picture'}
+                      <input type="file" accept="image/*" onChange={handleImageFileUpload} style={{ display: 'none' }} disabled={isUploadingImg} />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setSpaceImage('NONE')}
+                      style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Remove Picture
+                    </button>
+                    {spaceImage && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setSpaceImage('');
+                          await saveImageToCms('', name, space?.id);
+                        }}
+                        style={{ background: 'transparent', color: '#94a3b8', border: '1px solid #475569', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
+                      >
+                        Reset Default
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           

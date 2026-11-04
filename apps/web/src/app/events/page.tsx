@@ -140,23 +140,34 @@ export default function EventsPage() {
         ) : eventSpaces.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
             {eventSpaces.map(space => {
-              const eventImg = cmsContent.events?.spaceImages?.[space.id] || cmsContent.events?.spaceImages?.[space.name] || space.image || getEventImage(space.name);
+              const rawOverride = cmsContent.events?.spaceImages?.[space.id] ?? cmsContent.events?.spaceImages?.[space.name];
+              const isRemoved = rawOverride === 'NONE';
+              const eventImg = isRemoved ? '' : (rawOverride || space.image || getEventImage(space.name));
               const priceText = formatEventPrice(space);
               const description = getEventDescription(space.name, space.capacity);
               const waText = `Hello Kwalee Beach Resort! I would like to inquire about booking the ${space.name.trim()} (${priceText}, up to ${space.capacity} guests). Please send availability!`;
 
               return (
                 <div key={space.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group">
-                  <div className="relative w-full h-64 overflow-hidden bg-gray-100">
-                    <img 
-                      src={eventImg} 
-                      alt={space.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                    />
-                    <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-md text-xs font-bold text-[#1F1F1F]">
-                      {priceText}
+                  {eventImg ? (
+                    <div className="relative w-full h-64 overflow-hidden bg-gray-100">
+                      <img 
+                        src={eventImg} 
+                        alt={space.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      />
+                      <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-md text-xs font-bold text-[#1F1F1F]">
+                        {priceText}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="relative w-full h-24 bg-[#1B2418] flex items-center justify-between px-6">
+                      <span className="text-xs uppercase tracking-[0.2em] text-[#F5A623] font-semibold">Event Package</span>
+                      <div className="bg-white/95 px-4 py-1.5 rounded-full shadow-md text-xs font-bold text-[#1F1F1F]">
+                        {priceText}
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="p-8 flex flex-col flex-grow">
                     <h3 className="font-serif text-2xl text-[#1F1F1F] mb-2">{space.name}</h3>

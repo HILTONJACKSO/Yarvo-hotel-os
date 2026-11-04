@@ -22,28 +22,49 @@ export class TicketsService {
 
   
   
-  async getDailyStats() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  async getDailyStats(startDate?: string, endDate?: string) {
+    const whereClause: any = {
+      status: { in: ['VALID', 'USED'] },
+    };
+
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        const start = new Date(`${startDate}T00:00:00.000`);
+        if (!isNaN(start.getTime())) whereClause.createdAt.gte = start;
+      }
+      if (endDate) {
+        const end = new Date(`${endDate}T23:59:59.999`);
+        if (!isNaN(end.getTime())) whereClause.createdAt.lte = end;
+      }
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      whereClause.createdAt = { gte: today };
+    }
 
     const tickets = await this.prisma.ticket.findMany({
-      where: {
-        createdAt: { gte: today },
-        status: { in: ['VALID', 'USED'] },
-      }
+      where: whereClause,
     });
 
     const totalTickets = tickets.length;
     const totalRevenue = tickets.reduce((sum, t) => sum + Number(t.price), 0);
     
     // Entry Breakdown
-    const entryAdults = tickets.filter(t => t.type.toUpperCase().includes('ENTRY') && t.type.toUpperCase().includes('ADULT'));
-    const entryKids = tickets.filter(t => t.type.toUpperCase().includes('ENTRY') && (t.type.toUpperCase().includes('KID') || t.type.toUpperCase().includes('CHILD')));
+    const entryAll = tickets.filter(t => t.type.toUpperCase().includes('ENTRY'));
+    const entryAdults = entryAll.filter(t => t.type.toUpperCase().includes('ADULT') || (!t.type.toUpperCase().includes('KID') && !t.type.toUpperCase().includes('CHILD')));
+    const entryKids = entryAll.filter(t => t.type.toUpperCase().includes('KID') || t.type.toUpperCase().includes('CHILD'));
     
     // Pool Breakdown
-    const poolAdults = tickets.filter(t => t.type.toUpperCase().includes('POOL') && t.type.toUpperCase().includes('ADULT'));
-    const poolKids = tickets.filter(t => t.type.toUpperCase().includes('POOL') && (t.type.toUpperCase().includes('KID') || t.type.toUpperCase().includes('CHILD')));
+    const poolAll = tickets.filter(t => t.type.toUpperCase().includes('POOL') || t.type.toUpperCase().includes('SWIM'));
+    const poolAdults = poolAll.filter(t => t.type.toUpperCase().includes('ADULT') || (!t.type.toUpperCase().includes('KID') && !t.type.toUpperCase().includes('CHILD')));
+    const poolKids = poolAll.filter(t => t.type.toUpperCase().includes('KID') || t.type.toUpperCase().includes('CHILD'));
     
+    const totalEntryCount = entryAll.length;
+    const totalEntryRevenue = entryAll.reduce((sum, t) => sum + Number(t.price), 0);
+    const totalPoolCount = poolAll.length;
+    const totalPoolRevenue = poolAll.reduce((sum, t) => sum + Number(t.price), 0);
+
     const breakdown = {
       entryAdults: { count: entryAdults.length, revenue: entryAdults.reduce((sum, t) => sum + Number(t.price), 0) },
       entryKids: { count: entryKids.length, revenue: entryKids.reduce((sum, t) => sum + Number(t.price), 0) },
@@ -51,11 +72,34 @@ export class TicketsService {
       poolKids: { count: poolKids.length, revenue: poolKids.reduce((sum, t) => sum + Number(t.price), 0) }
     };
     
-    return { totalOrders: totalTickets, totalRevenue, breakdown };
+    return {
+      totalOrders: totalTickets,
+      totalVisitors: totalTickets,
+      totalRevenue,
+      totalEntryCount,
+      totalEntryRevenue,
+      totalPoolCount,
+      totalPoolRevenue,
+      breakdown,
+    };
   }
 
-  async findAll() {
+  async findAll(startDate?: string, endDate?: string) {
+    const whereClause: any = {};
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        const start = new Date(`${startDate}T00:00:00.000`);
+        if (!isNaN(start.getTime())) whereClause.createdAt.gte = start;
+      }
+      if (endDate) {
+        const end = new Date(`${endDate}T23:59:59.999`);
+        if (!isNaN(end.getTime())) whereClause.createdAt.lte = end;
+      }
+    }
+
     return this.prisma.ticket.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { firstName: true, lastName: true } },

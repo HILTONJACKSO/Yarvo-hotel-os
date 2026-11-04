@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, Query, UseGuards } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -19,8 +19,11 @@ export class TicketsController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'CASHIER', 'TICKETING_STAFF')
-  async findAll() {
-    const data = await this.ticketsService.findAll();
+  async findAll(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const data = await this.ticketsService.findAll(startDate, endDate);
     return { data };
   }
 
@@ -48,8 +51,11 @@ export class TicketsController {
 
   @Get('stats/daily')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'CASHIER', 'TICKETING_STAFF')
-  async getDailyStats() {
-    return this.ticketsService.getDailyStats();
+  async getDailyStats(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.ticketsService.getDailyStats(startDate, endDate);
   }
 
     @Patch(':id/use')

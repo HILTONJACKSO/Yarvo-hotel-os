@@ -43,37 +43,42 @@ export default function FrontDeskPage() {
   const fetchFrontDeskData = async () => {
     setLoading(true);
     try {
-      // In a real app, we'd filter arrivals/departures by TODAY's date.
-      // For now, we filter purely by Status to demonstrate the workflow.
       const [arrRes, inHouseRes, authRes, metRes] = await Promise.all([
-        fetch('/api/v1/reservations?status=CONFIRMED'),
-        fetch('/api/v1/reservations?status=CHECKED_IN'),
+        fetch('/api/v1/reservations?status=CONFIRMED', { credentials: 'include' }),
+        fetch('/api/v1/reservations?status=CHECKED_IN', { credentials: 'include' }),
         fetch('/api/v1/auth/me', { credentials: 'include' }),
-        fetch('/api/v1/analytics/dashboard')
+        fetch('/api/v1/analytics/dashboard', { credentials: 'include' })
       ]);
 
-      const arrData = await arrRes.json();
-      const inHouseData = await inHouseRes.json();
-      const authData = await authRes.json();
-      const metData = await metRes.json();
+      const arrData = await arrRes.json().catch(() => ({}));
+      const inHouseData = await inHouseRes.json().catch(() => ({}));
+      const authData = await authRes.json().catch(() => ({}));
+      const metData = await metRes.json().catch(() => ({}));
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const extractList = (d: any) => {
+        if (Array.isArray(d?.data?.data)) return d.data.data;
+        if (Array.isArray(d?.data)) return d.data;
+        if (Array.isArray(d)) return d;
+        return [];
+      };
 
-      if (arrRes.ok && Array.isArray(arrData.data)) {
-        // Only show arrivals that are scheduled for check-in today (or in the past and overdue)
-        const todaysArrivals = arrData.data.filter((r: any) => r.checkInDate.split('T')[0] <= todayStr);
-        setArrivals(todaysArrivals);
+      if (arrRes.ok) {
+        const allConfirmed = extractList(arrData).sort(
+          (a: any, b: any) => new Date(a.checkInDate).getTime() - new Date(b.checkInDate).getTime()
+        );
+        setArrivals(allConfirmed);
       }
       
-      if (inHouseRes.ok && Array.isArray(inHouseData.data)) {
-        setInHouse(inHouseData.data);
-        // Only show departures that are scheduled for check-out today (or overdue)
-        const todaysDepartures = inHouseData.data.filter((r: any) => r.checkOutDate.split('T')[0] <= todayStr);
-        setDepartures(todaysDepartures); 
+      if (inHouseRes.ok) {
+        const allCheckedIn = extractList(inHouseData).sort(
+          (a: any, b: any) => new Date(a.checkOutDate).getTime() - new Date(b.checkOutDate).getTime()
+        );
+        setInHouse(allCheckedIn);
+        setDepartures(allCheckedIn);
       }
 
       if (authRes.ok) setCurrentUser(authData.data || authData);
-      if (metRes.ok) setMetrics(metData.data);
+      if (metRes.ok) setMetrics(metData.data || metData);
 
     } catch (error) {
       console.error('Failed to fetch front desk data', error);
@@ -88,8 +93,8 @@ export default function FrontDeskPage() {
 
   const handleCheckIn = (res: any) => {
     setActiveReservationId(res.id);
-    setActiveRoomTypeId(res.roomType.id);
-    setActivePreAssignedRoomId(res.room ? res.room.id : null);
+    setActiveRoomTypeId(res.roomType?.id || res.roomTypeId);
+    setActivePreAssignedRoomId(res.room ? res.room.id : (res.roomId || null));
     setIsCheckInOpen(true);
   };
 
@@ -140,7 +145,7 @@ export default function FrontDeskPage() {
         onSuccess={fetchFrontDeskData}
         reservationId={activeReservationId}
         roomTypeId={activeRoomTypeId}
-          preAssignedRoomId={activePreAssignedRoomId}
+        preAssignedRoomId={activePreAssignedRoomId}
       />
 
       <CheckOutModal 
@@ -175,9 +180,10 @@ export default function FrontDeskPage() {
                 {arrivals.map((res) => (
                   <div key={res.id} className="op-card">
                     <div className="op-details">
-                      <strong>{res.guest.firstName} {res.guest.lastName}</strong>
-                      <span className="text-muted">Conf: {res.confirmationCode}</span>
-                      <span className="text-muted">Type: {res.roomType.name}</span>
+                      <strong>{res.guest?.firstName} {res.guest?.lastName}</strong>
+                      <span className="text-muted" style={{ color: '#f59e0b', fontWeight: 600 }}>Ref: {res.confirmationCode}</span>
+                      <span className="text-muted">Type: {res.roomType?.name} {res.room ? `(Room ${res.room.number})` : ''}</span>
+                      <span className="text-muted">Check-In: {new Date(res.checkInDate).toLocaleDateString()}</span>
                     </div>
                     <button className="btn-success" onClick={() => handleCheckIn(res)}>Check In</button>
                   </div>
@@ -201,10 +207,14 @@ export default function FrontDeskPage() {
                 {inHouse.map((res) => (
                   <div key={res.id} className="op-card">
                     <div className="op-details">
-                      <strong>{res.guest.firstName} {res.guest.lastName}</strong>
+                      <strong>{res.guest?.firstName} {res.guest?.lastName}</strong>
+                      <span className="text-muted" style={{ color: '#f59e0b', fontWeight: 600 }}>Ref: {res.confirmationCode}</span>
                       <span className="text-muted">Room: {res.room?.number || 'Unknown'}</span>
                     </div>
-                    <button className="btn-secondary" onClick={() => router.push('/dashboard/billing')}>View Folio</button>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button className="btn-secondary" onClick={() => router.push(`/dashboard/billing?reservationId=${res.id}`)}>View Bill</button>
+                      <button className="btn-danger" onClick={() => handleCheckOut(res)}>Check Out</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -215,7 +225,7 @@ export default function FrontDeskPage() {
         {/* Departures Panel */}
         <div className="panel">
           <div className="panel-header">
-            <h3>Departures (Pending Check-Out)</h3>
+            <h3>Departures (Ready for Check-Out)</h3>
             <span className="badge">{departures.length}</span>
           </div>
           <div className="panel-body">
@@ -226,8 +236,9 @@ export default function FrontDeskPage() {
                 {departures.map((res) => (
                   <div key={res.id} className="op-card">
                     <div className="op-details">
-                      <strong>{res.guest.firstName} {res.guest.lastName}</strong>
-                      <span className="text-muted">Room: {res.room?.number || 'Unknown'}</span>
+                      <strong>{res.guest?.firstName} {res.guest?.lastName}</strong>
+                      <span className="text-muted" style={{ color: '#f59e0b', fontWeight: 600 }}>Ref: {res.confirmationCode}</span>
+                      <span className="text-muted">Room: {res.room?.number || 'Unknown'} • Out: {new Date(res.checkOutDate).toLocaleDateString()}</span>
                     </div>
                     <button className="btn-danger" onClick={() => handleCheckOut(res)}>Check Out</button>
                   </div>
