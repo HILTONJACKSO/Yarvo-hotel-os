@@ -114,13 +114,19 @@ export default function ToursEventsPage() {
   const openModal = (item?: Activity) => {
     if (item) {
       setSelectedItem(item);
+      const initialImages =
+        Array.isArray(item.images) && item.images.length > 0
+          ? item.images
+          : item.image
+          ? [item.image]
+          : [];
       setFormData({
         type: item.type,
         name: item.name,
         description: item.description || '',
         price: item.price.toString(),
-        image: item.image || '',
-        images: item.images || [],
+        image: item.image || (initialImages[0] ?? ''),
+        images: initialImages,
         isActive: item.isActive
       });
     } else {
@@ -265,7 +271,18 @@ export default function ToursEventsPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Images</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-slate-300">Images</label>
+                  {(formData.image || formData.images.length > 0) && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, image: '', images: [] })}
+                      className="text-xs text-rose-400 hover:text-rose-300 font-medium"
+                    >
+                      Remove All Pictures
+                    </button>
+                  )}
+                </div>
                 <MultiImageUpload 
                   images={formData.images} 
                   onChange={(images) => {

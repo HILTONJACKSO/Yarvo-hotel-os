@@ -131,7 +131,8 @@ export class PublicService {
       throw new BadRequestException('No availability for the selected dates and room type.');
     }
 
-    // 2. Find or create guest
+    // 2. Find or create guest (and keep latest phone/whatsapp updated)
+    const guestWhatsappNormalized = (dto.whatsapp || dto.phone || '').trim();
     let guest = await this.prisma.guest.findFirst({ where: { email: dto.email } });
     if (!guest) {
       guest = await this.prisma.guest.create({
@@ -140,26 +141,34 @@ export class PublicService {
           lastName: dto.lastName,
           email: dto.email,
           phone: dto.phone,
-          whatsapp: dto.whatsapp || dto.phone,
+          whatsapp: guestWhatsappNormalized,
         }
       });
-    } else if (dto.whatsapp && !guest.whatsapp) {
+    } else {
       guest = await this.prisma.guest.update({
         where: { id: guest.id },
-        data: { whatsapp: dto.whatsapp }
+        data: {
+          firstName: dto.firstName || guest.firstName,
+          lastName: dto.lastName || guest.lastName,
+          phone: dto.phone || guest.phone,
+          whatsapp: guestWhatsappNormalized || guest.whatsapp || guest.phone,
+        }
       });
     }
 
-    // 3. Generate Sequential Booking Reference VC-YYYY-XXXX
+    // 3. Generate Sequential Booking Reference VC-YYYY-XXXX safely
     const year = new Date().getFullYear();
-    const count = await this.prisma.reservation.count({
+    let seqNum = (await this.prisma.reservation.count({
       where: { createdAt: { gte: new Date(`${year}-01-01`) } }
-    });
-    const seq = (count + 1).toString().padStart(4, '0');
-    const confirmationCode = `VC-${year}-${seq}`;
+    })) + 1;
+    let confirmationCode = `VC-${year}-${seqNum.toString().padStart(4, '0')}`;
+    while (await this.prisma.reservation.findUnique({ where: { confirmationCode } })) {
+      seqNum++;
+      confirmationCode = `VC-${year}-${seqNum.toString().padStart(4, '0')}`;
+    }
 
-    // 4. Calculate total amount
-    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24));
+    // 4. Calculate total amount (tax-inclusive — never add extra tax on top of subtotal)
+    const nights = Math.max(1, Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24)));
     const roomsCount = Math.max(1, Number(dto.roomsCount || 1));
     let totalAmount = Number(roomType.baseRateUsd) * nights * roomsCount;
     
@@ -222,11 +231,20 @@ export class PublicService {
       totalAmount: Number(reservation.totalAmount),
       checkInDate: reservation.checkInDate,
       checkOutDate: reservation.checkOutDate,
+      nights,
+      roomsCount,
+      adultsCount: reservation.adultsCount,
       roomTypeName: reservation.roomType?.name,
       roomNumber: reservation.room?.number,
       guestName: `${reservation.guest?.firstName || ''} ${reservation.guest?.lastName || ''}`.trim(),
+      guestEmail: reservation.guest?.email,
       guestPhone: reservation.guest?.phone,
       guestWhatsapp: reservation.guest?.whatsapp || reservation.guest?.phone,
+      activities: (reservation.activities || []).map((a: any) => ({
+        name: a.activity?.name || 'Activity',
+        quantity: a.quantity,
+        totalPrice: Number(a.totalPrice),
+      })),
       message: 'Booking confirmed successfully!',
     };
   }
@@ -326,24 +344,62 @@ export class PublicService {
     return Array.isArray(content.newsletterSubscribers) ? content.newsletterSubscribers : [];
   }
 
+  private normalizeWhatsAppRecipient(rawPhone: string): string {
+    const digits = (rawPhone || '').replace(/[^0-9]/g, '');
+    if (!digits) return '';
+    if (digits.startsWith('00')) return digits.slice(2);
+    if (digits.startsWith('0') && digits.length === 10) {
+      return '231' + digits.slice(1);
+    }
+    if (digits.length === 9 && (digits.startsWith('77') || digits.startsWith('88') || digits.startsWith('55'))) {
+      return '231' + digits;
+    }
+    return digits;
+  }
+
   private async sendNotifications(reservation: any) {
-    // A. Resend Email
+    const checkInStr = reservation.checkInDate instanceof Date
+      ? reservation.checkInDate.toISOString().split('T')[0]
+      : String(reservation.checkInDate).split('T')[0];
+    const checkOutStr = reservation.checkOutDate instanceof Date
+      ? reservation.checkOutDate.toISOString().split('T')[0]
+      : String(reservation.checkOutDate).split('T')[0];
+    const guestFullName = `${reservation.guest?.firstName || ''} ${reservation.guest?.lastName || ''}`.trim();
+    const guestWaRaw = reservation.guest?.whatsapp || reservation.guest?.phone || '';
+    const normalizedWa = this.normalizeWhatsAppRecipient(guestWaRaw);
+
+    // A. Automatic Email Confirmation to Guest's Personal Email
     try {
-      if (process.env.RESEND_API_KEY) {
+      if (process.env.RESEND_API_KEY && reservation.guest?.email) {
+        const activitiesHtml = Array.isArray(reservation.activities) && reservation.activities.length > 0
+          ? `<p><strong>Selected Activities:</strong> ${reservation.activities.map((a: any) => `${a.activity?.name || 'Activity'} (x${a.quantity}) - $${Number(a.totalPrice).toFixed(2)}`).join(', ')}</p>`
+          : '';
+
         const emailHtml = `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1F1F1F;">
-            <h2 style="color: #1B2418;">Booking Confirmed!</h2>
-            <p>Dear ${reservation.guest.firstName},</p>
-            <p>Your booking at <strong>Kwalee Beach Resort</strong> has been received successfully.</p>
-            <div style="background: #FAF9F4; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <p><strong>Reservation Number:</strong> ${reservation.confirmationCode}</p>
-              <p><strong>Room:</strong> ${reservation.roomType.name} (${reservation.room.number})</p>
-              <p><strong>Check-in:</strong> ${reservation.checkInDate.toISOString().split('T')[0]}</p>
-              <p><strong>Check-out:</strong> ${reservation.checkOutDate.toISOString().split('T')[0]}</p>
-              <p><strong>Total Amount:</strong> $${Number(reservation.totalAmount).toFixed(2)}</p>
-              <p><strong>Status:</strong> ${reservation.status}</p>
+          <div style="font-family: Georgia, serif; max-width: 620px; margin: 0 auto; color: #1F1F1F; border: 1px solid #E8E1D7; border-radius: 12px; overflow: hidden;">
+            <div style="background: #1B2418; color: #FFFFFF; padding: 28px 24px; text-align: center;">
+              <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 3px; color: #DFB776; margin: 0 0 6px;">Kwalee Beach Resort</p>
+              <h2 style="margin: 0; font-size: 24px;">Room Reserved • Booking Confirmed</h2>
             </div>
-            <p>We look forward to welcoming you.</p>
+            <div style="padding: 24px; background: #FFFFFF; font-family: sans-serif;">
+              <p>Dear <strong>${guestFullName}</strong>,</p>
+              <p>Thank you for choosing <strong>Kwalee Beach Resort</strong>! Your room has been reserved and your booking has been confirmed. Please find your official reservation details below:</p>
+              <div style="background: #FAF9F4; padding: 20px; border-radius: 10px; border: 1px solid #E8E1D7; margin: 20px 0;">
+                <p style="margin: 6px 0;"><strong>Booking Reference:</strong> <span style="font-family: monospace; font-size: 16px; color: #1B2418;">${reservation.confirmationCode}</span></p>
+                <p style="margin: 6px 0;"><strong>Guest Name:</strong> ${guestFullName}</p>
+                <p style="margin: 6px 0;"><strong>Email:</strong> ${reservation.guest.email}</p>
+                <p style="margin: 6px 0;"><strong>Phone / WhatsApp:</strong> ${guestWaRaw}</p>
+                <hr style="border: none; border-top: 1px solid #E8E1D7; margin: 12px 0;" />
+                <p style="margin: 6px 0;"><strong>Accommodation:</strong> ${reservation.roomType?.name || 'Accommodation'} (Unit: ${reservation.room?.number || 'Assigned'})</p>
+                <p style="margin: 6px 0;"><strong>Guests:</strong> ${reservation.adultsCount || 1} Guest(s)</p>
+                <p style="margin: 6px 0;"><strong>Check-In Date:</strong> ${checkInStr} (2:00 PM)</p>
+                <p style="margin: 6px 0;"><strong>Check-Out Date:</strong> ${checkOutStr} (11:00 AM)</p>
+                ${activitiesHtml}
+                <p style="margin: 10px 0 4px; font-size: 16px;"><strong>Total Amount:</strong> $${Number(reservation.totalAmount).toFixed(2)}</p>
+                <p style="margin: 4px 0;"><strong>Status:</strong> ${reservation.status}</p>
+              </div>
+              <p style="font-size: 13px; color: #555;">Please present your booking reference <strong>${reservation.confirmationCode}</strong> upon arrival at the resort front desk. We look forward to welcoming you!</p>
+            </div>
           </div>
         `;
         
@@ -356,7 +412,7 @@ export class PublicService {
           body: JSON.stringify({
             from: process.env.HOTEL_EMAIL || 'reservations@kwaleebeachresort.com',
             to: reservation.guest.email,
-            subject: `Booking Confirmed: ${reservation.confirmationCode}`,
+            subject: `Booking Confirmed (${reservation.confirmationCode}) - Kwalee Beach Resort`,
             html: emailHtml
           })
         });
@@ -376,11 +432,24 @@ export class PublicService {
       this.logger.error('Email error:', e);
     }
 
-    // B. WhatsApp Notification
+    // B. Automatic WhatsApp Notification to Guest's Personal WhatsApp Number
     try {
-      if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID && reservation.guest.whatsapp) {
-        const msg = `Hello ${reservation.guest.firstName},\n\nYour booking at Kwalee Beach Resort is confirmed!\n\nBooking: ${reservation.confirmationCode}\nRoom: ${reservation.roomType.name}\nCheck-in: ${reservation.checkInDate.toISOString().split('T')[0]}\nCheck-out: ${reservation.checkOutDate.toISOString().split('T')[0]}\nTotal: $${Number(reservation.totalAmount).toFixed(2)}\n\nWe look forward to welcoming you!`;
-        
+      const msg = [
+        `*KWALEE BEACH RESORT — BOOKING CONFIRMED*`,
+        `Hello ${guestFullName}, your room is reserved and your booking has been received!`,
+        ``,
+        `*Booking Ref:* ${reservation.confirmationCode}`,
+        `*Accommodation:* ${reservation.roomType?.name || 'Room'} (Unit ${reservation.room?.number || 'Assigned'})`,
+        `*Guests:* ${reservation.adultsCount || 1}`,
+        `*Check-In:* ${checkInStr} (2:00 PM)`,
+        `*Check-Out:* ${checkOutStr} (11:00 AM)`,
+        `*Total Amount:* $${Number(reservation.totalAmount).toFixed(2)}`,
+        `*Status:* ${reservation.status}`,
+        ``,
+        `Please present your booking reference *${reservation.confirmationCode}* at the Front Desk upon arrival. We look forward to welcoming you!`
+      ].join('\n');
+
+      if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID && normalizedWa) {
         const res = await fetch(`https://graph.facebook.com/v17.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
           method: 'POST',
           headers: {
@@ -389,7 +458,7 @@ export class PublicService {
           },
           body: JSON.stringify({
             messaging_product: "whatsapp",
-            to: reservation.guest.whatsapp.replace(/[^0-9]/g, ''),
+            to: normalizedWa,
             type: "text",
             text: { body: msg }
           })
@@ -400,8 +469,27 @@ export class PublicService {
           data: {
             reservationId: reservation.id,
             type: 'WHATSAPP',
-            recipient: reservation.guest.whatsapp,
+            recipient: normalizedWa,
             status,
+            errorMessage: res.ok ? null : await res.text()
+          }
+        });
+      } else if (process.env.WHATSAPP_WEBHOOK_URL && normalizedWa) {
+        const res = await fetch(process.env.WHATSAPP_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: normalizedWa,
+            message: msg,
+            reservationCode: reservation.confirmationCode,
+          }),
+        });
+        await this.prisma.notificationLog.create({
+          data: {
+            reservationId: reservation.id,
+            type: 'WHATSAPP',
+            recipient: normalizedWa,
+            status: res.ok ? 'SENT' : 'FAILED',
             errorMessage: res.ok ? null : await res.text()
           }
         });
@@ -422,8 +510,8 @@ export class PublicService {
           body: JSON.stringify({
             from: process.env.HOTEL_EMAIL || 'reservations@kwaleebeachresort.com',
             to: process.env.ADMIN_EMAIL,
-            subject: `New Booking: ${reservation.confirmationCode}`,
-            html: `<p>New booking received from ${reservation.guest.firstName} ${reservation.guest.lastName} for ${reservation.roomType.name}.</p>`
+            subject: `New Website Booking: ${reservation.confirmationCode}`,
+            html: `<p>New booking received from <strong>${guestFullName}</strong> (${reservation.guest?.email}, ${guestWaRaw}) for ${reservation.roomType?.name} (${checkInStr} to ${checkOutStr}). Total: $${Number(reservation.totalAmount).toFixed(2)}.</p>`
           })
         });
         await this.prisma.notificationLog.create({
@@ -480,6 +568,10 @@ export class PublicService {
 
   async createEventBooking(dto: CreateEventBookingDto) {
     let space = dto.spaceId ? await this.prisma.eventSpace.findUnique({ where: { id: dto.spaceId } }) : null;
+    const matchedActivity = (!space && dto.spaceId)
+      ? await this.prisma.activity.findUnique({ where: { id: dto.spaceId } })
+      : null;
+
     if (!space) {
       space = await this.prisma.eventSpace.findFirst({ where: { isActive: true } });
     }
@@ -494,9 +586,15 @@ export class PublicService {
       throw new BadRequestException('Invalid start or end time. End time must be after start time.');
     }
 
-    const hours = Math.max(1, Math.ceil((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)));
-    const unitPrice = Number(space.pricePerHour || space.pricePerDay || 50);
-    const totalAmount = unitPrice * hours;
+    const attendeesCount = Math.max(1, Number(dto.attendeesCount || 1));
+    let totalAmount = 0;
+    if (matchedActivity) {
+      totalAmount = Number(matchedActivity.price || 0) * attendeesCount;
+    } else {
+      const hours = Math.max(1, Math.ceil((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)));
+      const unitPrice = Number(space.pricePerHour || space.pricePerDay || 50);
+      totalAmount = unitPrice * hours;
+    }
 
     const booking = await this.prisma.eventBooking.create({
       data: {
@@ -504,8 +602,8 @@ export class PublicService {
         guestName: dto.guestName,
         guestEmail: dto.guestEmail && dto.guestEmail.trim() !== '' ? dto.guestEmail.trim() : null,
         guestPhone: dto.guestPhone,
-        eventType: dto.eventType || space.name || 'Event Reservation',
-        attendeesCount: dto.attendeesCount || 10,
+        eventType: dto.eventType || (matchedActivity ? `Activity: ${matchedActivity.name}` : space.name) || 'Event Reservation',
+        attendeesCount,
         startTime,
         endTime,
         totalAmount,

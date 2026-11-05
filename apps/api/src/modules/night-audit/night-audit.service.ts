@@ -58,7 +58,8 @@ export class NightAuditService {
             }
           }
           
-          const totalCharge = rate + taxAmount;
+          // Tax is inclusive in the room rate — never add taxAmount on top of rate
+          const totalCharge = rate;
           
           await this.prisma.folioLineItem.create({
             data: {

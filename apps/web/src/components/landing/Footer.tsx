@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Instagram, Facebook, Phone, Mail, MapPin } from 'lucide-react';
 import { GeneralContent } from '@/types/cms';
-import { DEFAULT_CMS_CONTENT } from '@/lib/default-cms-content';
+import { DEFAULT_CMS_CONTENT, normalizeNavLinks } from '@/lib/default-cms-content';
 
 interface FooterProps {
   general?: GeneralContent;
@@ -55,9 +55,7 @@ const Footer = ({ general }: FooterProps) => {
       .catch(() => {});
   }, [general]);
 
-  const navLinks = data.navLinks && data.navLinks.length > 0
-    ? data.navLinks
-    : DEFAULT_CMS_CONTENT.general.navLinks;
+  const navLinks = normalizeNavLinks(data.navLinks);
 
   return (
     <footer id="contact" className="bg-[#1F1F1F] text-white pt-24 pb-12 px-6 md:px-12">

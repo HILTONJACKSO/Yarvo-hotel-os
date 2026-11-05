@@ -393,7 +393,7 @@ export default function PosPage() {
     const itemBeforeTax = (itemTotal - totalFlat) / (1 + totalPercentage / 100);
     cartTaxes += (itemTotal - itemBeforeTax);
   });
-  const cartSubtotal = cartTotal - cartTaxes;
+  const cartSubtotal = cartTotal;
 
   const sortedInventoryItems = [...inventoryItems].sort((a, b) => 
     a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })

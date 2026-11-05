@@ -583,8 +583,8 @@ export default function CashierPage() {
 
     const orderTotal = Number(selectedOrder.totalAmount);
     const finalTotal = Math.max(0, orderTotal - calculatedDiscount);
-    const subtotal = orderTotal / 1.10;
-    const gst = orderTotal - subtotal;
+    const subtotal = orderTotal;
+    const gst = orderTotal - (orderTotal / 1.10);
 
     const formattedItems = selectedOrder.items.map((item: any) => {
       const isReturned = item.status === 'RETURNED';
@@ -616,7 +616,7 @@ export default function CashierPage() {
       items: formattedItems,
       subtotal: format(subtotal),
       tax: format(gst),
-      taxLabel: 'GST / Tax (10% Included)',
+      taxLabel: 'GST / Tax (Included)',
       discount: calculatedDiscount > 0 ? format(calculatedDiscount) : undefined,
       total: format(finalTotal),
       isInvoiceMode: mode === 'INVOICE',

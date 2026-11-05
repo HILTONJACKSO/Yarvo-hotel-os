@@ -280,11 +280,38 @@ export const DEFAULT_CMS_CONTENT: WebsiteContent = {
       { label: "Pool", href: "/#pool" },
       { label: "Dining", href: "/dining" },
       { label: "Events", href: "/events" },
+      { label: "Activities", href: "/activities" },
       { label: "Gallery", href: "/#gallery" },
       { label: "Contact", href: "/#contact" }
     ]
   }
 };
+
+export function normalizeNavLinks(links: { label: string; href: string }[] | undefined): { label: string; href: string }[] {
+  const base = Array.isArray(links) && links.length > 0 ? [...links] : [...DEFAULT_CMS_CONTENT.general.navLinks];
+  const mapped = base.map(link => {
+    const lbl = (link.label || '').trim().toLowerCase();
+    if (lbl === 'tours' || lbl === 'tours & activities' || link.href === '/tours') {
+      return { label: 'Activities', href: '/activities' };
+    }
+    return link;
+  });
+
+  const hasActivities = mapped.some(
+    l => (l.label || '').trim().toLowerCase() === 'activities' || l.href === '/activities'
+  );
+  if (!hasActivities) {
+    const eventsIdx = mapped.findIndex(
+      l => (l.label || '').trim().toLowerCase() === 'events' || l.href === '/events'
+    );
+    if (eventsIdx !== -1) {
+      mapped.splice(eventsIdx + 1, 0, { label: 'Activities', href: '/activities' });
+    } else {
+      mapped.push({ label: 'Activities', href: '/activities' });
+    }
+  }
+  return mapped;
+}
 
 /**
  * Deeply merges custom content into the default CMS content to ensure complete type safety
@@ -362,9 +389,7 @@ export function mergeWithDefaultContent(input: any): WebsiteContent {
     general: {
       ...DEFAULT_CMS_CONTENT.general,
       ...(input.general || {}),
-      navLinks: Array.isArray(input.general?.navLinks) && input.general.navLinks.length > 0
-        ? input.general.navLinks
-        : DEFAULT_CMS_CONTENT.general.navLinks
+      navLinks: normalizeNavLinks(input.general?.navLinks)
     }
   };
 }

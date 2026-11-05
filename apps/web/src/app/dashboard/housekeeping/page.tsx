@@ -21,10 +21,23 @@ export default function HousekeepingPage() {
   const [loading, setLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{message: string, onConfirm: () => void} | null>(null);
 
-  const fetchRooms = async () => {
+  const fetchRooms = async (silent = false) => {
     try {
-      setLoading(true);
-      if (navigator.onLine) await downloadLatestData();
+      if (!silent && rooms.length === 0) setLoading(true);
+      if (navigator.onLine) {
+        try {
+          const res = await fetch('/api/v1/rooms', { credentials: 'include' });
+          if (res.ok) {
+            const json = await res.json();
+            const arr = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+            if (arr.length > 0) {
+              await db.rooms.clear();
+              await db.rooms.bulkPut(arr);
+            }
+          }
+        } catch (e) {}
+        await downloadLatestData();
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -34,6 +47,12 @@ export default function HousekeepingPage() {
 
   useEffect(() => {
     fetchRooms();
+    const interval = setInterval(() => {
+      if (navigator.onLine && document.visibilityState === 'visible') {
+        fetchRooms(true);
+      }
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleMarkClean = (id: string, number: string) => {
@@ -43,22 +62,36 @@ export default function HousekeepingPage() {
         try {
           const room = await db.rooms.get(id);
           if (room) {
-             (room as any).status = 'CLEAN';
-             await db.rooms.put(room);
+            (room as any).status = 'CLEAN';
+            await db.rooms.put(room);
           }
-          await db.syncQueue.add({
-            url: `/api/v1/rooms/${id}/clean`,
-            method: 'PATCH',
-            payload: null,
-            createdAt: Date.now(),
-            status: 'PENDING',
-            retryCount: 0
-          });
-          if (navigator.onLine) syncOfflineMutations();
+          if (navigator.onLine) {
+            const res = await fetch(`/api/v1/rooms/${id}/clean`, {
+              method: 'PATCH',
+              credentials: 'include',
+            });
+            if (!res.ok) {
+              await fetch(`/api/v1/rooms/${id}/status`, {
+                method: 'PATCH',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'CLEAN' }),
+              });
+            }
+          } else {
+            await db.syncQueue.add({
+              url: `/api/v1/rooms/${id}/clean`,
+              method: 'PATCH',
+              payload: null,
+              createdAt: Date.now(),
+              status: 'PENDING',
+              retryCount: 0
+            });
+          }
 
           showToast(`Room ${number} marked as clean`, 'success');
           setConfirmAction(null);
-          fetchRooms();
+          fetchRooms(true);
         } catch (err) {
           console.error(err);
         }
@@ -66,11 +99,40 @@ export default function HousekeepingPage() {
     });
   };
 
-  if (loading) return <div className="loading-state">Loading Housekeeping Board...</div>;
+  const handleMarkDirty = (id: string, number: string) => {
+    setConfirmAction({
+      message: `Mark Room ${number} as Vacant Dirty for housekeeping?`,
+      onConfirm: async () => {
+        try {
+          const room = await db.rooms.get(id);
+          if (room) {
+            (room as any).status = 'DIRTY';
+            await db.rooms.put(room);
+          }
+          if (navigator.onLine) {
+            await fetch(`/api/v1/rooms/${id}/status`, {
+              method: 'PATCH',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'DIRTY' }),
+            });
+          }
+          showToast(`Room ${number} marked as Vacant Dirty`, 'success');
+          setConfirmAction(null);
+          fetchRooms(true);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    });
+  };
 
-  const dirtyRooms = rooms.filter(r => r.status === 'DIRTY');
-  const occupiedRooms = rooms.filter(r => r.status === 'OCCUPIED');
-  const otherRooms = rooms.filter(r => !['DIRTY', 'OCCUPIED'].includes(r.status));
+  if (loading && rooms.length === 0) return <div className="loading-state">Loading Housekeeping Board...</div>;
+
+  const sortedRooms = [...rooms].sort((a, b) => String(a.number).localeCompare(String(b.number), undefined, { numeric: true }));
+  const dirtyRooms = sortedRooms.filter(r => r.status === 'DIRTY');
+  const occupiedRooms = sortedRooms.filter(r => r.status === 'OCCUPIED');
+  const otherRooms = sortedRooms.filter(r => !['DIRTY', 'OCCUPIED'].includes(r.status));
 
   return (
     <div className="housekeeping-container">
@@ -81,19 +143,25 @@ export default function HousekeepingPage() {
         onConfirm={() => confirmAction?.onConfirm()}
         onCancel={() => setConfirmAction(null)}
         isDanger={false}
-        confirmText="Yes, Mark Clean"
+        confirmText="Confirm"
       />
       
       <div className="page-header">
-        <h2>Housekeeping Board</h2>
+        <div>
+          <h2>Housekeeping Board</h2>
+          <p className="subtitle-text">Live room status across all rooms and tents</p>
+        </div>
         <div className="stats">
           <span className="stat-badge stat-dirty">{dirtyRooms.length} Dirty</span>
           <span className="stat-badge stat-occupied">{occupiedRooms.length} Occupied</span>
+          <button className="btn-refresh" onClick={() => fetchRooms(false)} title="Refresh Rooms">
+            ↻ Refresh
+          </button>
         </div>
       </div>
 
       <div className="section">
-        <h3 className="section-title text-danger">Action Required: Dirty Rooms</h3>
+        <h3 className="section-title text-danger">Action Required: Dirty Rooms ({dirtyRooms.length})</h3>
         {dirtyRooms.length === 0 ? (
           <p className="empty-text">No dirty rooms! Excellent job.</p>
         ) : (
@@ -102,7 +170,7 @@ export default function HousekeepingPage() {
               <div key={r.id} className="room-card card-dirty">
                 <div className="room-header">
                   <span className="room-num">{r.number}</span>
-                  <span className="room-type">{r.roomType.name}</span>
+                  <span className="room-type">{r.roomType?.name || 'Room'}</span>
                 </div>
                 <div className="room-footer">
                   <button className="btn-clean" onClick={() => handleMarkClean(r.id, r.number)}>
@@ -116,24 +184,31 @@ export default function HousekeepingPage() {
       </div>
 
       <div className="section">
-        <h3 className="section-title text-warning">In-House: Occupied Rooms (Daily Service)</h3>
-        <div className="room-grid">
-          {occupiedRooms.map(r => (
-            <div key={r.id} className="room-card card-occupied">
-              <div className="room-header">
-                <span className="room-num">{r.number}</span>
-                <span className="room-type">{r.roomType.name}</span>
+        <h3 className="section-title text-warning">In-House: Occupied Rooms (Daily Service) ({occupiedRooms.length})</h3>
+        {occupiedRooms.length === 0 ? (
+          <p className="empty-text">No occupied rooms right now.</p>
+        ) : (
+          <div className="room-grid">
+            {occupiedRooms.map(r => (
+              <div key={r.id} className="room-card card-occupied">
+                <div className="room-header">
+                  <span className="room-num">{r.number}</span>
+                  <span className="room-type">{r.roomType?.name || 'Room'}</span>
+                </div>
+                <div className="room-footer" style={{ justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                  <span className="status-label">Guest In-House</span>
+                  <button className="btn-dirty-sm" onClick={() => handleMarkDirty(r.id, r.number)}>
+                    Set Vacant Dirty
+                  </button>
+                </div>
               </div>
-              <div className="room-footer">
-                <span className="status-label">Guest In-House</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="section">
-        <h3 className="section-title">Other Rooms ({otherRooms.length})</h3>
+        <h3 className="section-title">Clean & Available Rooms ({otherRooms.length})</h3>
         <div className="room-grid compact">
           {otherRooms.map(r => (
             <div key={r.id} className="room-card card-neutral">
@@ -141,50 +216,61 @@ export default function HousekeepingPage() {
                 <span className="room-num">{r.number}</span>
                 <span className="status-sm">{r.status}</span>
               </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                <span style={{ fontSize: '0.75rem', color: 'hsl(215, 20%, 60%)' }}>{r.roomType?.name || ''}</span>
+                {r.status === 'CLEAN' && (
+                  <button className="btn-dirty-sm" onClick={() => handleMarkDirty(r.id, r.number)}>
+                    Mark Dirty
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       <style>{`
-        .housekeeping-container { display: flex; flex-direction: column; gap: 32px; padding: 8px; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid hsl(217, 20%, 14%); padding-bottom: 16px; }
+        .housekeeping-container { display: flex; flex-direction: column; gap: 28px; padding: 4px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; border-bottom: 1px solid hsl(217, 20%, 14%); padding-bottom: 16px; }
         .page-header h2 { margin: 0; color: hsl(210, 40%, 96%); font-weight: 600; font-size: 1.5rem; }
+        .subtitle-text { margin: 4px 0 0 0; font-size: 0.8125rem; color: hsl(215, 20%, 55%); }
         
-        .stats { display: flex; gap: 12px; }
-        .stat-badge { padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 6px; }
+        .stats { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .stat-badge { padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 0.8125rem; display: flex; align-items: center; gap: 6px; }
         .stat-dirty { background: hsl(0, 84%, 60%, 0.15); color: hsl(0, 84%, 65%); border: 1px solid hsl(0, 84%, 60%, 0.25); }
         .stat-occupied { background: hsl(35, 100%, 50%, 0.15); color: hsl(35, 100%, 65%); border: 1px solid hsl(35, 100%, 50%, 0.25); }
+        .btn-refresh { background: hsl(222, 35%, 14%); color: hsl(210, 40%, 90%); border: 1px solid hsl(217, 20%, 24%); padding: 6px 12px; border-radius: 20px; font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-refresh:hover { background: hsl(222, 35%, 20%); }
 
-        .section-title { margin: 0 0 20px 0; font-size: 1.125rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .section-title { margin: 0 0 16px 0; font-size: 1.125rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
         .text-danger { color: hsl(0, 84%, 65%); }
         .text-warning { color: hsl(35, 100%, 65%); }
 
-        .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
-        .room-grid.compact { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+        .room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+        .room-grid.compact { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
 
         .room-card { 
           background: hsl(222, 35%, 10%); 
           border: 1px solid; 
           border-radius: 12px; 
-          padding: 20px; 
+          padding: 18px; 
           display: flex; 
           flex-direction: column; 
           justify-content: space-between;
-          gap: 20px; 
-          min-height: 140px;
+          gap: 16px; 
+          min-height: 130px;
           transition: transform 0.2s, box-shadow 0.2s;
         }
         .room-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); }
         
         .card-dirty { border-color: hsl(0, 84%, 60%, 0.3); border-top: 4px solid hsl(0, 84%, 60%); }
         .card-occupied { border-color: hsl(35, 100%, 50%, 0.3); border-top: 4px solid hsl(35, 100%, 50%); }
-        .card-neutral { border-color: hsl(217, 20%, 18%); padding: 16px; min-height: 100px; border-top: 4px solid hsl(217, 20%, 25%); }
+        .card-neutral { border-color: hsl(217, 20%, 18%); padding: 14px; min-height: 95px; border-top: 4px solid hsl(217, 20%, 25%); }
 
-        .room-header { display: flex; justify-content: space-between; align-items: center; }
-        .room-num { font-size: 1.75rem; font-weight: 700; color: hsl(210, 40%, 96%); line-height: 1; letter-spacing: -0.02em; }
-        .room-type { font-size: 0.8125rem; color: hsl(215, 20%, 65%); text-align: right; background: hsl(222, 35%, 15%); padding: 4px 10px; border-radius: 12px; }
-        .status-sm { font-size: 0.75rem; color: hsl(215, 20%, 50%); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+        .room-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .room-num { font-size: 1.5rem; font-weight: 700; color: hsl(210, 40%, 96%); line-height: 1; letter-spacing: -0.02em; }
+        .room-type { font-size: 0.75rem; color: hsl(215, 20%, 65%); text-align: right; background: hsl(222, 35%, 15%); padding: 4px 10px; border-radius: 12px; }
+        .status-sm { font-size: 0.75rem; color: hsl(142, 70%, 55%); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
         .room-footer { display: flex; align-items: center; }
         
@@ -193,7 +279,7 @@ export default function HousekeepingPage() {
           background: hsl(142, 76%, 36%, 0.15); 
           color: hsl(142, 76%, 50%); 
           border: 1px solid hsl(142, 76%, 36%, 0.3); 
-          padding: 12px; 
+          padding: 10px 12px; 
           border-radius: 8px; 
           font-weight: 600; 
           font-size: 0.875rem;
@@ -206,8 +292,21 @@ export default function HousekeepingPage() {
         }
         .btn-clean:hover { background: hsl(142, 76%, 36%); color: white; }
 
+        .btn-dirty-sm {
+          background: rgba(239, 68, 68, 0.12);
+          color: #f87171;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 0.72rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .btn-dirty-sm:hover { background: #ef4444; color: white; }
+
         .status-label { 
-          font-size: 0.875rem; 
+          font-size: 0.8125rem; 
           color: hsl(35, 100%, 65%); 
           font-weight: 600; 
           display: flex; 
@@ -226,6 +325,12 @@ export default function HousekeepingPage() {
         
         .empty-text { color: hsl(215, 20%, 50%); font-style: italic; font-size: 0.9375rem; background: hsl(222, 35%, 10%); padding: 24px; border-radius: 12px; text-align: center; border: 1px dashed hsl(217, 20%, 20%); }
         .loading-state { text-align: center; padding: 60px; color: hsl(215, 20%, 60%); font-size: 1.125rem; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+        @media (max-width: 640px) {
+          .room-grid { grid-template-columns: 1fr; }
+          .room-grid.compact { grid-template-columns: repeat(2, 1fr); }
+          .page-header h2 { font-size: 1.25rem; }
+        }
       `}</style>
     </div>
   );

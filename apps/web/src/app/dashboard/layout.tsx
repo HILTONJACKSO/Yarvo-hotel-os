@@ -309,7 +309,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <path d="M3 12h18M3 6h18M3 18h18" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            <h1 className="page-title">Dashboard</h1>
+            <h1 className="page-title">
+              {(() => {
+                const matchable = NAV_ITEMS.filter((i): i is Extract<NavItem, { href: string }> => i.type !== 'divider');
+                matchable.sort((a, b) => b.href.length - a.href.length);
+                const active = matchable.find(i => currentPath.startsWith(i.href));
+                return active ? active.label : 'Dashboard';
+              })()}
+            </h1>
           </div>
           <div className="topbar-right">
             <a
@@ -492,14 +499,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         .dashboard-root {
           display: flex;
-          min-height: 100vh;
+          height: 100vh;
+          height: 100dvh;
           width: 100%;
           max-width: 100vw;
-          overflow-x: hidden;
+          overflow: hidden;
           background: #050B14;
         }
 
-        /* Sidebar */
+        /* Sidebar - fixed to viewport height, never scrolls with main content */
         .sidebar {
           display: flex;
           flex-direction: column;
@@ -508,9 +516,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           transition: width 0.25s ease;
           flex-shrink: 0;
           height: 100vh;
-          position: sticky;
-          top: 0;
+          height: 100dvh;
           overflow: hidden;
+          z-index: 30;
         }
         .sidebar-open { width: 250px; }
         .sidebar-collapsed { width: 68px; }
@@ -522,6 +530,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           padding: 18px 16px;
           border-bottom: 1px solid rgba(202, 152, 81, 0.12);
           min-height: 64px;
+          flex-shrink: 0;
         }
 
         .sidebar-logo {
@@ -565,6 +574,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           gap: 6px;
           padding: 14px 10px;
           overflow-y: auto;
+          overflow-x: hidden;
           scrollbar-width: thin;
           scrollbar-color: rgba(202, 152, 81, 0.2) transparent;
         }
@@ -605,6 +615,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           transition: all 0.15s ease;
           white-space: nowrap;
           overflow: hidden;
+          flex-shrink: 0;
         }
         .nav-item:hover {
           background: rgba(255, 255, 255, 0.04);
@@ -638,6 +649,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .sidebar-footer {
           padding: 12px 10px;
           border-top: 1px solid rgba(202, 152, 81, 0.12);
+          flex-shrink: 0;
         }
 
         .user-card {
@@ -701,13 +713,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           color: hsl(0, 84%, 65%);
         }
 
-        /* Main area */
+        /* Main area - independent scrollable viewport */
         .dashboard-main {
           flex: 1;
           display: flex;
           flex-direction: column;
           min-width: 0;
-          min-height: 100vh;
+          height: 100vh;
+          height: 100dvh;
+          overflow-y: auto;
+          overflow-x: hidden;
+          scroll-behavior: smooth;
         }
 
         .dashboard-topbar {
@@ -716,11 +732,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           justify-content: space-between;
           padding: 0 28px;
           height: 64px;
+          min-height: 64px;
+          flex-shrink: 0;
           border-bottom: 1px solid rgba(202, 152, 81, 0.12);
           background: #070F1E;
           position: sticky;
           top: 0;
-          z-index: 10;
+          z-index: 25;
+        }
+
+        .topbar-left {
+          display: flex;
+          align-items: center;
+          min-width: 0;
         }
 
         .page-title {
@@ -729,12 +753,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           color: hsl(210, 40%, 92%);
           margin: 0;
           letter-spacing: -0.01em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .topbar-right {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 12px;
+          flex-shrink: 0;
         }
 
         .topbar-badge {
@@ -768,7 +796,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         .dashboard-content {
           flex: 1;
-          padding: 28px;
+          padding: 24px 28px;
+          min-width: 0;
+          max-width: 100%;
         }
 
         .mobile-menu-btn {
@@ -778,15 +808,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           color: hsl(210, 40%, 92%);
           cursor: pointer;
           padding: 8px;
-          margin-right: 12px;
+          margin-right: 10px;
           border-radius: 6px;
+          flex-shrink: 0;
         }
 
         .mobile-backdrop {
           display: none;
         }
 
-        /* --- RESPONSIVE 2026 OVERHAUL --- */
+        /* --- WHOLE-SYSTEM RESPONSIVE RULES --- */
+        .dashboard-content .page-header,
+        .dashboard-content .header-actions {
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+
+        .dashboard-content .table-container,
+        .dashboard-content .data-table-wrapper {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
         @media (max-width: 1024px) {
           .mobile-menu-btn {
             display: flex;
@@ -801,6 +845,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             position: fixed;
             top: 0;
             left: 0;
+            bottom: 0;
+            height: 100vh;
+            height: 100dvh;
             z-index: 50;
             transform: translateX(-100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -824,11 +871,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           .dashboard-topbar {
             padding: 0 16px;
           }
-          
-          .topbar-left {
-            display: flex;
-            align-items: center;
-          }
 
           .dashboard-content {
             padding: 16px;
@@ -839,7 +881,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }
 
           .topbar-time {
-            display: none; /* Hide time on small mobile screens to save space */
+            display: none;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .dashboard-content {
+            padding: 12px;
+          }
+          .dashboard-topbar {
+            padding: 0 12px;
+            height: 56px;
+            min-height: 56px;
+          }
+          .topbar-right {
+            gap: 8px;
+          }
+          .Modal-content,
+          .modal-content {
+            width: calc(100vw - 24px) !important;
+            max-width: calc(100vw - 24px) !important;
+            max-height: 90dvh !important;
+            overflow-y: auto !important;
           }
         }
 

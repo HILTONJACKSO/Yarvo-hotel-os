@@ -22,6 +22,52 @@ export function computeFolioBalance(items: { type: string; amount: any }[]): num
 export class FoliosService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async normalizeInclusiveTaxOnFolio(folio: any) {
+    if (!folio || !Array.isArray(folio.lineItems)) return folio;
+    const baseRate = Number(folio.reservation?.roomType?.baseRateUsd || 0);
+    let updatedAny = false;
+
+    for (const item of folio.lineItems) {
+      if (
+        item.type === 'CHARGE' &&
+        item.category === 'ROOM' &&
+        typeof item.description === 'string' &&
+        item.description.includes('Inc. Tax: $')
+      ) {
+        const match = item.description.match(/\(Inc\.\s*Tax:\s*\$([0-9.]+)\)/i);
+        const incTax = match ? parseFloat(match[1]) : 0;
+        const currentAmt = Number(item.amount);
+        if (incTax > 0 && baseRate > 0 && Math.abs(currentAmt - (baseRate + incTax)) < 0.05) {
+          await this.prisma.folioLineItem.update({
+            where: { id: item.id },
+            data: { amount: new Prisma.Decimal(baseRate) },
+          });
+          item.amount = new Prisma.Decimal(baseRate);
+          updatedAny = true;
+        } else if (incTax > 0 && baseRate === 0 && currentAmt > incTax) {
+          const corrected = Math.round((currentAmt - incTax) * 100) / 100;
+          await this.prisma.folioLineItem.update({
+            where: { id: item.id },
+            data: { amount: new Prisma.Decimal(corrected) },
+          });
+          item.amount = new Prisma.Decimal(corrected);
+          updatedAny = true;
+        }
+      }
+    }
+
+    if (updatedAny) {
+      const newBalance = computeFolioBalance(folio.lineItems);
+      await this.prisma.folio.update({
+        where: { id: folio.id },
+        data: { balance: new Prisma.Decimal(newBalance) },
+      });
+      folio.balance = new Prisma.Decimal(newBalance);
+    }
+
+    return folio;
+  }
+
   async getStatement(folioId: string) {
     const folio = await this.prisma.folio.findUnique({
       where: { id: folioId },
@@ -43,7 +89,7 @@ export class FoliosService {
       throw new NotFoundException(`Folio with ID ${folioId} not found`);
     }
 
-    return folio;
+    return this.normalizeInclusiveTaxOnFolio(folio);
   }
 
   async getAllFolios(status?: 'OPEN' | 'CLOSED') {
@@ -138,7 +184,7 @@ export class FoliosService {
       where.status = status;
     }
 
-    return this.prisma.folio.findMany({
+    const folios = await this.prisma.folio.findMany({
       where,
       include: {
         reservation: {
@@ -154,6 +200,16 @@ export class FoliosService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    for (const f of folios) {
+      try {
+        await this.normalizeInclusiveTaxOnFolio(f);
+      } catch (e) {
+        // Non-blocking
+      }
+    }
+
+    return folios;
   }
 
   async postCharge(folioId: string, chargeDto: CreateChargeDto, userId?: string) {

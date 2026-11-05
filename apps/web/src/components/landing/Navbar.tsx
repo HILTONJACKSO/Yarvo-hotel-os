@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { GeneralContent } from '@/types/cms';
-import { DEFAULT_CMS_CONTENT } from '@/lib/default-cms-content';
+import { DEFAULT_CMS_CONTENT, normalizeNavLinks } from '@/lib/default-cms-content';
 
 interface NavbarProps {
   general?: GeneralContent;
@@ -36,9 +36,7 @@ const Navbar = ({ general }: NavbarProps) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navLinks = navData.navLinks && navData.navLinks.length > 0
-    ? navData.navLinks
-    : DEFAULT_CMS_CONTENT.general.navLinks;
+  const navLinks = normalizeNavLinks(navData.navLinks);
 
   return (
     <header 

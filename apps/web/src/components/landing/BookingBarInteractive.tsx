@@ -3,13 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { Calendar, Users, Home as HomeIcon, X, CheckCircle, Bed, Sparkles, Phone, Mail, User, ShieldCheck } from 'lucide-react';
+import { Calendar, Users, Home as HomeIcon, X, CheckCircle, Bed, Sparkles, Phone, Mail, User, ShieldCheck, Printer, Download } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 export const BookingBarInteractive = () => {
   const [roomTypes, setRoomTypes] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [confirmedBooking, setConfirmedBooking] = useState<any | null>(null);
   const [mounted, setMounted] = useState(false);
   
   // Form state
@@ -99,7 +101,7 @@ export const BookingBarInteractive = () => {
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
-          setActivities(data.data);
+          setActivities(Array.isArray(data.data) ? data.data : []);
         }
       })
       .catch(err => console.error('Failed to fetch activities', err));
@@ -110,6 +112,7 @@ export const BookingBarInteractive = () => {
       }
       setIsModalOpen(true);
       setIsSuccess(false);
+      setConfirmedBooking(null);
       setError('');
     };
 
@@ -132,7 +135,247 @@ export const BookingBarInteractive = () => {
   const handleCheckAvailability = () => {
     setIsModalOpen(true);
     setIsSuccess(false);
+    setConfirmedBooking(null);
     setError('');
+  };
+
+  const selectedRoom = roomTypes.find(r => r.id === roomTypeId);
+  const nights = Math.max(1, Math.round((new Date(checkOut || Date.now()).getTime() - new Date(checkIn || Date.now()).getTime()) / (1000 * 60 * 60 * 24)) || 1);
+  const roomCountNum = Math.max(1, parseInt(roomsCount, 10) || 1);
+  const rateNum = selectedRoom?.baseRateUsd ? Number(selectedRoom.baseRateUsd) : (selectedRoom?.price ? Number(String(selectedRoom.price).replace(/[^0-9.]/g, '')) : 35);
+  const roomStaySubtotal = rateNum * nights * roomCountNum;
+  const activitiesTotalNum = selectedActivities
+    .filter(a => a.quantity > 0)
+    .reduce((sum, sel) => {
+      const actObj = activities.find(x => x.id === sel.activityId);
+      return sum + Number(actObj?.price || 0) * sel.quantity;
+    }, 0);
+  const totalStayPrice = (roomStaySubtotal + activitiesTotalNum).toFixed(2);
+
+  const handlePrintConfirmation = (b: any) => {
+    if (!b || typeof window === 'undefined') return;
+    const printWin = window.open('', '_blank', 'width=820,height=900');
+    if (!printWin) {
+      window.print();
+      return;
+    }
+    const activitiesRows = Array.isArray(b.activities) && b.activities.length > 0
+      ? b.activities.map((a: any) => `
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #eee;">Activity: ${a.name} (×${a.quantity})</td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: right; font-weight: 600;">$${Number(a.totalPrice).toFixed(2)}</td>
+          </tr>
+        `).join('')
+      : '';
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Booking Confirmation - ${b.confirmationCode}</title>
+          <style>
+            body { font-family: Georgia, serif; color: #1F1F1F; background: #fff; margin: 0; padding: 32px; }
+            .card { max-width: 680px; margin: 0 auto; border: 2px solid #1B2418; border-radius: 14px; overflow: hidden; }
+            .header { background: #1B2418; color: #fff; padding: 24px 28px; text-align: center; }
+            .header p { margin: 0 0 6px; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #DFB776; font-family: sans-serif; }
+            .header h1 { margin: 0; font-size: 24px; }
+            .body { padding: 28px; font-family: sans-serif; }
+            .ref-box { background: #FAF7EE; border: 1px solid #E8E1D7; border-radius: 10px; padding: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; margin-bottom: 20px; font-size: 14px; }
+            .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6B6F72; margin-bottom: 2px; }
+            .val { font-weight: 600; color: #1F1F1F; }
+            table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+            .total-row td { padding-top: 12px; font-size: 18px; font-weight: 700; color: #1B2418; }
+            .footer { margin-top: 24px; font-size: 12px; color: #6B6F72; text-align: center; border-top: 1px solid #eee; padding-top: 16px; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="header">
+              <p>Kwalee Beach Resort • Official Reservation Slip</p>
+              <h1>Room Reserved & Booking Confirmed</h1>
+            </div>
+            <div class="body">
+              <div class="ref-box">
+                <div>
+                  <div class="label">Booking Reference</div>
+                  <div style="font-size: 22px; font-weight: 800; font-family: monospace; color: #1B2418;">${b.confirmationCode}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div class="label">Assigned Unit / Status</div>
+                  <div class="val">${b.roomNumber} • CONFIRMED</div>
+                </div>
+              </div>
+              <div class="grid">
+                <div><div class="label">Guest Name</div><div class="val">${b.fullName}</div></div>
+                <div><div class="label">Email Address</div><div class="val">${b.email}</div></div>
+                <div><div class="label">Phone / WhatsApp</div><div class="val">${b.whatsapp}</div></div>
+                <div><div class="label">Booked On</div><div class="val">${b.bookedAt}</div></div>
+                <div><div class="label">Accommodation</div><div class="val">${b.roomTypeName} (${b.roomsCount} Unit${b.roomsCount > 1 ? 's' : ''})</div></div>
+                <div><div class="label">Guests</div><div class="val">${b.guests} Guest(s)</div></div>
+                <div><div class="label">Check-In Date</div><div class="val">${b.checkIn} (2:00 PM)</div></div>
+                <div><div class="label">Check-Out Date</div><div class="val">${b.checkOut} (11:00 AM • ${b.nights} Night${b.nights > 1 ? 's' : ''})</div></div>
+              </div>
+              ${b.specialRequests ? `<div style="margin-bottom: 16px;"><div class="label">Special Requests</div><div class="val" style="font-weight: 400;">${b.specialRequests}</div></div>` : ''}
+              <table>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${b.roomTypeName} (${b.nights} night(s) × ${b.roomsCount} unit(s) @ $${Number(b.roomRate).toFixed(2)})</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: right; font-weight: 600;">$${Number(b.roomSubtotal).toFixed(2)}</td>
+                </tr>
+                ${activitiesRows}
+                <tr class="total-row">
+                  <td>Total Booking Amount</td>
+                  <td style="text-align: right;">$${Number(b.totalAmount).toFixed(2)}</td>
+                </tr>
+              </table>
+              <div class="footer">
+                Please present this confirmation slip or your reference code (${b.confirmationCode}) at the Front Desk upon arrival.<br/>
+                Kwalee Beach Resort • Kpakpa Kon, Marshall, Liberia • +231 881 744 350
+              </div>
+            </div>
+          </div>
+          <script>
+            window.onload = function() { window.print(); };
+          </script>
+        </body>
+      </html>
+    `);
+    printWin.document.close();
+  };
+
+  const handleDownloadPdf = (b: any) => {
+    if (!b) return;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header Banner
+    doc.setFillColor(27, 36, 24);
+    doc.rect(0, 0, pageWidth, 105, 'F');
+    doc.setTextColor(223, 183, 118);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('KWALEE BEACH RESORT • OFFICIAL RESERVATION CONFIRMATION', pageWidth / 2, 36, { align: 'center' });
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(22);
+    doc.text('Room Reserved & Booking Confirmed', pageWidth / 2, 66, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Issued: ${b.bookedAt}`, pageWidth / 2, 86, { align: 'center' });
+
+    let y = 135;
+
+    // Reference Box
+    doc.setFillColor(250, 247, 238);
+    doc.setDrawColor(232, 225, 215);
+    doc.roundedRect(40, y, pageWidth - 80, 62, 8, 8, 'FD');
+    doc.setTextColor(107, 111, 114);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('BOOKING REFERENCE', 56, y + 22);
+    doc.text('ASSIGNED UNIT & STATUS', pageWidth - 56, y + 22, { align: 'right' });
+
+    doc.setTextColor(27, 36, 24);
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(18);
+    doc.text(String(b.confirmationCode), 56, y + 46);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(`${b.roomNumber} • CONFIRMED`, pageWidth - 56, y + 46, { align: 'right' });
+
+    y += 90;
+
+    // Guest Information
+    doc.setTextColor(27, 36, 24);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Guest Information', 40, y);
+    y += 10;
+    doc.setDrawColor(230, 230, 230);
+    doc.line(40, y, pageWidth - 40, y);
+    y += 20;
+
+    const drawRow = (label: string, value: string) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(107, 111, 114);
+      doc.text(label, 40, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(31, 31, 31);
+      doc.text(String(value || '-'), pageWidth - 40, y, { align: 'right' });
+      y += 20;
+    };
+
+    drawRow('Full Name', b.fullName);
+    drawRow('Email Address', b.email);
+    drawRow('Phone / WhatsApp Number', b.whatsapp);
+
+    y += 10;
+    doc.setTextColor(27, 36, 24);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Stay & Accommodation Details', 40, y);
+    y += 10;
+    doc.line(40, y, pageWidth - 40, y);
+    y += 20;
+
+    drawRow('Accommodation', `${b.roomTypeName} (${b.roomsCount} Unit${b.roomsCount > 1 ? 's' : ''})`);
+    drawRow('Assigned Unit', b.roomNumber);
+    drawRow('Number of Guests', `${b.guests} Guest(s)`);
+    drawRow('Check-In Date', `${b.checkIn} (from 2:00 PM)`);
+    drawRow('Check-Out Date', `${b.checkOut} (until 11:00 AM)`);
+    drawRow('Duration of Stay', `${b.nights} Night(s)`);
+    if (b.specialRequests) {
+      drawRow('Special Requests', b.specialRequests.slice(0, 80));
+    }
+
+    y += 10;
+    doc.setTextColor(27, 36, 24);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Charges Summary', 40, y);
+    y += 10;
+    doc.line(40, y, pageWidth - 40, y);
+    y += 20;
+
+    drawRow(
+      `${b.roomTypeName} (${b.nights} night(s) × ${b.roomsCount} unit(s) @ $${Number(b.roomRate).toFixed(2)})`,
+      `$${Number(b.roomSubtotal).toFixed(2)}`
+    );
+
+    if (Array.isArray(b.activities) && b.activities.length > 0) {
+      b.activities.forEach((act: any) => {
+        drawRow(`Activity: ${act.name} (×${act.quantity})`, `$${Number(act.totalPrice).toFixed(2)}`);
+      });
+    }
+
+    y += 6;
+    doc.setFillColor(27, 36, 24);
+    doc.roundedRect(40, y, pageWidth - 80, 42, 6, 6, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('TOTAL BOOKING AMOUNT', 56, y + 26);
+    doc.text(`$${Number(b.totalAmount).toFixed(2)}`, pageWidth - 56, y + 26, { align: 'right' });
+
+    y += 70;
+    doc.setTextColor(107, 111, 114);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(
+      `Please present this confirmation PDF or your Booking Reference (${b.confirmationCode}) at the Front Desk upon arrival.`,
+      pageWidth / 2,
+      y,
+      { align: 'center' }
+    );
+    doc.text(
+      'Kwalee Beach Resort • Kpakpa Kon, Marshall, Liberia • +231 881 744 350 • kwaleebeachresort1@gmail.com',
+      pageWidth / 2,
+      y + 16,
+      { align: 'center' }
+    );
+
+    doc.save(`Kwalee_Booking_${b.confirmationCode}.pdf`);
   };
 
   const handleSubmitBooking = async (e: React.FormEvent) => {
@@ -141,14 +384,25 @@ export const BookingBarInteractive = () => {
     setError('');
 
     try {
-      const roomCountNum = Math.max(1, parseInt(roomsCount, 10) || 1);
+      const roomCountNumLocal = Math.max(1, parseInt(roomsCount, 10) || 1);
       const specialReqCombined = [
-        roomCountNum > 1 ? `[Requested Accommodations: ${roomCountNum} Rooms/Tents]` : '',
+        roomCountNumLocal > 1 ? `[Requested Accommodations: ${roomCountNumLocal} Rooms/Tents]` : '',
         specialRequests.trim(),
         `[Confirmation Preference: ${confirmationPreference.toUpperCase()}]`
       ].filter(Boolean).join('\n');
 
-      const finalWhatsapp = whatsapp.trim() || (confirmationPreference !== 'email' ? phone.trim() : '');
+      const finalWhatsapp = whatsapp.trim() || phone.trim();
+      const activeBookedActivities = selectedActivities
+        .filter(a => a.quantity > 0)
+        .map(sel => {
+          const actObj = activities.find(x => x.id === sel.activityId);
+          return {
+            activityId: sel.activityId,
+            name: actObj?.name || 'Activity',
+            quantity: sel.quantity,
+            totalPrice: Number(actObj?.price || 0) * sel.quantity,
+          };
+        });
 
       const payload = {
         firstName,
@@ -160,7 +414,7 @@ export const BookingBarInteractive = () => {
         checkInDate: checkIn,
         checkOutDate: checkOut,
         roomTypeId,
-        roomsCount: roomCountNum,
+        roomsCount: roomCountNumLocal,
         adultsCount: parseInt(guests, 10),
         childrenCount: 0,
         activities: selectedActivities.filter(a => a.quantity > 0),
@@ -175,37 +429,47 @@ export const BookingBarInteractive = () => {
       const data = await res.json();
       
       if (data.success) {
+        const resData = data.data || {};
+        const code = resData.confirmationCode || 'RESERVED';
+        const cleanRoomName = (resData.roomTypeName || selectedRoom?.name || 'Accommodation')
+          .replace(/\s*coming\s*soon\.*/gi, '')
+          .trim();
+
+        setConfirmedBooking({
+          confirmationCode: code,
+          status: resData.status || 'CONFIRMED',
+          roomNumber: resData.roomNumber || 'Assigned at Check-In',
+          roomTypeName: cleanRoomName,
+          roomsCount: roomCountNumLocal,
+          guests,
+          firstName,
+          lastName,
+          fullName: `${firstName} ${lastName}`.trim(),
+          email,
+          phone,
+          whatsapp: finalWhatsapp,
+          checkIn,
+          checkOut,
+          nights,
+          roomRate: rateNum,
+          roomSubtotal: roomStaySubtotal,
+          activities: Array.isArray(resData.activities) && resData.activities.length > 0
+            ? resData.activities
+            : activeBookedActivities,
+          totalAmount: Number(resData.totalAmount ?? totalStayPrice),
+          specialRequests: specialRequests.trim(),
+          bookedAt: new Date().toLocaleString(),
+        });
         setIsSuccess(true);
-        const code = data.data?.confirmationCode || '';
-        if (confirmationPreference === 'whatsapp' || confirmationPreference === 'both') {
-          const rmName = selectedRoom?.name || 'Accommodation';
-          const waMsg = [
-            `*KWALEE BEACH RESORT — BOOKING CONFIRMATION*`,
-            `Reservation Ref: *${code}*`,
-            `Guest: ${firstName} ${lastName}`,
-            `Phone / WhatsApp: ${finalWhatsapp || phone}`,
-            `Email: ${email}`,
-            `Accommodation: ${rmName} (${roomCountNum} ${roomCountNum > 1 ? 'Rooms/Tents' : 'Room/Tent'})`,
-            `Guests: ${guests}`,
-            `Check-In: ${checkIn}`,
-            `Check-Out: ${checkOut}`,
-            `Total Stay Amount: $${totalStayPrice}`,
-            specialRequests.trim() ? `Special Requests: ${specialRequests.trim()}` : '',
-            ``,
-            `Hello Kwalee Beach Resort, please confirm my reservation above!`
-          ].filter(Boolean).join('\n');
-          if (typeof window !== 'undefined') {
-            window.open(`https://wa.me/231774340843?text=${encodeURIComponent(waMsg)}`, '_blank', 'noopener,noreferrer');
-          }
-        }
-        if (code) {
-          router.push('/booking/' + code);
-        }
-        // Reset form
+
+        // Reset form fields for next booking
         setFirstName('');
         setLastName('');
         setEmail('');
         setPhone('');
+        setWhatsapp('');
+        setSpecialRequests('');
+        setSelectedActivities([]);
       } else {
         setError(data.error || 'Failed to submit booking');
       }
@@ -215,12 +479,6 @@ export const BookingBarInteractive = () => {
       setIsSubmitting(false);
     }
   };
-
-  const selectedRoom = roomTypes.find(r => r.id === roomTypeId);
-  const nights = Math.max(1, Math.round((new Date(checkOut || Date.now()).getTime() - new Date(checkIn || Date.now()).getTime()) / (1000 * 60 * 60 * 24)) || 1);
-  const roomCountNum = Math.max(1, parseInt(roomsCount, 10) || 1);
-  const rateNum = selectedRoom?.baseRateUsd ? Number(selectedRoom.baseRateUsd) : (selectedRoom?.price ? Number(String(selectedRoom.price).replace(/[^0-9.]/g, '')) : 35);
-  const totalStayPrice = (rateNum * nights * roomCountNum).toFixed(0);
 
   return (
     <>
@@ -338,9 +596,11 @@ export const BookingBarInteractive = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase tracking-[0.2em] text-[#DFB776] font-semibold">Kwalee Beach Resort</span>
                     <span className="inline-block w-1 h-1 rounded-full bg-[#DFB776]"></span>
-                    <span className="text-[10px] text-white/70">Direct Booking</span>
+                    <span className="text-[10px] text-white/70">{isSuccess ? 'Official Confirmation' : 'Direct Booking'}</span>
                   </div>
-                  <h3 className="text-xl font-serif font-bold text-white tracking-wide">Complete Your Reservation</h3>
+                  <h3 className="text-xl font-serif font-bold text-white tracking-wide">
+                    {isSuccess ? 'Room Reserved • Booking Received' : 'Complete Your Reservation'}
+                  </h3>
                 </div>
               </div>
               
@@ -356,18 +616,141 @@ export const BookingBarInteractive = () => {
             
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#FCFBF7]">
-              {isSuccess ? (
-                <div className="text-center py-10">
-                  <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                    <CheckCircle size={36} />
+              {isSuccess && confirmedBooking ? (
+                <div className="space-y-5 text-left">
+                  {/* Top Confirmation Banner */}
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center">
+                    <div className="w-12 h-12 bg-emerald-600 text-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                      <CheckCircle size={26} />
+                    </div>
+                    <span className="inline-block text-[10px] uppercase tracking-[0.2em] font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full mb-2">
+                      Room Reserved • Booking Received
+                    </span>
+                    <h4 className="text-2xl font-serif font-bold text-[#1F1F1F] mb-1">
+                      You&apos;re Booked, {confirmedBooking.firstName || confirmedBooking.fullName}!
+                    </h4>
+                    <p className="text-xs text-gray-600 max-w-md mx-auto leading-relaxed">
+                      Your accommodation is reserved. An automatic confirmation has been dispatched to your email (<strong className="text-gray-900">{confirmedBooking.email}</strong>) and WhatsApp (<strong className="text-gray-900">{confirmedBooking.whatsapp}</strong>). You can screenshot, print, or download your PDF confirmation below.
+                    </p>
                   </div>
-                  <h4 className="text-2xl font-serif font-bold text-gray-900 mb-2">Reservation Requested!</h4>
-                  <p className="text-gray-600 mb-6 max-w-md mx-auto text-sm leading-relaxed">
-                    Thank you for choosing Kwalee Beach Resort. Our guest services team has received your details and will contact you via WhatsApp / Email shortly to confirm.
-                  </p>
+
+                  {/* Booking Reference Highlight */}
+                  <div className="bg-[#1B2418] text-white rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+                    <div>
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-[#DFB776] block mb-1">
+                        Booking Reference Number
+                      </span>
+                      <span className="font-mono text-2xl font-extrabold tracking-wider text-white">
+                        {confirmedBooking.confirmationCode}
+                      </span>
+                    </div>
+                    <div className="sm:text-right">
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-white/70 block mb-1">
+                        Assigned Room / Tent
+                      </span>
+                      <span className="text-sm font-bold text-[#DFB776] bg-white/10 px-3 py-1 rounded-lg inline-block">
+                        {confirmedBooking.roomNumber} • CONFIRMED
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Complete Reservation & Guest Details Card (For Screenshot) */}
+                  <div className="bg-white border border-[#E8E1D7] rounded-2xl p-5 space-y-4 shadow-sm">
+                    <div className="border-b border-[#E8E1D7] pb-3 flex items-center justify-between">
+                      <h5 className="text-xs uppercase tracking-widest font-bold text-[#1F1F1F]">
+                        Guest & Reservation Details
+                      </h5>
+                      <span className="text-[11px] text-[#6B6F72]">{confirmedBooking.bookedAt}</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div className="bg-[#FAF7EE] p-3 rounded-xl border border-[#E8E1D7]/60">
+                        <span className="text-[10px] uppercase tracking-wider text-[#6B6F72] block">Guest Name</span>
+                        <span className="font-semibold text-[#1F1F1F]">{confirmedBooking.fullName}</span>
+                      </div>
+                      <div className="bg-[#FAF7EE] p-3 rounded-xl border border-[#E8E1D7]/60">
+                        <span className="text-[10px] uppercase tracking-wider text-[#6B6F72] block">Phone / WhatsApp</span>
+                        <span className="font-semibold text-[#1F1F1F]">{confirmedBooking.whatsapp}</span>
+                      </div>
+                      <div className="bg-[#FAF7EE] p-3 rounded-xl border border-[#E8E1D7]/60 sm:col-span-2">
+                        <span className="text-[10px] uppercase tracking-wider text-[#6B6F72] block">Email Address</span>
+                        <span className="font-semibold text-[#1F1F1F] break-all">{confirmedBooking.email}</span>
+                      </div>
+                      <div className="bg-[#FAF7EE] p-3 rounded-xl border border-[#E8E1D7]/60">
+                        <span className="text-[10px] uppercase tracking-wider text-[#6B6F72] block">Accommodation</span>
+                        <span className="font-semibold text-[#1F1F1F]">
+                          {confirmedBooking.roomTypeName} ({confirmedBooking.roomsCount} {confirmedBooking.roomsCount > 1 ? 'Units' : 'Unit'})
+                        </span>
+                      </div>
+                      <div className="bg-[#FAF7EE] p-3 rounded-xl border border-[#E8E1D7]/60">
+                        <span className="text-[10px] uppercase tracking-wider text-[#6B6F72] block">Guests & Duration</span>
+                        <span className="font-semibold text-[#1F1F1F]">
+                          {confirmedBooking.guests} Guest(s) • {confirmedBooking.nights} Night(s)
+                        </span>
+                      </div>
+                      <div className="bg-[#FAF7EE] p-3 rounded-xl border border-[#E8E1D7]/60">
+                        <span className="text-[10px] uppercase tracking-wider text-[#6B6F72] block">Check-In Date</span>
+                        <span className="font-semibold text-[#1F1F1F]">{confirmedBooking.checkIn} (2:00 PM)</span>
+                      </div>
+                      <div className="bg-[#FAF7EE] p-3 rounded-xl border border-[#E8E1D7]/60">
+                        <span className="text-[10px] uppercase tracking-wider text-[#6B6F72] block">Check-Out Date</span>
+                        <span className="font-semibold text-[#1F1F1F]">{confirmedBooking.checkOut} (11:00 AM)</span>
+                      </div>
+                    </div>
+
+                    {confirmedBooking.specialRequests && (
+                      <div className="bg-[#FAF7EE] p-3 rounded-xl border border-[#E8E1D7]/60 text-xs">
+                        <span className="text-[10px] uppercase tracking-wider text-[#6B6F72] block mb-0.5">Special Requests</span>
+                        <span className="text-[#1F1F1F]">{confirmedBooking.specialRequests}</span>
+                      </div>
+                    )}
+
+                    {/* Price Breakdown */}
+                    <div className="border-t border-[#E8E1D7] pt-3 space-y-2 text-sm">
+                      <div className="flex justify-between text-gray-700">
+                        <span>
+                          {confirmedBooking.roomTypeName} ({confirmedBooking.nights} night{confirmedBooking.nights > 1 ? 's' : ''} × {confirmedBooking.roomsCount} unit{confirmedBooking.roomsCount > 1 ? 's' : ''})
+                        </span>
+                        <span className="font-semibold">${Number(confirmedBooking.roomSubtotal).toFixed(2)}</span>
+                      </div>
+                      {Array.isArray(confirmedBooking.activities) &&
+                        confirmedBooking.activities.map((act: any, idx: number) => (
+                          <div key={idx} className="flex justify-between text-gray-700">
+                            <span>Activity: {act.name} (×{act.quantity})</span>
+                            <span className="font-semibold">${Number(act.totalPrice).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      <div className="flex justify-between items-center pt-2 border-t border-[#E8E1D7] text-base font-bold text-[#1B2418]">
+                        <span>Total Booking Amount</span>
+                        <span className="text-lg">${Number(confirmedBooking.totalAmount).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Print / Download PDF / Done Actions */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handlePrintConfirmation(confirmedBooking)}
+                      className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl border-2 border-[#1B2418] text-[#1B2418] hover:bg-[#1B2418] hover:text-white transition font-bold text-xs uppercase tracking-widest cursor-pointer"
+                    >
+                      <Printer size={16} />
+                      Print Confirmation
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadPdf(confirmedBooking)}
+                      className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-[#CA9851] hover:bg-[#b58542] text-white transition font-bold text-xs uppercase tracking-widest shadow-md cursor-pointer"
+                    >
+                      <Download size={16} />
+                      Download as PDF
+                    </button>
+                  </div>
+
                   <button 
+                    type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="bg-[#1B2418] text-white px-8 py-3.5 rounded-xl hover:bg-[#283824] transition uppercase tracking-widest text-xs font-semibold"
+                    className="w-full bg-[#1B2418] text-white py-3.5 rounded-xl hover:bg-[#283824] transition uppercase tracking-widest text-xs font-bold cursor-pointer"
                   >
                     Done
                   </button>
