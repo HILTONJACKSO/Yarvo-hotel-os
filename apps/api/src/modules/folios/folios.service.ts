@@ -232,11 +232,39 @@ export class FoliosService {
 
   async closeFolio(folioId: string, userId?: string) {
     return this.prisma.$transaction(async (tx) => {
-      const folio = await tx.folio.findUnique({ where: { id: folioId } });
+      const folio = await tx.folio.findUnique({
+        where: { id: folioId },
+        include: { reservation: true },
+      });
       if (!folio) throw new NotFoundException(`Folio not found`);
-      if (folio.status === 'CLOSED') throw new BadRequestException('Folio is already closed.');
-      if (Number(folio.balance) !== 0) {
-         throw new BadRequestException('Cannot close a folio with a non-zero balance.');
+      if (folio.status === 'CLOSED') return folio;
+      if (Number(folio.balance) > 0) {
+        throw new BadRequestException('Cannot close a folio with an unpaid balance greater than $0.00.');
+      }
+
+      if (folio.reservation && folio.reservation.status === 'CHECKED_IN') {
+        await tx.reservation.update({
+          where: { id: folio.reservation.id },
+          data: { status: 'CHECKED_OUT' },
+        });
+        if (folio.reservation.roomId) {
+          const room = await tx.room.findUnique({ where: { id: folio.reservation.roomId } });
+          if (room && room.status !== 'DIRTY') {
+            await tx.room.update({
+              where: { id: folio.reservation.roomId },
+              data: { status: 'DIRTY' },
+            });
+            await tx.roomStatusHistory.create({
+              data: {
+                roomId: folio.reservation.roomId,
+                previousStatus: room.status,
+                newStatus: 'DIRTY',
+                reason: `Folio closed / check-out for reservation ${folio.reservation.confirmationCode}`,
+                changedById: userId,
+              },
+            });
+          }
+        }
       }
 
       return tx.folio.update({

@@ -608,9 +608,9 @@ export default function BillingPage() {
           </div>
         </div>
 
-      <div className="flex flex-1 gap-6 min-h-0 items-start">
+      <div className="flex flex-col lg:flex-row flex-1 gap-6 min-h-0 items-stretch lg:items-start">
         {/* Sidebar: List of Bills */}
-        <div className="w-[320px] bg-slate-800/80 backdrop-blur-md border border-slate-700/60 shadow-xl rounded-2xl flex flex-col shrink-0 sticky top-[80px] max-h-[calc(100vh-100px)] overflow-hidden">
+        <div className="w-full lg:w-[320px] bg-slate-800/80 backdrop-blur-md border border-slate-700/60 shadow-xl rounded-2xl flex flex-col shrink-0 lg:sticky lg:top-[80px] max-h-[360px] lg:max-h-[calc(100vh-100px)] overflow-hidden">
           <div className="p-4 border-b border-slate-700/60 bg-slate-900/40 space-y-2.5">
             <h3 className="text-lg font-bold text-slate-100 tracking-tight">Active & Pending Bills</h3>
             <input
@@ -682,19 +682,19 @@ export default function BillingPage() {
         </div>
 
         {/* Main Area: Details & Actions */}
-        <div className="flex-1 bg-slate-800/80 backdrop-blur-md border border-slate-700/60 shadow-xl rounded-2xl flex flex-col overflow-hidden">
+        <div className="flex-1 min-w-0 bg-slate-800/80 backdrop-blur-md border border-slate-700/60 shadow-xl rounded-2xl flex flex-col overflow-hidden">
           {!selectedBill ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-20">
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-20 px-4 text-center">
               <div className="bg-slate-800/50 p-6 rounded-full mb-6 border border-slate-700/50">
                 <Receipt size={48} className="opacity-40" />
               </div>
               <h3 className="text-xl font-bold text-slate-300 mb-2">No Bill Selected</h3>
-              <p className="text-slate-500">Select an active bill from the left to view details and process payments.</p>
+              <p className="text-slate-500">Select an active bill from the list to view details and process payments.</p>
             </div>
           ) : selectedBill.type === 'FOLIO' ? (
             // FOLIO RENDER
             <>
-              <div className="p-8 border-b border-slate-700/60 bg-gradient-to-r from-slate-900/40 to-slate-800/40 flex justify-between items-center">
+              <div className="p-4 sm:p-8 border-b border-slate-700/60 bg-gradient-to-r from-slate-900/40 to-slate-800/40 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-3 flex-wrap">
                     <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 uppercase tracking-wider">
@@ -711,19 +711,19 @@ export default function BillingPage() {
                       </div>
                     )}
                   </div>
-                  <h2 className="text-2xl font-extrabold text-white mb-1 tracking-tight">
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-white mb-1 tracking-tight">
                     Bill: {selectedBill.reservation?.guest?.firstName} {selectedBill.reservation?.guest?.lastName}
                   </h2>
                   <div className="text-slate-400 font-medium">
                     Room {selectedBill.reservation?.room?.number || selectedBill.reservation?.roomType?.name || 'N/A'}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="w-full sm:w-auto sm:text-right">
                   <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Total Balance Due</div>
-                  <div className={`text-3xl font-bold ${selectedBill.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  <div className={`text-2xl sm:text-3xl font-bold ${selectedBill.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                     {format(Number(selectedBill.balance))}
                   </div>
-                  <div className="flex gap-2 justify-end mt-2 flex-wrap">
+                  <div className="flex gap-2 sm:justify-end mt-2 flex-wrap">
                       {selectedBill.reservation?.status === 'CHECKED_IN' && (
                         <button
                           onClick={handleCheckOutRoomOnly}
@@ -735,7 +735,7 @@ export default function BillingPage() {
                         </button>
                       )}
                       {selectedBill.status === 'OPEN' && (
-                          <button onClick={handleCloseFolio} disabled={Number(selectedBill.balance) !== 0} className={`text-xs px-3 py-1.5 rounded-md transition-colors ${Number(selectedBill.balance) === 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}>Close Bill</button>
+                          <button onClick={handleCloseFolio} disabled={Number(selectedBill.balance) > 0} className={`text-xs px-3 py-1.5 rounded-md transition-colors ${Number(selectedBill.balance) <= 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}>Close Bill</button>
                         )}
                         <button onClick={() => printViaIframe('INVOICE')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Invoice</button>
                         <button onClick={() => printViaIframe('RECEIPT')} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Receipt</button>
@@ -758,9 +758,9 @@ export default function BillingPage() {
                     </div>
                 </div>
               </div>
-              <div className="flex-1 p-6 overflow-y-auto">
+              <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
                 <h3 className="text-lg font-bold text-slate-200 mb-4">Ledger Entries</h3>
-                <div className="bg-slate-900/50 rounded-xl border border-slate-700 overflow-hidden">
+                <div className="bg-slate-900/50 rounded-xl border border-slate-700 overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-slate-800 text-slate-400 uppercase text-xs">
                       <tr>

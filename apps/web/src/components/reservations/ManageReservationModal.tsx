@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/db';
-import { syncOfflineMutations } from '@/lib/sync';
+import { downloadLatestData } from '@/lib/sync';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -61,8 +61,8 @@ export function ManageReservationModal({ isOpen, onClose, onSuccess, reservation
     if (isOpen) {
       setLoadingData(true);
       Promise.all([
-        fetch('/api/v1/room-types').then(r => r.json()),
-        fetch('/api/v1/rooms').then(r => r.json()),
+        fetch('/api/v1/room-types', { credentials: 'include' }).then(r => r.json()),
+        fetch('/api/v1/rooms', { credentials: 'include' }).then(r => r.json()),
       ]).then(([rtData, roomData]) => {
         setRoomTypes(rtData.data || []);
         setRooms(roomData.data || []);
@@ -110,15 +110,24 @@ export function ManageReservationModal({ isOpen, onClose, onSuccess, reservation
         delete payload.cancellationReason;
       }
 
-      // Use the newly added full update endpoint
       const res = await fetch(`/api/v1/reservations/${reservation.id}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Failed to update reservation');
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = Array.isArray(json?.message) ? json.message.join(', ') : (json?.message || 'Failed to update reservation');
+        throw new Error(msg);
+      }
+
+      const updated = json.data || json;
+      if (updated?.id) {
+        await db.reservations.put(updated).catch(() => {});
+      }
+      await downloadLatestData().catch(() => {});
       
       onSuccess();
       onClose();
@@ -341,6 +350,12 @@ export function ManageReservationModal({ isOpen, onClose, onSuccess, reservation
         }
         .btn-submit:hover:not(:disabled) { background: hsl(43, 96%, 60%); }
         .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        @media (max-width: 640px) {
+          .form-row { grid-template-columns: 1fr; gap: 12px; }
+          .form-actions { flex-direction: column-reverse; }
+          .form-actions button { width: 100%; }
+        }
       `}</style>
     </Modal>
   );

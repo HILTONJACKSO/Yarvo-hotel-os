@@ -211,7 +211,7 @@ export default function FrontDeskPage() {
                       <span className="text-muted" style={{ color: '#f59e0b', fontWeight: 600 }}>Ref: {res.confirmationCode}</span>
                       <span className="text-muted">Room: {res.room?.number || 'Unknown'}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div className="op-actions">
                       <button className="btn-secondary" onClick={() => router.push(`/dashboard/billing?reservationId=${res.id}`)}>View Bill</button>
                       <button className="btn-danger" onClick={() => handleCheckOut(res)}>Check Out</button>
                     </div>
@@ -240,7 +240,9 @@ export default function FrontDeskPage() {
                       <span className="text-muted" style={{ color: '#f59e0b', fontWeight: 600 }}>Ref: {res.confirmationCode}</span>
                       <span className="text-muted">Room: {res.room?.number || 'Unknown'} • Out: {new Date(res.checkOutDate).toLocaleDateString()}</span>
                     </div>
-                    <button className="btn-danger" onClick={() => handleCheckOut(res)}>Check Out</button>
+                    <div className="op-actions">
+                      <button className="btn-danger" onClick={() => handleCheckOut(res)}>Check Out</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -250,36 +252,51 @@ export default function FrontDeskPage() {
       </div>
 
       <style>{`
-        .page-container { display: flex; flex-direction: column; gap: 24px; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; }
+        .page-container { display: flex; flex-direction: column; gap: 24px; width: 100%; max-width: 100%; overflow-x: hidden; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
         .page-header h2 { margin: 0; color: hsl(210, 40%, 96%); font-weight: 600; }
         
-        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; width: 100%; }
         
-        .panel { background: hsl(222, 35%, 7%); border: 1px solid hsl(217, 20%, 14%); border-radius: 8px; display: flex; flex-direction: column; height: 600px; }
-        .panel-header { padding: 16px; border-bottom: 1px solid hsl(217, 20%, 14%); display: flex; justify-content: space-between; align-items: center; background: hsl(220, 30%, 5%); border-radius: 8px 8px 0 0; }
+        .panel { background: hsl(222, 35%, 7%); border: 1px solid hsl(217, 20%, 14%); border-radius: 8px; display: flex; flex-direction: column; height: 600px; min-width: 0; overflow: hidden; }
+        .panel-header { padding: 16px; border-bottom: 1px solid hsl(217, 20%, 14%); display: flex; justify-content: space-between; align-items: center; gap: 8px; background: hsl(220, 30%, 5%); border-radius: 8px 8px 0 0; }
         .panel-header h3 { margin: 0; font-size: 0.9375rem; color: hsl(210, 40%, 92%); }
-        .badge { background: hsl(217, 20%, 18%); color: hsl(210, 40%, 96%); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+        .badge { background: hsl(217, 20%, 18%); color: hsl(210, 40%, 96%); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; flex-shrink: 0; }
         
         .panel-body { padding: 16px; flex: 1; overflow-y: auto; }
         .empty-text { color: hsl(215, 20%, 50%); text-align: center; font-size: 0.875rem; margin-top: 40px; }
         
         .card-list { display: flex; flex-direction: column; gap: 12px; }
-        .op-card { background: hsl(220, 30%, 5%); border: 1px solid hsl(217, 20%, 18%); padding: 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
-        .op-details { display: flex; flex-direction: column; gap: 4px; }
-        .op-details strong { color: hsl(210, 40%, 92%); font-size: 0.875rem; }
+        .op-card { background: hsl(220, 30%, 5%); border: 1px solid hsl(217, 20%, 18%); padding: 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .op-details { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 160px; }
+        .op-details strong { color: hsl(210, 40%, 92%); font-size: 0.875rem; word-break: break-word; }
         .text-muted { color: hsl(215, 20%, 60%); font-size: 0.75rem; }
+        .op-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         
-        .btn-success { background: hsl(142, 76%, 36%); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; cursor: pointer; }
+        .btn-success { background: hsl(142, 76%, 36%); color: white; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; cursor: pointer; white-space: nowrap; }
         .btn-success:hover { background: hsl(142, 76%, 40%); }
         
-        .btn-danger { background: hsl(0, 84%, 60%, 0.15); color: hsl(0, 84%, 65%); border: 1px solid hsl(0, 84%, 60%, 0.3); padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; cursor: pointer; }
+        .btn-danger { background: hsl(0, 84%, 60%, 0.15); color: hsl(0, 84%, 65%); border: 1px solid hsl(0, 84%, 60%, 0.3); padding: 7px 14px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; cursor: pointer; white-space: nowrap; }
         .btn-danger:hover { background: hsl(0, 84%, 60%, 0.25); }
         
-        .btn-secondary { background: transparent; color: hsl(210, 40%, 92%); border: 1px solid hsl(217, 20%, 18%); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; }
+        .btn-secondary { background: transparent; color: hsl(210, 40%, 92%); border: 1px solid hsl(217, 20%, 18%); padding: 7px 14px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; }
         .btn-secondary:hover { background: hsl(217, 20%, 18%); }
         
         .loading-state { text-align: center; padding: 40px; color: hsl(215, 20%, 50%); }
+
+        @media (max-width: 1100px) {
+          .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+        }
+
+        @media (max-width: 768px) {
+          .welcome-banner { flex-direction: column; align-items: flex-start; gap: 14px; padding: 20px; }
+          .dashboard-grid { grid-template-columns: 1fr; gap: 16px; }
+          .panel { height: auto; max-height: 460px; min-height: 220px; }
+          .op-card { flex-direction: column; align-items: stretch; gap: 10px; }
+          .op-details { flex: 1 1 auto; }
+          .op-actions { width: 100%; justify-content: flex-end; }
+          .op-actions button, .op-card > button { flex: 1; text-align: center; padding: 9px 12px; }
+        }
       `}</style>
     </div>
   );

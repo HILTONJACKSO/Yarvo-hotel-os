@@ -493,6 +493,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .dashboard-root {
           display: flex;
           min-height: 100vh;
+          width: 100%;
+          max-width: 100vw;
+          overflow-x: hidden;
           background: #050B14;
         }
 

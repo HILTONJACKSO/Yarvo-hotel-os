@@ -173,6 +173,25 @@ export class RoomsService {
       include: { roomType: true },
     });
 
+    if (oldRoom.status === 'OCCUPIED' && updateRoomDto.status && ['DIRTY', 'CLEAN', 'AVAILABLE'].includes(updateRoomDto.status)) {
+      const activeRes = await this.prisma.reservation.findMany({
+        where: { roomId: id, status: 'CHECKED_IN' },
+        include: { folio: true },
+      });
+      for (const r of activeRes) {
+        await this.prisma.reservation.update({
+          where: { id: r.id },
+          data: { status: 'CHECKED_OUT' },
+        }).catch(() => {});
+        if (r.folio && Number(r.folio.balance || 0) <= 0 && r.folio.status !== 'CLOSED') {
+          await this.prisma.folio.update({
+            where: { id: r.folio.id },
+            data: { status: 'CLOSED' },
+          }).catch(() => {});
+        }
+      }
+    }
+
     if (userId) {
       await this.auditLogsService.logAction({
         userId,
@@ -200,6 +219,25 @@ export class RoomsService {
         data: { status: changeStatusDto.status },
         include: { roomType: true },
       });
+
+      if (room.status === 'OCCUPIED' && ['DIRTY', 'CLEAN', 'AVAILABLE'].includes(changeStatusDto.status)) {
+        const activeRes = await tx.reservation.findMany({
+          where: { roomId: id, status: 'CHECKED_IN' },
+          include: { folio: true },
+        });
+        for (const r of activeRes) {
+          await tx.reservation.update({
+            where: { id: r.id },
+            data: { status: 'CHECKED_OUT' },
+          });
+          if (r.folio && Number(r.folio.balance || 0) <= 0 && r.folio.status !== 'CLOSED') {
+            await tx.folio.update({
+              where: { id: r.folio.id },
+              data: { status: 'CLOSED' },
+            });
+          }
+        }
+      }
 
       await tx.roomStatusHistory.create({
         data: {

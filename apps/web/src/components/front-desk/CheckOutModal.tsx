@@ -124,8 +124,9 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
         onSuccess();
         onClose();
       } else {
-        const error = await res.json();
-        showToast(`Check-out failed: ${error.message}`, 'error', 'Error');
+        const error = await res.json().catch(() => ({}));
+        const msg = Array.isArray(error?.message) ? error.message.join(', ') : (error?.message || 'Check-out failed');
+        showToast(`Check-out failed: ${msg}`, 'error', 'Error');
       }
     } catch (err) {
       console.error(err);
@@ -529,7 +530,7 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
         .btn-success { background: hsl(142, 76%, 36%); color: white; border: none; padding: 9px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
         .btn-success:disabled { opacity: 0.5; }
         
-        .modal-actions-footer { display: flex; justify-content: space-between; margin-top: 16px; padding-top: 16px; border-top: 1px solid hsl(217, 20%, 16%); }
+        .modal-actions-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid hsl(217, 20%, 16%); }
         .btn-secondary { background: transparent; border: 1px solid hsl(217, 20%, 30%); color: white; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; }
         .btn-primary { background: hsl(43,96%,56%); color: hsl(224, 39%, 6%); border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -538,6 +539,13 @@ export function CheckOutModal({ isOpen, onClose, onSuccess, reservation }: Props
         .checkbox-label { display: flex; align-items: center; gap: 8px; color: hsl(210, 40%, 96%); font-weight: 500; cursor: pointer; }
 
         .print-only-receipt { display: none; }
+
+        @media (max-width: 640px) {
+          .payment-form { flex-direction: column; align-items: stretch; }
+          .payment-form .btn-success { width: 100%; }
+          .modal-actions-footer { flex-direction: column; align-items: stretch; }
+          .modal-actions-footer button { width: 100%; text-align: center; }
+        }
       `}</style>
     </Modal>
   );

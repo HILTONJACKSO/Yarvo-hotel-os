@@ -108,7 +108,8 @@ export async function syncOfflineMutations() {
 
 function extractArray(resData: any): any[] {
   if (!resData) return [];
-  if (Array.isArray(resData.data)) return resData.data;
+  if (Array.isArray(resData?.data?.data)) return resData.data.data;
+  if (Array.isArray(resData?.data)) return resData.data;
   if (Array.isArray(resData)) return resData;
   return [];
 }
@@ -136,7 +137,7 @@ export async function downloadLatestData() {
     }
 
     // 2. Fetch Reservations
-    const resRes = await fetch('/api/v1/reservations', { credentials: 'include' });
+    const resRes = await fetch('/api/v1/reservations?limit=200', { credentials: 'include' });
     if (resRes.ok) {
       const data = await resRes.json();
       const serverRes = extractArray(data);

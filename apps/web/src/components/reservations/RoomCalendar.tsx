@@ -97,7 +97,7 @@ export function RoomCalendar() {
         const fetchedRooms = roomsJson.data || [];
         
         if (reservationsRes.ok) {
-          const allReservations = resJson.data || [];
+          const allReservations = Array.isArray(resJson?.data?.data) ? resJson.data.data : (Array.isArray(resJson?.data) ? resJson.data : []);
           const unassigned = allReservations.filter((r: any) => !r.room && r.status !== 'CANCELLED');
           
           if (unassigned.length > 0) {

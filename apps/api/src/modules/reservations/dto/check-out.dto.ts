@@ -6,4 +6,10 @@ export class CheckOutDto {
   @IsBoolean()
   @IsOptional()
   billToCompany?: boolean;
+
+  @ApiPropertyOptional()
+  @IsBoolean()
+  @IsOptional()
+  closeFolio?: boolean;
 }
+

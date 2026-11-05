@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { downloadLatestData } from '@/lib/sync';
 import { NewReservationModal } from '@/components/reservations/NewReservationModal';
 import { ManageReservationModal } from '@/components/reservations/ManageReservationModal';
+import { CheckOutModal } from '@/components/front-desk/CheckOutModal';
 import { RoomCalendar } from '@/components/reservations/RoomCalendar';
 
 type Reservation = {
@@ -17,25 +18,16 @@ type Reservation = {
   status: string;
   checkInDate: string;
   checkOutDate: string;
-};
-
-type PaginatedResponse = {
-  data: Reservation[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+  folio?: { id: string };
 };
 
 export default function ReservationsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [meta, setMeta] = useState<PaginatedResponse['meta'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [manageReservation, setManageReservation] = useState<Reservation | null>(null);
+  const [checkOutReservation, setCheckOutReservation] = useState<Reservation | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   const dbReservations = useLiveQuery(
@@ -52,7 +44,6 @@ export default function ReservationsPage() {
   );
 
   useEffect(() => {
-    // When component mounts, if we are online, trigger a background fetch to ensure fresh data
     if (navigator.onLine) {
       downloadLatestData().finally(() => setLoading(false));
     } else {
@@ -123,6 +114,16 @@ export default function ReservationsPage() {
         reservation={manageReservation}
       />
 
+      <CheckOutModal
+        isOpen={!!checkOutReservation}
+        onClose={() => setCheckOutReservation(null)}
+        onSuccess={() => {
+          setCheckOutReservation(null);
+          fetchReservations();
+        }}
+        reservation={checkOutReservation}
+      />
+
       {viewMode === 'calendar' ? (
         <RoomCalendar />
       ) : (
@@ -170,7 +171,7 @@ export default function ReservationsPage() {
                       <tr key={res.id}>
                         <td className="font-mono">{res.confirmationCode}</td>
                         <td className="font-medium">
-                          {res.guest.firstName} {res.guest.lastName}
+                          {res.guest?.firstName} {res.guest?.lastName}
                         </td>
                         <td>
                           <div className="dates-info">
@@ -179,7 +180,7 @@ export default function ReservationsPage() {
                           </div>
                         </td>
                         <td>
-                          <div>{res.roomType.name}</div>
+                          <div>{res.roomType?.name}</div>
                           <div className="text-muted">{res.room ? res.room.number : 'Unassigned'}</div>
                         </td>
                         <td>
@@ -188,7 +189,12 @@ export default function ReservationsPage() {
                           </span>
                         </td>
                         <td className="actions-cell">
-                          <button className="action-btn" onClick={() => setManageReservation(res)}>Manage</button>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            {res.status === 'CHECKED_IN' && (
+                              <button className="checkout-btn" onClick={() => setCheckOutReservation(res)}>Check Out</button>
+                            )}
+                            <button className="action-btn" onClick={() => setManageReservation(res)}>Manage</button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -257,10 +263,12 @@ export default function ReservationsPage() {
         .badge-danger { background: hsl(0, 84%, 60%, 0.15); color: hsl(0, 84%, 65%); }
         .badge-neutral { background: hsl(215, 20%, 50%, 0.15); color: hsl(215, 20%, 65%); }
         
-        .actions-col { width: 100px; text-align: right; }
+        .actions-col { width: 180px; text-align: right; }
         .actions-cell { text-align: right; }
-        .action-btn { background: transparent; border: 1px solid hsl(217, 20%, 18%); color: hsl(210, 40%, 92%); padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        .action-btn { background: transparent; border: 1px solid hsl(217, 20%, 18%); color: hsl(210, 40%, 92%); padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
         .action-btn:hover { background: hsl(217, 20%, 18%); }
+        .checkout-btn { background: hsl(0, 84%, 60%, 0.15); color: hsl(0, 84%, 65%); border: 1px solid hsl(0, 84%, 60%, 0.3); padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+        .checkout-btn:hover { background: hsl(0, 84%, 60%, 0.25); }
         
         .empty-state { text-align: center; padding: 40px !important; color: hsl(215, 20%, 50%) !important; }
         .loading-state { text-align: center; padding: 40px; color: hsl(215, 20%, 50%); }
@@ -276,4 +284,3 @@ export default function ReservationsPage() {
     </div>
   );
 }
-

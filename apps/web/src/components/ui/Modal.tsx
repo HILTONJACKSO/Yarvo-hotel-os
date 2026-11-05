@@ -110,6 +110,22 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
           padding: 24px;
         }
 
+        @media (max-width: 640px) {
+          .modal-content {
+            width: 95%;
+            max-height: 92vh;
+          }
+          .modal-header {
+            padding: 14px 16px;
+          }
+          .modal-header h3 {
+            font-size: 1.05rem;
+          }
+          .modal-body {
+            padding: 16px;
+          }
+        }
+
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
