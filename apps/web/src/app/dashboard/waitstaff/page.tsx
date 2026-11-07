@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-provider';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
+import { downloadLatestData, syncPosOrders, fetchWithAuth } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { useCurrency } from '@/lib/currency';
 import ReturnItemModal from '@/components/pos/ReturnItemModal';
@@ -30,8 +30,9 @@ export default function WaitstaffPage() {
   const { format } = useCurrency();
   const { showToast } = useToast();
   const dbOrders = useLiveQuery(() => db.posOrders.toArray()) || [];
-  const items = dbOrders.flatMap(o => (o.items || []).filter(i => i.status === 'READY').map(i => ({ ...i, order: o })));
-  const servedItems = dbOrders.flatMap(o => (o.items || []).filter(i => i.status === 'SERVED' || i.status === 'RETURN_REQUESTED' || i.status === 'RETURNED').map(i => ({ ...i, order: o })));
+  const activeOrders = dbOrders.filter(o => !['PAID', 'BILLED_TO_ROOM', 'CANCELLED'].includes(o.status));
+  const items = activeOrders.flatMap(o => (o.items || []).filter(i => i.status === 'READY').map(i => ({ ...i, order: o })));
+  const servedItems = activeOrders.flatMap(o => (o.items || []).filter(i => i.status === 'SERVED' || i.status === 'RETURN_REQUESTED' || i.status === 'RETURNED').map(i => ({ ...i, order: o })));
   const [printItem, setPrintItem] = useState<PosOrderItem | null>(null);
   const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0 });
   const [returnModalItem, setReturnModalItem] = useState<{
@@ -44,15 +45,10 @@ export default function WaitstaffPage() {
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
 
   const fetchItems = async () => {
-    const pendingCount = await db.syncQueue
-      .where('status')
-      .equals('PENDING')
-      .filter(m => (Date.now() - m.createdAt) < 15000)
-      .count();
-    if (navigator.onLine && pendingCount === 0) {
-      await downloadLatestData();
+    if (navigator.onLine) {
+      await syncPosOrders();
       try {
-        const res = await fetch('/api/v1/pos/stats/waitstaff');
+        const res = await fetchWithAuth('/api/v1/pos/stats/waitstaff');
         if (res.ok) {
           const data = await res.json();
           if (data.data) setStats(data.data);
@@ -87,6 +83,9 @@ export default function WaitstaffPage() {
   };
 
   useEffect(() => {
+    if (navigator.onLine) {
+      downloadLatestData().catch(() => {});
+    }
     fetchItems();
     const interval = setInterval(fetchItems, 3000);
     return () => clearInterval(interval);
@@ -112,10 +111,9 @@ export default function WaitstaffPage() {
       const finalOrderId = targetOrder?.id || orderId;
       if (navigator.onLine) {
         try {
-          const res = await fetch(`/api/v1/pos/orders/${finalOrderId}/deliver-all`, {
+          const res = await fetchWithAuth(`/api/v1/pos/orders/${finalOrderId}/deliver-all`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ itemIds })
           });
           if (!res.ok) throw new Error('deliver-all failed on server');
@@ -168,10 +166,9 @@ export default function WaitstaffPage() {
 
       if (navigator.onLine) {
         try {
-          const res = await fetch(`/api/v1/pos/order-items/${itemId}/status`, {
+          const res = await fetchWithAuth(`/api/v1/pos/order-items/${itemId}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ status: 'SERVED' })
           });
           if (!res.ok) throw new Error('status update failed');
@@ -233,17 +230,16 @@ export default function WaitstaffPage() {
       }
 
       if (navigator.onLine) {
-        const res = await fetch(`/api/v1/pos/order-items/${itemId}/return-request`, {
+        const res = await fetchWithAuth(`/api/v1/pos/order-items/${itemId}/return-request`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ reason, quantity, note })
         });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
           throw new Error(errData.message || `Failed to submit return request (${res.status})`);
         }
-        await downloadLatestData();
+        await syncPosOrders();
       } else {
         await db.syncQueue.add({
           url: `/api/v1/pos/order-items/${itemId}/return-request`,

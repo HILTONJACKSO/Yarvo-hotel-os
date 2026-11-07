@@ -71,14 +71,6 @@ export class AnalyticsService {
       },
     });
 
-    const posRevenuePayments = await this.prisma.posPayment.aggregate({
-      _sum: { amount: true },
-      where: {
-        createdAt: { gte: startOfToday, lte: endOfToday },
-        ...(propertyId ? { OR: [{ propertyId }, { order: { propertyId } }, { propertyId: null }] } : {}),
-      },
-    });
-
     const paidPosOrders = await this.prisma.posOrder.aggregate({
       _sum: { totalAmount: true },
       where: {
@@ -88,10 +80,7 @@ export class AnalyticsService {
       }
     });
 
-    const posRevenue = Math.max(
-      posRevenuePayments._sum.amount?.toNumber() || 0,
-      paidPosOrders._sum.totalAmount?.toNumber() || 0
-    );
+    const posRevenue = Math.max(0, paidPosOrders._sum.totalAmount?.toNumber() || 0);
 
     // 5. Outstanding Revenue (Unpaid open folio balances + unpaid company balances + unpaid POS orders)
     const openFolios = await this.prisma.folio.aggregate({
@@ -111,10 +100,11 @@ export class AnalyticsService {
       _sum: { totalAmount: true, discountAmount: true },
       where: {
         status: { in: ['OPEN', 'SERVED'] },
-        ...(propertyId ? { propertyId } : {}),
+        items: { some: {} },
+        ...(propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {}),
       }
     });
-    const posOutstanding = (openPosOrders._sum.totalAmount?.toNumber() || 0) - (openPosOrders._sum.discountAmount?.toNumber() || 0);
+    const posOutstanding = Math.max(0, (openPosOrders._sum.totalAmount?.toNumber() || 0) - (openPosOrders._sum.discountAmount?.toNumber() || 0));
 
     const todaysRevenue = (revenueItems._sum.amount?.toNumber() || 0) + 
       (ticketRevenueItems._sum.price?.toNumber() || 0) + 

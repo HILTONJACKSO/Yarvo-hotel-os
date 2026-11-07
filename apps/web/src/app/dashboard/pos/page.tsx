@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
+import { syncOfflineMutations, downloadLatestData, syncPosOrders, markOrderSettledLocally, fetchWithAuth } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { useAuth } from '@/lib/auth-provider';
 import { useCurrency } from '@/lib/currency';
@@ -271,6 +271,8 @@ export default function PosPage() {
   const submitOrder = async () => {
     if (cart.length === 0) return;
     
+    let createdOrderId: string | null = null;
+    let addedAnyItem = false;
     try {
       const payload: any = {};
       if (orderDestinationType === 'TABLE') payload.tableId = selectedTable;
@@ -278,30 +280,39 @@ export default function PosPage() {
       if (orderDestinationType === 'GUEST') payload.guestId = selectedGuestId;
       payload.notes = `[${orderDestinationDept}] ${orderNotes}`.trim();
 
-      const orderRes = await fetch(`${API_URL}/api/v1/pos/orders`, {
+      const rawOrderRes = await fetchWithAuth(`${API_URL}/api/v1/pos/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload)
-      }).then(res => res.json());
+      });
+      const orderRes = await rawOrderRes.json();
+      if (!rawOrderRes.ok) {
+        throw new Error(orderRes.message || 'Failed to create order');
+      }
 
-      const orderId = (orderRes.data || orderRes).id;
+      const orderObj = orderRes.data || orderRes;
+      const orderId = orderObj.id;
+      const hadExistingItems = Array.isArray(orderObj.items) && orderObj.items.length > 0;
+      if (!hadExistingItems && Number(orderObj.totalAmount || 0) === 0) {
+        createdOrderId = orderId;
+      }
 
       await Promise.all(cart.map(c => 
-        fetch(`${API_URL}/api/v1/pos/orders/${orderId}/items`, {
+        fetchWithAuth(`${API_URL}/api/v1/pos/orders/${orderId}/items`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ menuItemId: c.item.id, quantity: c.quantity })
         }).then(async res => {
           if (!res.ok) {
             const err = await res.json();
             throw new Error(err.message || 'Failed to add item');
           }
+          addedAnyItem = true;
           return res;
         })
       ));
 
+      await syncPosOrders();
       showToast('Order sent to Kitchen/Bar successfully!', 'success', 'Order Placed');
       setCart([]);
       setSelectedTable(null);
@@ -309,6 +320,9 @@ export default function PosPage() {
       setOrderNotes('');
       setShowOrderNotes(false);
     } catch (err: any) {
+      if (createdOrderId && !addedAnyItem) {
+        fetchWithAuth(`${API_URL}/api/v1/pos/orders/${createdOrderId}`, { method: 'DELETE' }).catch(() => {});
+      }
       showToast(err.message || 'Failed to submit order', 'error', 'Error');
     }
   };
@@ -345,17 +359,15 @@ export default function PosPage() {
       const settleDiscountAmount = Number(settleOrder.totalAmount) * (settleDiscountPercent / 100);
       if (settleDiscountAmount > 0) { payload.discountAmount = settleDiscountAmount; payload.discountReason = settleDiscountReason || 'POS Discount'; }
 
-      const res = await fetch(`${API_URL}/api/v1/pos/orders/${settleOrder.id}/checkout`, {
+      const res = await fetchWithAuth(`${API_URL}/api/v1/pos/orders/${settleOrder.id}/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload)
       });
       if (res.ok) {
         showToast('Order settled successfully', 'success', 'Success');
         setShowSettleModal(false);
-        const finalStatus = (settleOrder.folio?.reservation?.room || settleFolioId) ? 'BILLED_TO_ROOM' : 'PAID';
-        await db.posOrders.update(settleOrder.id, { status: finalStatus, discountAmount: settleDiscountAmount });
+        await markOrderSettledLocally(settleOrder.id);
         setSettleOrder(null);
         setPayments([]);
         setSettleDiscountPercent(0); setSettleDiscountReason('');
@@ -364,7 +376,8 @@ export default function PosPage() {
         // Auto print receipt
         window.print();
       } else {
-        showToast('Failed to settle order', 'error', 'Error');
+        const errData = await res.json().catch(() => ({}));
+        showToast(errData.message || 'Failed to settle order', 'error', 'Error');
       }
     } catch (err) {
       showToast('Failed to settle order', 'error', 'Error');

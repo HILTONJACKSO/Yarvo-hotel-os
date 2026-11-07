@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
+import { syncPosOrders, fetchWithAuth } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { useCurrency } from '@/lib/currency';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -36,15 +36,10 @@ export default function KitchenPage() {
 
 
   const fetchOrders = async () => {
-    const pendingCount = await db.syncQueue
-      .where('status')
-      .equals('PENDING')
-      .filter(m => (Date.now() - m.createdAt) < 15000)
-      .count();
-    if (navigator.onLine && pendingCount === 0) {
-      await downloadLatestData();
+    if (navigator.onLine) {
+      await syncPosOrders();
       try {
-        const res = await fetch('/api/v1/pos/stats/kitchen');
+        const res = await fetchWithAuth('/api/v1/pos/stats/kitchen');
         if (res.ok) {
           const data = await res.json();
           if (data.data) setStats(data.data);
@@ -86,7 +81,7 @@ export default function KitchenPage() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Poll every 10s
+    const interval = setInterval(fetchOrders, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -110,10 +105,9 @@ export default function KitchenPage() {
 
       if (navigator.onLine) {
         try {
-          const res = await fetch(`/api/v1/pos/order-items/${itemId}/status`, {
+          const res = await fetchWithAuth(`/api/v1/pos/order-items/${itemId}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ status: newStatus })
           });
           if (!res.ok) {
@@ -178,12 +172,12 @@ export default function KitchenPage() {
 
       if (navigator.onLine) {
         try {
-          await fetch(`/api/v1/pos/order-items/${itemId}/confirm-return`, {
+          const res = await fetchWithAuth(`/api/v1/pos/order-items/${itemId}/confirm-return`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ kitchenNote })
           });
+          if (!res.ok) throw new Error('confirm-return failed');
         } catch (e) {
           console.error("Direct confirm-return error, enqueuing:", e);
           await db.syncQueue.add({
@@ -214,11 +208,17 @@ export default function KitchenPage() {
     }
   };
 
-  // Filter out orders that don't have FOOD items
+  // Filter out paid/served/cancelled orders and items already served/returned
   const kitchenOrders = orders
+    .filter(o => !['PAID', 'BILLED_TO_ROOM', 'CANCELLED', 'SERVED'].includes(o.status))
     .map(o => ({
       ...o,
-      items: o.items.filter(i => i.menuItem.type === 'FOOD' && i.status !== 'SERVED' && i.status !== 'RETURNED' && i.returnRequest?.status !== 'PENDING_APPROVAL')
+      items: (o.items || []).filter(
+        i =>
+          i.menuItem?.type === 'FOOD' &&
+          !['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status) &&
+          i.returnRequest?.status !== 'PENDING_APPROVAL'
+      )
     }))
     .filter(o => o.items.length > 0);
 

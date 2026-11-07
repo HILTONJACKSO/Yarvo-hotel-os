@@ -200,6 +200,26 @@ export class KwaleeLocalDatabase extends Dexie {
       workOrders: 'id, type, status, priority',
       syncQueue: '++id, status, createdAt',
     });
+    this.version(5).stores({
+      rooms: 'id, roomTypeId, status, updatedAt',
+      reservations: 'id, confirmationCode, guestId, roomId, status, checkInDate, checkOutDate, updatedAt',
+      guests: 'id, email, phone, updatedAt',
+      inventory: 'id, name, category, updatedAt',
+      properties: 'id, name',
+      companies: 'id, name, isActive',
+      expenses: 'id, date, category',
+      taxes: 'id, name, isDefault, updatedAt',
+      posTables: 'id, number, updatedAt',
+      posCategories: 'id, name, updatedAt',
+      posMenuItems: 'id, categoryId, type, updatedAt',
+      posOrders: 'id, tableId, guestId, status, updatedAt',
+      eventSpaces: 'id, name',
+      eventBookings: 'id, spaceId, status',
+      roomTypes: 'id, name',
+      folios: 'id, reservationId, status',
+      workOrders: 'id, type, status, priority',
+      syncQueue: '++id, url, status, createdAt',
+    });
   }
 }
 

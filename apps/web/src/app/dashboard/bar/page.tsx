@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
+import { syncPosOrders, fetchWithAuth } from '@/lib/sync';
 import { useToast } from '@/components/ui/toast-provider';
 import { useCurrency } from '@/lib/currency';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -36,15 +36,10 @@ export default function BarPage() {
 
   const fetchOrders = async () => {
     try {
-      const pendingCount = await db.syncQueue
-        .where('status')
-        .equals('PENDING')
-        .filter(m => (Date.now() - m.createdAt) < 15000)
-        .count();
-      if (navigator.onLine && pendingCount === 0) {
-        await downloadLatestData();
+      if (navigator.onLine) {
+        await syncPosOrders();
         try {
-          const res = await fetch('/api/v1/pos/stats/bar', { credentials: 'include' });
+          const res = await fetchWithAuth('/api/v1/pos/stats/bar');
           if (res.ok) {
             const data = await res.json();
             if (data.totalOrders !== undefined) setStats(data);
@@ -54,10 +49,10 @@ export default function BarPage() {
           console.error('Failed to fetch bar stats:', e);
         }
       }
-      const allOrders = await db.posOrders.toArray();
 
       // Local fallback calculation if offline
       if (!navigator.onLine) {
+        const allOrders = await db.posOrders.toArray();
         const today = new Date().toISOString().split('T')[0];
         const todayOrders = allOrders.filter(o => (o.createdAt || "").startsWith(today) && o.status !== 'CANCELLED');
         let totalBarOrders = 0;
@@ -92,7 +87,7 @@ export default function BarPage() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000);
+    const interval = setInterval(fetchOrders, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -116,10 +111,9 @@ export default function BarPage() {
       // 2. Send to API if online, or add to offline queue
       if (navigator.onLine) {
         try {
-          const res = await fetch(`/api/v1/pos/order-items/${itemId}/status`, {
+          const res = await fetchWithAuth(`/api/v1/pos/order-items/${itemId}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ status: newStatus })
           });
           if (!res.ok) {
@@ -183,12 +177,12 @@ export default function BarPage() {
 
       if (navigator.onLine) {
         try {
-          await fetch(`/api/v1/pos/order-items/${itemId}/confirm-return`, {
+          const res = await fetchWithAuth(`/api/v1/pos/order-items/${itemId}/confirm-return`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ kitchenNote })
           });
+          if (!res.ok) throw new Error('confirm-return failed');
         } catch (e) {
           console.error("Direct confirm-return error, enqueuing:", e);
           await db.syncQueue.add({
@@ -220,11 +214,17 @@ export default function BarPage() {
     }
   };
 
-  // Filter out orders that don't have DRINK or BAR items
+  // Filter out paid/served/cancelled orders and items already served/returned
   const barOrders = orders
+    .filter(o => !['PAID', 'BILLED_TO_ROOM', 'CANCELLED', 'SERVED'].includes(o.status))
     .map(o => ({
       ...o,
-      items: o.items.filter(i => (i.menuItem.type === 'DRINK' || i.menuItem.type === 'BAR') && i.status !== 'SERVED' && i.status !== 'RETURNED' && i.returnRequest?.status !== 'PENDING_APPROVAL')
+      items: (o.items || []).filter(
+        i =>
+          (i.menuItem?.type === 'DRINK' || i.menuItem?.type === 'BAR') &&
+          !['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status) &&
+          i.returnRequest?.status !== 'PENDING_APPROVAL'
+      )
     }))
     .filter(o => o.items.length > 0);
 

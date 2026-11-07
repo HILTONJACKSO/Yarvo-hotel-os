@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import { syncOfflineMutations, downloadLatestData } from '@/lib/sync';
+import { syncOfflineMutations, downloadLatestData, syncPosOrders, markOrderSettledLocally, fetchWithAuth } from '@/lib/sync';
 import jsPDF from 'jspdf';
 import domtoimage from 'dom-to-image-more';
 import { useToast } from '@/components/ui/toast-provider';
@@ -262,10 +262,14 @@ export default function CashierPage() {
   const hotelName = receiptSettings.businessName;
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const { showToast } = useToast();
-  const orders: any[] = useLiveQuery(() => db.posOrders.toArray())?.filter((o: any) => 
-    (o.status === 'SERVED' || o.status === 'OPEN') &&
-    ((o.items && o.items.length > 0) || Number(o.totalAmount || 0) > 0)
-  ) || [];
+  const orders: any[] = useLiveQuery(() => db.posOrders.toArray())?.filter((o: any) => {
+    if (o.status !== 'SERVED' && o.status !== 'OPEN') return false;
+    if (!Array.isArray(o.items) || o.items.length === 0) return false;
+    const hasBillableOrPendingReturnItem = o.items.some(
+      (i: any) => !['RETURNED', 'CANCELLED'].includes(i.status)
+    );
+    return hasBillableOrPendingReturnItem;
+  }) || [];
   const isOrderFullyServed = (order: any) => {
     if (!order || !order.items || order.items.length === 0) return false;
     return order.items.every((i: any) => ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status));
@@ -487,9 +491,9 @@ export default function CashierPage() {
 
   const fetchOrders = async () => {
     if (navigator.onLine) {
-      await downloadLatestData();
+      await syncPosOrders();
       try {
-        const res = await fetch('/api/v1/pos/stats/cashier', { credentials: 'include' });
+        const res = await fetchWithAuth('/api/v1/pos/stats/cashier');
         if (res.ok) {
           const data = await res.json();
           if (data.data) setStats(data.data);
@@ -521,6 +525,9 @@ export default function CashierPage() {
   };
 
   useEffect(() => {
+    if (navigator.onLine) {
+      downloadLatestData().catch(() => {});
+    }
     fetchOrders();
     const interval = setInterval(fetchOrders, 3000);
     return () => clearInterval(interval);
@@ -881,18 +888,18 @@ export default function CashierPage() {
       }
 
       if (navigator.onLine) {
-        const res = await fetch(`/api/v1/pos/orders/${orderId}/checkout`, {
+        const res = await fetchWithAuth(`/api/v1/pos/orders/${orderId}/checkout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify(payload)
         });
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
           if (res.status === 404) {
-            await db.posOrders.delete(orderId);
+            await markOrderSettledLocally(orderId);
             setSelectedOrder(null);
+            setPayments([]);
             await fetchOrders();
             showToast('Order was already settled or cleared on the server. Removing stale entry.', 'info', 'Order Cleared');
             return;
@@ -910,16 +917,12 @@ export default function CashierPage() {
         });
       }
 
-      // Update local IndexedDB only upon success
-      const order = await db.posOrders.get(orderId);
-      if (order) {
-        order.status = nextStatus;
-        order.discountAmount = calculatedDiscount;
-        await db.posOrders.put(order);
-      }
+      // Immediately remove settled order from local IndexedDB and shield against in-flight poll overwrites
+      await markOrderSettledLocally(orderId);
 
       showToast(isRoomOrder ? 'Charged to Room Folio successfully' : 'Payment processed successfully', 'success', 'Paid');
       setSelectedOrder(null);
+      setPayments([]);
       await fetchOrders();
     } catch (err: any) {
       showToast(err.message || 'Failed to process payment', 'error');

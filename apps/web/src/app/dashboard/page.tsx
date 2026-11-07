@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/lib/auth-provider';
 import { useCurrency } from '@/lib/currency';
+import { fetchWithAuth } from '@/lib/sync';
 import { useState, useEffect } from 'react';
 import { Building2, CheckCircle2, ClipboardList, DollarSign, AlertCircle, Activity as ActivityIcon } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
@@ -54,9 +55,9 @@ export default function DashboardPage() {
       }
       try {
         const [metRes, revRes, actRes] = await Promise.all([
-          fetch('/api/v1/analytics/dashboard'),
-          fetch('/api/v1/analytics/revenue-chart'),
-          fetch('/api/v1/analytics/recent-activity')
+          fetchWithAuth('/api/v1/analytics/dashboard'),
+          fetchWithAuth('/api/v1/analytics/revenue-chart'),
+          fetchWithAuth('/api/v1/analytics/recent-activity')
         ]);
         
         const metData = await metRes.json();
@@ -65,6 +66,7 @@ export default function DashboardPage() {
         const revData = await revRes.json();
         const actData = await actRes.json();
 
+        setError(null);
         setMetrics(metData.data);
         setRevenueData(revData.data || []);
         setRecentActivity(actData.data || []);

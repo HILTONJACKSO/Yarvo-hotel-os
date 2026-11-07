@@ -23,12 +23,13 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       handleOnline();
     }
 
-    // Polling every 5 minutes if online
-    const interval = setInterval(() => {
+    // Polling every 2 minutes if online
+    const interval = setInterval(async () => {
       if (navigator.onLine) {
-        downloadLatestData();
+        await syncOfflineMutations();
+        await downloadLatestData();
       }
-    }, 5 * 60 * 1000);
+    }, 2 * 60 * 1000);
 
     return () => {
       window.removeEventListener('online', handleOnline);

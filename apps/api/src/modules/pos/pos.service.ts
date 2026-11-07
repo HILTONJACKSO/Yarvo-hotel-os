@@ -338,14 +338,29 @@ export class PosService {
   }
 
   async getActiveOrders(propertyId?: string) {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    await this.prisma.posOrder.deleteMany({
+      where: {
+        status: 'OPEN',
+        createdAt: { lt: tenMinutesAgo },
+        items: { none: {} },
+        payments: { none: {} },
+      },
+    }).catch(() => {});
+
     return this.prisma.posOrder.findMany({
-      where: { 
-        ...(propertyId ? { propertyId } : {}),
-        status: { notIn: ['PAID', 'BILLED_TO_ROOM', 'CANCELLED'] },
-        OR: [
-          { status: { notIn: ['SERVED'] } },
-          { items: { some: { status: { in: ['PENDING', 'RETURN_REQUESTED'] } } } }
-        ]
+      where: {
+        AND: [
+          ...(propertyId ? [{ OR: [{ propertyId }, { propertyId: null }] }] : []),
+          { status: { notIn: ['PAID', 'BILLED_TO_ROOM', 'CANCELLED'] } },
+          { items: { some: {} } },
+          {
+            OR: [
+              { status: { notIn: ['SERVED'] } },
+              { items: { some: { status: { in: ['PENDING', 'PREPARING', 'COOKING', 'READY', 'RETURN_REQUESTED'] } } } },
+            ],
+          },
+        ],
       },
       include: {
         table: true,
@@ -364,7 +379,10 @@ export class PosService {
     return this.prisma.posOrderItem.findMany({
       where: {
         status: 'READY',
-        ...(propertyId ? { order: { propertyId } } : {}),
+        order: {
+          status: { notIn: ['PAID', 'BILLED_TO_ROOM', 'CANCELLED'] },
+          ...(propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {}),
+        },
       },
       include: {
         menuItem: true,
@@ -378,7 +396,8 @@ export class PosService {
     return this.prisma.posOrder.findMany({
       where: {
         status: { in: ['OPEN', 'SERVED'] },
-        ...(propertyId ? { propertyId } : {}),
+        items: { some: {} },
+        ...(propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {}),
       },
       include: {
         table: true,
@@ -391,7 +410,7 @@ export class PosService {
     });
   }
 
-    async transferItems(data: {
+  async transferItems(data: {
     sourceOrderId: string;
     targetTableId?: string;
     targetOrderId?: string;
@@ -400,6 +419,10 @@ export class PosService {
     if (!data.targetTableId && !data.targetOrderId) {
       throw new BadRequestException('Target table or order is required');
     }
+
+    const sourceOrder = await this.prisma.posOrder.findUnique({
+      where: { id: data.sourceOrderId },
+    });
 
     let targetOrderId = data.targetOrderId;
 
@@ -418,7 +441,9 @@ export class PosService {
           data: {
             tableId: data.targetTableId,
             status: 'OPEN',
-            totalAmount: 0
+            totalAmount: 0,
+            propertyId: sourceOrder?.propertyId || null,
+            userId: sourceOrder?.userId || null,
           }
         });
         targetOrderId = newOrder.id;
@@ -460,9 +485,20 @@ export class PosService {
 
     await this.recalculateOrderTotal(data.sourceOrderId);
     await this.recalculateOrderTotal(targetOrderId);
+
+    // Sync target order status if all its items are already served
+    const targetItems = await this.prisma.posOrderItem.findMany({ where: { orderId: targetOrderId } });
+    if (targetItems.length > 0) {
+      const allTargetServed = targetItems.every(i => ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status));
+      await this.prisma.posOrder.update({
+        where: { id: targetOrderId },
+        data: { status: allTargetServed ? 'SERVED' : 'OPEN' },
+      });
+    }
     
     const sourceItemsCount = await this.prisma.posOrderItem.count({ where: { orderId: data.sourceOrderId } });
-    if (sourceItemsCount === 0) {
+    const sourcePaymentsCount = await this.prisma.posPayment.count({ where: { orderId: data.sourceOrderId } });
+    if (sourceItemsCount === 0 && sourcePaymentsCount === 0) {
       await this.prisma.posOrder.delete({ where: { id: data.sourceOrderId } });
     }
 
@@ -807,10 +843,25 @@ export class PosService {
   async checkoutOrder(orderId: string, data: { payments?: { method: string; amount: number }[], folioId?: string, discountAmount?: number, discountReason?: string }) {
     const order = await this.prisma.posOrder.findUnique({
       where: { id: orderId },
-      include: { items: { include: { menuItem: { include: { taxes: true } } } } }
+      include: { items: { include: { menuItem: { include: { taxes: true } } } }, payments: true }
     });
 
     if (!order) throw new NotFoundException('Order not found');
+
+    // Idempotency guard: if already settled, never double-charge or record duplicate payments
+    if (order.status === 'PAID' || order.status === 'BILLED_TO_ROOM') {
+      await this.prisma.posOrderItem.updateMany({
+        where: {
+          orderId,
+          status: { notIn: ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'] },
+        },
+        data: { status: 'SERVED' },
+      });
+      return this.prisma.posOrder.findUnique({
+        where: { id: orderId },
+        include: { items: { include: { menuItem: true } }, payments: true }
+      });
+    }
 
     // Strict restaurant rule: All items must be prepared and delivered by waitstaff first
     const unservedItems = order.items.filter(
@@ -835,23 +886,11 @@ export class PosService {
     }
 
     let subtotal = 0;
-    let calculatedTax = 0;
 
     order.items.forEach(i => {
-      if (i.status === 'RETURNED' || i.status === 'RETURN_REQUESTED') return;
+      if (i.status === 'RETURNED' || i.status === 'RETURN_REQUESTED' || i.status === 'CANCELLED') return;
       const itemTotal = Number(i.menuItem.price) * i.quantity;
       subtotal += itemTotal;
-      let totalPercentage = 0;
-      let totalFlat = 0;
-      
-      i.menuItem.taxes?.forEach(tax => {
-        if (tax.isActive) {
-          if (tax.type === 'PERCENTAGE') totalPercentage += Number(tax.rate);
-          else if (tax.type === 'FLAT_AMOUNT') totalFlat += Number(tax.rate) * i.quantity;
-        }
-      });
-      const itemBeforeTax = (itemTotal - totalFlat) / (1 + totalPercentage / 100);
-      calculatedTax += (itemTotal - itemBeforeTax);
     });
 
     const appliedDiscount = data.discountAmount !== undefined ? data.discountAmount : Number(order.discountAmount || 0);
@@ -871,44 +910,72 @@ export class PosService {
 
     // If billing to a room
     if (data.folioId || order.folioId) {
-      const folioIdToUse = data.folioId || order.folioId;
-      
-      // Create a FolioLineItem for the charge
-      await this.prisma.folioLineItem.create({
-        data: {
-          folioId: folioIdToUse!,
-          type: 'CHARGE',
-          category: 'F_AND_B',
-          amount: totalAmount,
-          description: `POS Order #${order.id.substring(0, 8).toUpperCase()}`,
-          propertyId: order.propertyId || null,
-        }
+      const folioIdToUse = (data.folioId || order.folioId)!;
+
+      await this.prisma.$transaction(async (tx) => {
+        const claim = await tx.posOrder.updateMany({
+          where: { id: orderId, status: { notIn: ['PAID', 'BILLED_TO_ROOM'] } },
+          data: {
+            status: 'BILLED_TO_ROOM',
+            folioId: folioIdToUse,
+            totalAmount,
+            discountAmount: appliedDiscount,
+            ...(data.discountReason ? { discountReason: data.discountReason } : {}),
+          },
+        });
+        if (claim.count === 0) return;
+
+        await tx.posOrderItem.updateMany({
+          where: { orderId, status: { notIn: ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'] } },
+          data: { status: 'SERVED' },
+        });
+
+        await tx.folioLineItem.create({
+          data: {
+            folioId: folioIdToUse,
+            type: 'CHARGE',
+            category: 'F_AND_B',
+            amount: totalAmount,
+            description: `POS Order #${order.id.substring(0, 8).toUpperCase()}`,
+            propertyId: order.propertyId || null,
+          }
+        });
+
+        await tx.folio.update({
+          where: { id: folioIdToUse },
+          data: { balance: { increment: totalAmount } }
+        });
       });
 
-      // Update Folio balance
-      await this.prisma.folio.update({
-        where: { id: folioIdToUse! },
-        data: { balance: { increment: totalAmount } }
-      });
-
-      return this.prisma.posOrder.update({
+      return this.prisma.posOrder.findUnique({
         where: { id: orderId },
-        data: { 
-          status: 'BILLED_TO_ROOM', 
-          folioId: folioIdToUse, 
-          totalAmount, 
-          discountAmount: appliedDiscount, 
-          ...(data.discountReason ? { discountReason: data.discountReason } : {}) 
-        }
+        include: { items: { include: { menuItem: true } }, payments: true }
       });
     }
 
-    // Process POS payments
+    // Process POS payments atomically with conditional status lock
     const paymentsToRecord = (data.payments && data.payments.length > 0)
       ? data.payments
       : [{ method: 'PAYMENT_CASH', amount: totalAmount }];
 
     await this.prisma.$transaction(async (tx) => {
+      const claim = await tx.posOrder.updateMany({
+        where: { id: orderId, status: { notIn: ['PAID', 'BILLED_TO_ROOM'] } },
+        data: { 
+          status: 'PAID', 
+          totalAmount, 
+          discountAmount: appliedDiscount, 
+          ...(data.discountReason ? { discountReason: data.discountReason } : {}) 
+        }
+      });
+      // Another request already settled this order — do not insert duplicate payments
+      if (claim.count === 0) return;
+
+      await tx.posOrderItem.updateMany({
+        where: { orderId, status: { notIn: ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'] } },
+        data: { status: 'SERVED' },
+      });
+
       for (const p of paymentsToRecord) {
         if (Number(p.amount) > 0) {
           await tx.posPayment.create({
@@ -921,15 +988,6 @@ export class PosService {
           });
         }
       }
-      await tx.posOrder.update({
-        where: { id: orderId },
-        data: { 
-          status: 'PAID', 
-          totalAmount, 
-          discountAmount: appliedDiscount, 
-          ...(data.discountReason ? { discountReason: data.discountReason } : {}) 
-        }
-      });
     });
 
     return this.prisma.posOrder.findUnique({
@@ -1347,7 +1405,8 @@ export class PosService {
           data: {
             orderId: order.id,
             amount: -refundAmount,
-            method
+            method,
+            propertyId: order.propertyId || null,
           }
         });
       } else if (order.status === 'BILLED_TO_ROOM' && order.folioId) {
@@ -1367,7 +1426,8 @@ export class PosService {
             amount: -refundAmount,
             description: `Refund for POS Order #${order.id.substring(0,8)} - ${returnReq.orderItem.menuItem.name}`,
             category: 'F_AND_B',
-            type: 'ADJUSTMENT'
+            type: 'ADJUSTMENT',
+            propertyId: order.propertyId || null,
           }
         });
       }
@@ -1383,19 +1443,23 @@ export class PosService {
 
     if (!returnReq) {
       if (approved) {
-        await this.prisma.posOrderItem.update({
-          where: { id: itemId },
-          data: { status: 'RETURNED' }
+        const createdReq = await this.prisma.posReturnRequest.create({
+          data: {
+            orderItemId: itemId,
+            requestedById: userId,
+            confirmedById: userId,
+            kitchenNote: 'Direct inline return approval',
+            status: 'PENDING_APPROVAL',
+          },
         });
-        const it = await this.prisma.posOrderItem.findUnique({ where: { id: itemId } });
-        if (it) await this.recalculateOrderTotal(it.orderId);
+        return this.approveReturn(createdReq.id, userId, true);
       } else {
         await this.prisma.posOrderItem.update({
           where: { id: itemId },
           data: { status: 'SERVED' }
         });
+        return { success: true };
       }
-      return { success: true };
     }
 
     return this.approveReturn(returnReq.id, userId, approved);
