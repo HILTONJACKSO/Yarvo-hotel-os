@@ -4,10 +4,24 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @Injectable()
 export class PosService {
+  // Idempotency & duplicate-click burst guards to prevent doubled Kitchen/Bar orders
+  private recentClientRequests = new Map<string, { promise: Promise<any>; expiresAt: number }>();
+  private recentOrderBatchBursts = new Map<string, { promise: Promise<any>; expiresAt: number }>();
+  private recentItemBursts = new Map<string, { promise: Promise<any>; expiresAt: number }>();
+
   constructor(
     private prisma: PrismaService,
     private readonly auditLogsService: AuditLogsService
   ) {}
+
+  private pruneDedupeMap(map: Map<string, { promise: Promise<any>; expiresAt: number }>) {
+    const now = Date.now();
+    for (const [k, v] of map.entries()) {
+      if (v.expiresAt <= now) {
+        map.delete(k);
+      }
+    }
+  }
 
   // ─── TABLES ─────────────────────────────────────────────────────────────
   async getTables(propertyId?: string) {
@@ -526,105 +540,444 @@ export class PosService {
     });
   }
 
-  async createOrder(data: { tableId?: string; folioId?: string; guestId?: string; userId?: string; userRoles?: string[]; discountAmount?: number; discountReason?: string; notes?: string; propertyId?: string }) {
-    // Check if an OPEN or SERVED order already exists for this destination to consolidate bills
+  async createOrder(data: {
+    tableId?: string;
+    folioId?: string;
+    guestId?: string;
+    userId?: string;
+    userRoles?: string[];
+    discountAmount?: number;
+    discountReason?: string;
+    notes?: string;
+    propertyId?: string;
+    clientRequestId?: string;
+    items?: Array<{ menuItemId: string; quantity: number; notes?: string }>;
+  }) {
+    this.pruneDedupeMap(this.recentClientRequests);
+    this.pruneDedupeMap(this.recentOrderBatchBursts);
+
+    if (data.clientRequestId) {
+      const existingReq = this.recentClientRequests.get(data.clientRequestId);
+      if (existingReq) {
+        return existingReq.promise;
+      }
+    }
+
+    let batchKey: string | null = null;
+    if (Array.isArray(data.items) && data.items.length > 0) {
+      const destKey = data.tableId
+        ? `T:${data.tableId}`
+        : data.folioId
+          ? `F:${data.folioId}`
+          : data.guestId
+            ? `G:${data.guestId}`
+            : `U:${data.userId || 'walkin'}`;
+      const itemsSig = [...data.items]
+        .map((i) => `${i.menuItemId}:${Number(i.quantity)}:${(i.notes || '').trim()}`)
+        .sort()
+        .join('|');
+      batchKey = `${destKey}::${itemsSig}`;
+
+      const existingBurst = this.recentOrderBatchBursts.get(batchKey);
+      if (existingBurst) {
+        return existingBurst.promise;
+      }
+    }
+
+    const executionPromise = this.executeCreateOrder(data).catch((err) => {
+      if (data.clientRequestId) {
+        this.recentClientRequests.delete(data.clientRequestId);
+      }
+      if (batchKey) {
+        this.recentOrderBatchBursts.delete(batchKey);
+      }
+      throw err;
+    });
+
+    if (data.clientRequestId) {
+      this.recentClientRequests.set(data.clientRequestId, {
+        promise: executionPromise,
+        expiresAt: Date.now() + 120_000,
+      });
+    }
+    if (batchKey) {
+      this.recentOrderBatchBursts.set(batchKey, {
+        promise: executionPromise,
+        expiresAt: Date.now() + 2_500,
+      });
+    }
+
+    return executionPromise;
+  }
+
+  private async executeCreateOrder(data: {
+    tableId?: string;
+    folioId?: string;
+    guestId?: string;
+    userId?: string;
+    userRoles?: string[];
+    discountAmount?: number;
+    discountReason?: string;
+    notes?: string;
+    propertyId?: string;
+    items?: Array<{ menuItemId: string; quantity: number; notes?: string }>;
+  }) {
+    const rawItems = Array.isArray(data.items)
+      ? data.items.filter((i) => i && i.menuItemId && Number(i.quantity) > 0)
+      : [];
+
+    // Consolidate any duplicate menuItemId + notes lines within the same payload
+    const consolidatedMap = new Map<string, { menuItemId: string; quantity: number; notes?: string }>();
+    for (const entry of rawItems) {
+      const key = `${entry.menuItemId}::${(entry.notes || '').trim()}`;
+      const prev = consolidatedMap.get(key);
+      if (prev) {
+        prev.quantity += Number(entry.quantity);
+      } else {
+        consolidatedMap.set(key, {
+          menuItemId: entry.menuItemId,
+          quantity: Number(entry.quantity),
+          notes: entry.notes,
+        });
+      }
+    }
+    const itemsToCreate = Array.from(consolidatedMap.values());
+
+    // Legacy flow when no items array is passed in createOrder
+    if (itemsToCreate.length === 0) {
+      const existing = await this.findExistingOpenOrder(this.prisma, data);
+      if (existing) {
+        this.assertCanEditPrintedOrder(existing, data.userRoles);
+        if (data.discountAmount !== undefined || data.notes !== undefined) {
+          return this.prisma.posOrder.update({
+            where: { id: existing.id },
+            data: {
+              ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
+              ...(data.discountReason !== undefined ? { discountReason: data.discountReason } : {}),
+              ...(data.notes !== undefined ? { notes: data.notes } : {}),
+            },
+          });
+        }
+        return existing;
+      }
+
+      return this.prisma.posOrder.create({
+        data: {
+          tableId: data.tableId,
+          folioId: data.folioId,
+          guestId: data.guestId,
+          userId: data.userId,
+          status: 'OPEN',
+          discountAmount: data.discountAmount || 0,
+          discountReason: data.discountReason,
+          notes: data.notes,
+          ...(data.propertyId ? { propertyId: data.propertyId } : {}),
+        },
+      });
+    }
+
+    // Atomic flow: validate stock for ALL items, find/create order, add items, deduct stock, recalculate total
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await this.findExistingOpenOrder(tx, data);
+      if (existing) {
+        this.assertCanEditPrintedOrder(existing, data.userRoles);
+      }
+
+      const uniqueMenuItemIds = Array.from(new Set(itemsToCreate.map((i) => i.menuItemId)));
+      const menuItems = await tx.posMenuItem.findMany({
+        where: { id: { in: uniqueMenuItemIds } },
+      });
+      const menuItemMap = new Map(menuItems.map((m) => [m.id, m]));
+
+      for (const reqItem of itemsToCreate) {
+        if (!menuItemMap.has(reqItem.menuItemId)) {
+          throw new BadRequestException('Selected menu item no longer exists');
+        }
+      }
+
+      const recipes = await tx.inventoryRecipe.findMany({
+        where: { menuItemId: { in: uniqueMenuItemIds } },
+      });
+
+      // Aggregate inventory demand across the entire cart so multi-item stock checks are 100% accurate
+      const demandByInvId = new Map<
+        string,
+        { stockKitchen: number; stockBar: number; stockMain: number; deptLabel: string }
+      >();
+
+      for (const reqItem of itemsToCreate) {
+        const menuItem = menuItemMap.get(reqItem.menuItemId)!;
+        let primaryField: 'stockKitchen' | 'stockBar' | 'stockMain' = 'stockMain';
+        let deptLabel = 'Main';
+        if (menuItem.type === 'DRINK' || menuItem.type === 'BAR') {
+          primaryField = 'stockBar';
+          deptLabel = 'Bar';
+        } else if (menuItem.type === 'FOOD') {
+          primaryField = 'stockKitchen';
+          deptLabel = 'Kitchen';
+        }
+
+        const itemRecipes = recipes.filter((r) => r.menuItemId === reqItem.menuItemId);
+        for (const r of itemRecipes) {
+          const needed = Number(r.quantity) * Number(reqItem.quantity);
+          if (needed <= 0) continue;
+          const prev = demandByInvId.get(r.inventoryItemId) || {
+            stockKitchen: 0,
+            stockBar: 0,
+            stockMain: 0,
+            deptLabel,
+          };
+          prev[primaryField] += needed;
+          prev.deptLabel = deptLabel;
+          demandByInvId.set(r.inventoryItemId, prev);
+        }
+      }
+
+      const inventoryUpdates: Array<{ invId: string; updateData: any }> = [];
+      if (demandByInvId.size > 0) {
+        const invItems = await tx.inventoryItem.findMany({
+          where: { id: { in: Array.from(demandByInvId.keys()) } },
+        });
+        const invMap = new Map(invItems.map((inv) => [inv.id, inv]));
+
+        for (const [invId, demand] of demandByInvId.entries()) {
+          const invItem = invMap.get(invId);
+          if (!invItem) continue;
+
+          const totalDeduction = demand.stockKitchen + demand.stockBar + demand.stockMain;
+          const totalStock = Number(invItem.stockLevel || 0);
+          const curKitchen = Number(invItem.stockKitchen || 0);
+          const curBar = Number(invItem.stockBar || 0);
+          const curMain = Number(invItem.stockMain || 0);
+          const otherAllocated =
+            curKitchen +
+            curBar +
+            Number(invItem.stockHousekeeping || 0) +
+            Number(invItem.stockBoutique || 0);
+          const unallocatedMain = Math.max(0, totalStock - otherAllocated);
+          const effectiveMain = Math.max(curMain, unallocatedMain);
+
+          const deductKitchen = Math.min(curKitchen, demand.stockKitchen);
+          const overflowKitchen = demand.stockKitchen - deductKitchen;
+
+          const deductBar = Math.min(curBar, demand.stockBar);
+          const overflowBar = demand.stockBar - deductBar;
+
+          const deductMain = demand.stockMain + overflowKitchen + overflowBar;
+          const totalDeptAvailable =
+            (demand.stockKitchen > 0 ? curKitchen : 0) +
+            (demand.stockBar > 0 ? curBar : 0) +
+            effectiveMain;
+
+          if (deductMain > effectiveMain && totalStock < totalDeduction) {
+            const primaryAvail = demand.stockBar > 0 ? curBar : curKitchen;
+            if (demand.stockKitchen > 0 || demand.stockBar > 0) {
+              throw new BadRequestException(
+                `Not enough stock for "${invItem.name}". Available: ${Math.max(totalDeptAvailable, totalStock)} ${invItem.unit} (${primaryAvail} in ${demand.deptLabel}, ${effectiveMain} in Main), Requested: ${totalDeduction} ${invItem.unit}`,
+              );
+            }
+            throw new BadRequestException(
+              `Not enough stock for "${invItem.name}". Available: ${Math.max(totalStock, effectiveMain)} ${invItem.unit}, Requested: ${totalDeduction} ${invItem.unit}`,
+            );
+          }
+
+          if (totalStock < totalDeduction && totalDeptAvailable < totalDeduction) {
+            throw new BadRequestException(
+              `Not enough stock for "${invItem.name}". Available: ${Math.max(totalStock, effectiveMain)} ${invItem.unit}, Requested: ${totalDeduction} ${invItem.unit}`,
+            );
+          }
+
+          const updateData: any = {
+            stockLevel: { decrement: totalDeduction },
+          };
+          if (deductKitchen > 0) {
+            updateData.stockKitchen = { decrement: deductKitchen };
+          }
+          if (deductBar > 0) {
+            updateData.stockBar = { decrement: deductBar };
+          }
+          if (deductMain > 0) {
+            if (curMain >= deductMain) {
+              updateData.stockMain = { decrement: deductMain };
+            } else {
+              const remainingTotal = Math.max(0, totalStock - totalDeduction);
+              const otherRemaining = otherAllocated - deductKitchen - deductBar;
+              updateData.stockMain = Math.max(0, remainingTotal - otherRemaining);
+            }
+          }
+
+          inventoryUpdates.push({ invId, updateData });
+        }
+      }
+
+      // Safe to find/update or create the order now that all stock checks passed
+      let targetOrder = existing;
+      if (targetOrder) {
+        targetOrder = await tx.posOrder.update({
+          where: { id: targetOrder.id },
+          data: {
+            status: 'OPEN',
+            ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
+            ...(data.discountReason !== undefined ? { discountReason: data.discountReason } : {}),
+            ...(data.notes !== undefined ? { notes: data.notes } : {}),
+          },
+        });
+      } else {
+        targetOrder = await tx.posOrder.create({
+          data: {
+            tableId: data.tableId,
+            folioId: data.folioId,
+            guestId: data.guestId,
+            userId: data.userId,
+            status: 'OPEN',
+            discountAmount: data.discountAmount || 0,
+            discountReason: data.discountReason,
+            notes: data.notes,
+            ...(data.propertyId ? { propertyId: data.propertyId } : {}),
+          },
+        });
+      }
+
+      const itemPropertyId = targetOrder.propertyId || data.propertyId || null;
+      for (const reqItem of itemsToCreate) {
+        await tx.posOrderItem.create({
+          data: {
+            orderId: targetOrder.id,
+            menuItemId: reqItem.menuItemId,
+            quantity: reqItem.quantity,
+            notes: reqItem.notes,
+            status: 'PENDING',
+            propertyId: itemPropertyId,
+          },
+        });
+      }
+
+      for (const u of inventoryUpdates) {
+        await tx.inventoryItem.update({
+          where: { id: u.invId },
+          data: u.updateData,
+        });
+      }
+
+      const allOrderItems = await tx.posOrderItem.findMany({
+        where: { orderId: targetOrder.id },
+        include: { menuItem: true },
+      });
+
+      let subtotal = 0;
+      for (const i of allOrderItems) {
+        if (i.status !== 'RETURNED' && i.status !== 'RETURN_REQUESTED') {
+          subtotal += Number(i.menuItem.price) * i.quantity;
+        }
+      }
+      const finalTotal = Math.max(0, subtotal - Number(targetOrder.discountAmount || 0));
+
+      return tx.posOrder.update({
+        where: { id: targetOrder.id },
+        data: { totalAmount: finalTotal, status: 'OPEN' },
+        include: {
+          table: true,
+          guest: true,
+          user: { select: { firstName: true, lastName: true } },
+          folio: { include: { reservation: { include: { room: true, guest: true } } } },
+          items: { include: { menuItem: true, returnRequest: true } },
+        },
+      });
+    });
+  }
+
+  private async findExistingOpenOrder(
+    client: Pick<PrismaService, 'posOrder'>,
+    data: { tableId?: string; folioId?: string; guestId?: string; propertyId?: string },
+  ) {
     if (data.tableId) {
-      const existing = await this.prisma.posOrder.findFirst({
+      return client.posOrder.findFirst({
         where: {
           tableId: data.tableId,
           status: { in: ['OPEN', 'SERVED'] },
           ...(data.propertyId ? { propertyId: data.propertyId } : {}),
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
-      if (existing) {
-        if (existing.invoicePrintCount > 0) {
-          const isAdmin = data.userRoles?.includes('SUPER_ADMIN') || data.userRoles?.includes('ADMIN') || data.userRoles?.includes('CEO');
-          if (!isAdmin) {
-            throw new ForbiddenException('Invoice has already been printed. Only Admin or CEO can edit this bill.');
-          }
-        }
-
-        if (data.discountAmount !== undefined || data.notes !== undefined) {
-          return this.prisma.posOrder.update({ 
-            where: { id: existing.id }, 
-            data: { 
-              ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
-                ...(data.discountReason !== undefined ? { discountReason: data.discountReason } : {}),
-                ...(data.notes !== undefined ? { notes: data.notes } : {})
-            }
-          });
-        }
-        return existing;
-      }
-    } else if (data.folioId) {
-      const existing = await this.prisma.posOrder.findFirst({
+    }
+    if (data.folioId) {
+      return client.posOrder.findFirst({
         where: { folioId: data.folioId, status: { in: ['OPEN', 'SERVED'] } },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
-      if (existing) {
-        if (existing.invoicePrintCount > 0) {
-          const isAdmin = data.userRoles?.includes('SUPER_ADMIN') || data.userRoles?.includes('ADMIN') || data.userRoles?.includes('CEO');
-          if (!isAdmin) {
-            throw new ForbiddenException('Invoice has already been printed. Only Admin or CEO can edit this bill.');
-          }
-        }
-
-        if (data.discountAmount !== undefined || data.notes !== undefined) {
-          return this.prisma.posOrder.update({ 
-            where: { id: existing.id }, 
-            data: { 
-              ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
-                ...(data.discountReason !== undefined ? { discountReason: data.discountReason } : {}),
-                ...(data.notes !== undefined ? { notes: data.notes } : {})
-            }
-          });
-        }
-        return existing;
-      }
-    } else if (data.guestId) {
-      const existing = await this.prisma.posOrder.findFirst({
+    }
+    if (data.guestId) {
+      return client.posOrder.findFirst({
         where: { guestId: data.guestId, status: { in: ['OPEN', 'SERVED'] } },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
-      if (existing) {
-        if (existing.invoicePrintCount > 0) {
-          const isAdmin = data.userRoles?.includes('SUPER_ADMIN') || data.userRoles?.includes('ADMIN') || data.userRoles?.includes('CEO');
-          if (!isAdmin) {
-            throw new ForbiddenException('Invoice has already been printed. Only Admin or CEO can edit this bill.');
-          }
-        }
+    }
+    return null;
+  }
 
-        if (data.discountAmount !== undefined || data.notes !== undefined) {
-          return this.prisma.posOrder.update({ 
-            where: { id: existing.id }, 
-            data: { 
-              ...(data.discountAmount !== undefined ? { discountAmount: data.discountAmount } : {}),
-                ...(data.discountReason !== undefined ? { discountReason: data.discountReason } : {}),
-                ...(data.notes !== undefined ? { notes: data.notes } : {})
-            }
-          });
-        }
-        return existing;
+  private assertCanEditPrintedOrder(existing: { invoicePrintCount: number }, userRoles?: string[]) {
+    if (existing.invoicePrintCount > 0) {
+      const normalizedRoles = (userRoles || []).map((r: any) =>
+        (typeof r === 'string' ? r : r?.name || '').toUpperCase(),
+      );
+      const isAdmin = normalizedRoles.some((r) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r));
+      if (!isAdmin) {
+        throw new ForbiddenException(
+          'Invoice has already been printed. Only Admin or CEO can edit this bill.',
+        );
+      }
+    }
+  }
+
+  async addOrderItem(
+    orderId: string,
+    data: { menuItemId: string; quantity: number; notes?: string; clientRequestId?: string },
+  ) {
+    this.pruneDedupeMap(this.recentClientRequests);
+    this.pruneDedupeMap(this.recentItemBursts);
+
+    if (data.clientRequestId) {
+      const existingReq = this.recentClientRequests.get(data.clientRequestId);
+      if (existingReq) {
+        return existingReq.promise;
       }
     }
 
-    return this.prisma.posOrder.create({
-      data: {
-        tableId: data.tableId,
-        folioId: data.folioId,
-        guestId: data.guestId,
-        userId: data.userId,
-        status: 'OPEN',
-        discountAmount: data.discountAmount || 0,
-        discountReason: data.discountReason,
-        notes: data.notes,
-        ...(data.propertyId ? { propertyId: data.propertyId } : {}),
-      },
+    const burstKey = `${orderId}:${data.menuItemId}:${Number(data.quantity)}:${(data.notes || '').trim()}`;
+    if (!data.clientRequestId) {
+      const existingBurst = this.recentItemBursts.get(burstKey);
+      if (existingBurst) {
+        return existingBurst.promise;
+      }
+    }
+
+    const executionPromise = this.executeAddOrderItem(orderId, data).catch((err) => {
+      if (data.clientRequestId) {
+        this.recentClientRequests.delete(data.clientRequestId);
+      }
+      this.recentItemBursts.delete(burstKey);
+      throw err;
     });
+
+    if (data.clientRequestId) {
+      this.recentClientRequests.set(data.clientRequestId, {
+        promise: executionPromise,
+        expiresAt: Date.now() + 120_000,
+      });
+    } else {
+      this.recentItemBursts.set(burstKey, {
+        promise: executionPromise,
+        expiresAt: Date.now() + 3_000,
+      });
+    }
+
+    return executionPromise;
   }
 
-  async addOrderItem(orderId: string, data: { menuItemId: string; quantity: number; notes?: string }) {
+  private async executeAddOrderItem(
+    orderId: string,
+    data: { menuItemId: string; quantity: number; notes?: string },
+  ) {
     // Fetch menu item to determine type (FOOD -> Kitchen, DRINK -> Bar)
     const menuItem = await this.prisma.posMenuItem.findUnique({
       where: { id: data.menuItemId }
@@ -1302,6 +1655,13 @@ export class PosService {
 
 
   async confirmReturnByItemId(itemId: string, userId: string, kitchenNote: string) {
+    const existingItem = await this.prisma.posOrderItem.findUnique({
+      where: { id: itemId },
+    });
+    if (!existingItem) {
+      throw new NotFoundException(`Order item ${itemId} not found`);
+    }
+
     await this.prisma.posOrderItem.updateMany({
       where: { id: itemId },
       data: { status: 'RETURN_REQUESTED' }
@@ -1336,7 +1696,7 @@ export class PosService {
 
   async confirmReturn(returnId: string, userId: string, kitchenNote: string) {
     const returnReq = await this.prisma.posReturnRequest.findUnique({ where: { id: returnId } });
-    if (!returnReq) throw new Error("Return request not found");
+    if (!returnReq) throw new NotFoundException('Return request not found');
     
     return this.prisma.posReturnRequest.update({
       where: { id: returnId },

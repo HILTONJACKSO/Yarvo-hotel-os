@@ -118,12 +118,33 @@ export class PosController {
   }
 
   @Post('orders')
-  createOrder(@Body() data: { tableId?: string; folioId?: string; guestId?: string; discountAmount?: number; notes?: string }, @Req() req: any) {
-    return this.posService.createOrder({ ...data, userId: req.user.id, userRoles: req.user.roles, propertyId: req.user?.propertyId });
+  createOrder(
+    @Body()
+    data: {
+      tableId?: string;
+      folioId?: string;
+      guestId?: string;
+      discountAmount?: number;
+      discountReason?: string;
+      notes?: string;
+      clientRequestId?: string;
+      items?: Array<{ menuItemId: string; quantity: number; notes?: string }>;
+    },
+    @Req() req: any,
+  ) {
+    return this.posService.createOrder({
+      ...data,
+      userId: req.user.id,
+      userRoles: req.user.roles,
+      propertyId: req.user?.propertyId,
+    });
   }
 
   @Post('orders/:id/items')
-  addOrderItem(@Param('id') id: string, @Body() data: { menuItemId: string; quantity: number; notes?: string }) {
+  addOrderItem(
+    @Param('id') id: string,
+    @Body() data: { menuItemId: string; quantity: number; notes?: string; clientRequestId?: string },
+  ) {
     return this.posService.addOrderItem(id, data);
   }
 

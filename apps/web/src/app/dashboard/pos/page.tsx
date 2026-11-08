@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import { syncOfflineMutations, downloadLatestData, syncPosOrders, markOrderSettledLocally, fetchWithAuth } from '@/lib/sync';
@@ -52,10 +52,19 @@ export default function PosPage() {
   const [orderNotes, setOrderNotes] = useState<string>('');
   const [orderDestinationDept, setOrderDestinationDept] = useState<'KITCHEN'|'BAR'|'BOTH'>('KITCHEN');
   const [showOrderNotes, setShowOrderNotes] = useState<boolean>(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState<boolean>(false);
+  const isSubmittingOrderRef = useRef<boolean>(false);
+  const pendingRequestIdRef = useRef<string | null>(null);
   
   // Checkout / Settle state
   const [settleDiscountPercent, setSettleDiscountPercent] = useState<number>(0);
     const [settleDiscountReason, setSettleDiscountReason] = useState<string>('');
+  const [isSettlingOrder, setIsSettlingOrder] = useState<boolean>(false);
+  const isSettlingOrderRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    pendingRequestIdRef.current = null;
+  }, [cart, selectedTable, selectedFolioId, selectedGuestId, orderDestinationType, orderDestinationDept, orderNotes]);
 
   const [showAddTable, setShowAddTable] = useState(false);
   const [newTable, setNewTable] = useState({ number: '', capacity: 2 });
@@ -269,12 +278,26 @@ export default function PosPage() {
   };
 
   const submitOrder = async () => {
-    if (cart.length === 0) return;
-    
-    let createdOrderId: string | null = null;
-    let addedAnyItem = false;
+    if (cart.length === 0 || isSubmittingOrderRef.current) return;
+
+    isSubmittingOrderRef.current = true;
+    setIsSubmittingOrder(true);
+
     try {
-      const payload: any = {};
+      if (!pendingRequestIdRef.current) {
+        pendingRequestIdRef.current =
+          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      }
+
+      const payload: any = {
+        clientRequestId: pendingRequestIdRef.current,
+        items: cart.map(c => ({
+          menuItemId: c.item.id,
+          quantity: c.quantity,
+        })),
+      };
       if (orderDestinationType === 'TABLE') payload.tableId = selectedTable;
       if (orderDestinationType === 'ROOM') payload.folioId = selectedFolioId;
       if (orderDestinationType === 'GUEST') payload.guestId = selectedGuestId;
@@ -285,45 +308,25 @@ export default function PosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const orderRes = await rawOrderRes.json();
+      const orderRes = await rawOrderRes.json().catch(() => ({}));
       if (!rawOrderRes.ok) {
-        throw new Error(orderRes.message || 'Failed to create order');
+        throw new Error(orderRes.message || 'Failed to submit order');
       }
 
-      const orderObj = orderRes.data || orderRes;
-      const orderId = orderObj.id;
-      const hadExistingItems = Array.isArray(orderObj.items) && orderObj.items.length > 0;
-      if (!hadExistingItems && Number(orderObj.totalAmount || 0) === 0) {
-        createdOrderId = orderId;
-      }
-
-      await Promise.all(cart.map(c => 
-        fetchWithAuth(`${API_URL}/api/v1/pos/orders/${orderId}/items`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ menuItemId: c.item.id, quantity: c.quantity })
-        }).then(async res => {
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.message || 'Failed to add item');
-          }
-          addedAnyItem = true;
-          return res;
-        })
-      ));
-
-      await syncPosOrders();
-      showToast('Order sent to Kitchen/Bar successfully!', 'success', 'Order Placed');
+      pendingRequestIdRef.current = null;
       setCart([]);
       setSelectedTable(null);
       setSelectedFolioId(null);
       setOrderNotes('');
       setShowOrderNotes(false);
+
+      showToast('Order sent to Kitchen/Bar successfully!', 'success', 'Order Placed');
+      await syncPosOrders();
     } catch (err: any) {
-      if (createdOrderId && !addedAnyItem) {
-        fetchWithAuth(`${API_URL}/api/v1/pos/orders/${createdOrderId}`, { method: 'DELETE' }).catch(() => {});
-      }
       showToast(err.message || 'Failed to submit order', 'error', 'Error');
+    } finally {
+      isSubmittingOrderRef.current = false;
+      setIsSubmittingOrder(false);
     }
   };
 
@@ -339,24 +342,28 @@ export default function PosPage() {
 
   const handleSettle = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!settleOrder) return;
+    if (!settleOrder || isSettlingOrderRef.current) return;
+
+    isSettlingOrderRef.current = true;
+    setIsSettlingOrder(true);
 
     try {
       const payload: any = {};
+      const settleDiscountAmount = Number(settleOrder.totalAmount) * (settleDiscountPercent / 100);
       if (settleOrder.folio?.reservation?.room || settleFolioId) {
         // Bill to room
         payload.folioId = settleFolioId || undefined; // Backend auto-uses existing folioId if set
       } else {
         // Walk-in payment - send all payments
         const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-        if (totalPaid < Number(settleOrder.totalAmount)) {
+        const expectedTotal = Math.max(0, Number(settleOrder.totalAmount) - settleDiscountAmount);
+        if (totalPaid < expectedTotal) {
           showToast('Total payment must equal or exceed order total', 'error', 'Error');
           return;
         }
         payload.payments = payments;
       }
       
-      const settleDiscountAmount = Number(settleOrder.totalAmount) * (settleDiscountPercent / 100);
       if (settleDiscountAmount > 0) { payload.discountAmount = settleDiscountAmount; payload.discountReason = settleDiscountReason || 'POS Discount'; }
 
       const res = await fetchWithAuth(`${API_URL}/api/v1/pos/orders/${settleOrder.id}/checkout`, {
@@ -381,6 +388,9 @@ export default function PosPage() {
       }
     } catch (err) {
       showToast('Failed to settle order', 'error', 'Error');
+    } finally {
+      isSettlingOrderRef.current = false;
+      setIsSettlingOrder(false);
     }
   };
 
@@ -643,8 +653,13 @@ export default function PosPage() {
               </div>
             )}
           </div>
-          <button className="btn-primary w-full mt-4" disabled={cart.length === 0 || (orderDestinationType === 'TABLE' && !selectedTable) || (orderDestinationType === 'ROOM' && !selectedFolioId) || (orderDestinationType === 'GUEST' && !selectedGuestId)} onClick={submitOrder}>
-            Send to Kitchen/Bar
+          <button
+            type="button"
+            className="btn-primary w-full mt-4"
+            disabled={isSubmittingOrder || cart.length === 0 || (orderDestinationType === 'TABLE' && !selectedTable) || (orderDestinationType === 'ROOM' && !selectedFolioId) || (orderDestinationType === 'GUEST' && !selectedGuestId)}
+            onClick={submitOrder}
+          >
+            {isSubmittingOrder ? 'Sending Order...' : 'Send to Kitchen/Bar'}
           </button>
         </div>
       </div>
@@ -767,8 +782,8 @@ export default function PosPage() {
                 )}
                 <div className="modal-actions">
                   <button type="button" className="btn-cancel" onClick={() => { setSettleOrder(null); setPayments([]); setSettleDiscountPercent(0); setSettleDiscountReason(''); }}>Back</button>
-                  <button type="button" className="btn-success" onClick={handleSettle} disabled={(!settleOrder.folio?.reservation?.room && !settleOrder.folioId) && payments.reduce((sum, p) => sum + p.amount, 0) < Math.max(0, Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100)))}>
-                    {(settleOrder.folio?.reservation?.room || settleOrder.folioId) ? 'Charge to Folio' : 'Complete Payment'}
+                  <button type="button" className="btn-success" onClick={handleSettle} disabled={isSettlingOrder || ((!settleOrder.folio?.reservation?.room && !settleOrder.folioId && !settleFolioId) && payments.reduce((sum, p) => sum + p.amount, 0) < Math.max(0, Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100))))}>
+                    {isSettlingOrder ? 'Processing...' : (settleOrder.folio?.reservation?.room || settleOrder.folioId || settleFolioId) ? 'Charge to Folio' : 'Complete Payment'}
                   </button>
                 </div>
               </div>
