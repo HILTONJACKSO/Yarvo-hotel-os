@@ -40,19 +40,35 @@ export class ReservationsService {
           address: createReservationDto.guestAddress,
           city: createReservationDto.guestCity,
           country: createReservationDto.guestCountry,
-          }
+        }
       });
       finalGuestId = newGuest.id;
     }
+
+    const roomType = await this.prisma.roomType.findUnique({
+      where: { id: createReservationDto.roomTypeId },
+    });
+
+    let nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+    if (nights < 1) nights = 1;
+
+    let roomsCount = 1;
+    const matchRooms = (createReservationDto.specialRequests || '').match(/\[Requested Accommodations:\s*(\d+)/i);
+    if (matchRooms && matchRooms[1]) {
+      roomsCount = Math.max(1, parseInt(matchRooms[1], 10) || 1);
+    }
+
+    const baseRate = Number(roomType?.baseRateUsd || 0);
+    const computedTotal = nights * baseRate * roomsCount;
 
     const confirmationCode = this.generateConfirmationCode();
 
     const reservation = await this.prisma.reservation.create({
       data: {
-          status: "CONFIRMED",
+        status: "CONFIRMED",
         guestId: finalGuestId,
         companyId: createReservationDto.companyId,
-          estimatedArrivalTime: createReservationDto.estimatedArrivalTime,
+        estimatedArrivalTime: createReservationDto.estimatedArrivalTime,
         roomTypeId: createReservationDto.roomTypeId,
         roomId: createReservationDto.roomId,
         adultsCount: createReservationDto.adultsCount,
@@ -60,8 +76,10 @@ export class ReservationsService {
         specialRequests: createReservationDto.specialRequests,
         checkInDate: checkIn,
         checkOutDate: checkOut,
+        totalAmount: computedTotal,
         confirmationCode,
         bookedById: userId,
+        ...(roomType?.propertyId ? { propertyId: roomType.propertyId } : {}),
       },
       include: {
         guest: true,
@@ -584,4 +602,3 @@ export class ReservationsService {
     return crypto.randomBytes(3).toString('hex').toUpperCase(); // 6 chars, e.g., 'A1B2C3'
   }
 }
-

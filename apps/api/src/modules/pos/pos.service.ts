@@ -379,6 +379,7 @@ export class PosService {
       include: {
         table: true,
         guest: true,
+        payments: true,
         user: { select: { firstName: true, lastName: true } },
         folio: { include: { reservation: { include: { room: true, guest: true } } } },
         items: {
@@ -416,6 +417,7 @@ export class PosService {
       include: {
         table: true,
         guest: true,
+        payments: true,
         user: { select: { firstName: true, lastName: true } },
         folio: { include: { reservation: { include: { room: true, guest: true } } } },
         items: { include: { menuItem: true, returnRequest: true } }
@@ -876,10 +878,11 @@ export class PosService {
         where: { id: targetOrder.id },
         data: { totalAmount: finalTotal, status: 'OPEN' },
         include: {
-          table: true,
-          guest: true,
-          user: { select: { firstName: true, lastName: true } },
-          folio: { include: { reservation: { include: { room: true, guest: true } } } },
+        table: true,
+        guest: true,
+        payments: true,
+        user: { select: { firstName: true, lastName: true } },
+        folio: { include: { reservation: { include: { room: true, guest: true } } } },
           items: { include: { menuItem: true, returnRequest: true } },
         },
       });
@@ -1248,6 +1251,8 @@ export class PosService {
 
     const appliedDiscount = data.discountAmount !== undefined ? data.discountAmount : Number(order.discountAmount || 0);
     const totalAmount = Math.max(0, subtotal - appliedDiscount); // Prices are tax-inclusive
+    const existingPaid = (order.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const remainingToSettle = Math.max(0, Math.round((totalAmount - existingPaid) * 100) / 100);
     
     // Log discount if applied during checkout
     if (appliedDiscount > 0 && Number(order.discountAmount || 0) !== appliedDiscount) {
@@ -1283,21 +1288,23 @@ export class PosService {
           data: { status: 'SERVED' },
         });
 
-        await tx.folioLineItem.create({
-          data: {
-            folioId: folioIdToUse,
-            type: 'CHARGE',
-            category: 'F_AND_B',
-            amount: totalAmount,
-            description: `POS Order #${order.id.substring(0, 8).toUpperCase()}`,
-            propertyId: order.propertyId || null,
-          }
-        });
+        if (remainingToSettle > 0) {
+          await tx.folioLineItem.create({
+            data: {
+              folioId: folioIdToUse,
+              type: 'CHARGE',
+              category: 'F_AND_B',
+              amount: remainingToSettle,
+              description: existingPaid > 0 ? `POS Order #${order.id.substring(0, 8).toUpperCase()} (Paid ${existingPaid.toFixed(2)}, Balance)` : `POS Order #${order.id.substring(0, 8).toUpperCase()}`,
+              propertyId: order.propertyId || null,
+            }
+          });
 
-        await tx.folio.update({
-          where: { id: folioIdToUse },
-          data: { balance: { increment: totalAmount } }
-        });
+          await tx.folio.update({
+            where: { id: folioIdToUse },
+            data: { balance: { increment: remainingToSettle }, status: 'OPEN' }
+          });
+        }
       });
 
       return this.prisma.posOrder.findUnique({
@@ -1309,7 +1316,7 @@ export class PosService {
     // Process POS payments atomically with conditional status lock
     const paymentsToRecord = (data.payments && data.payments.length > 0)
       ? data.payments
-      : [{ method: 'PAYMENT_CASH', amount: totalAmount }];
+      : [{ method: 'PAYMENT_CASH', amount: remainingToSettle }];
 
     await this.prisma.$transaction(async (tx) => {
       const claim = await tx.posOrder.updateMany({
@@ -1345,7 +1352,138 @@ export class PosService {
 
     return this.prisma.posOrder.findUnique({
       where: { id: orderId },
-      include: { items: { include: { menuItem: true } }, payments: true }
+      include: { items: { include: { menuItem: true } }, payments: true, guest: true, folio: { include: { reservation: { include: { room: true, guest: true } } } }, table: true }
+    });
+  }
+
+  async assignOrderToPendingBill(
+    orderId: string,
+    data: {
+      folioId?: string;
+      guestId?: string;
+      newGuest?: { firstName: string; lastName: string; phone?: string; companyName?: string };
+      payments?: Array<{ method: string; amount: number }>;
+      notes?: string;
+    },
+    propertyId?: string,
+  ) {
+    const order = await this.prisma.posOrder.findUnique({
+      where: { id: orderId },
+      include: { items: { include: { menuItem: true } }, payments: true },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    let targetGuestId = data.guestId || order.guestId || undefined;
+    if (!targetGuestId && data.newGuest?.firstName && data.newGuest?.lastName) {
+      const createdGuest = await this.prisma.guest.create({
+        data: {
+          firstName: data.newGuest.firstName.trim(),
+          lastName: data.newGuest.lastName.trim(),
+          phone: data.newGuest.phone?.trim() || undefined,
+          companyName: data.newGuest.companyName?.trim() || undefined,
+          propertyId: order.propertyId || propertyId || null,
+        },
+      });
+      targetGuestId = createdGuest.id;
+    }
+
+    let subtotal = 0;
+    order.items.forEach((i) => {
+      if (['RETURNED', 'RETURN_REQUESTED', 'CANCELLED'].includes(i.status)) return;
+      subtotal += Number(i.menuItem?.price || 0) * i.quantity;
+    });
+    const discountAmt = Number(order.discountAmount || 0);
+    const finalTotal = Math.max(0, subtotal - discountAmt);
+
+    return this.prisma.$transaction(async (tx) => {
+      if (Array.isArray(data.payments) && data.payments.length > 0) {
+        for (const p of data.payments) {
+          if (Number(p.amount) > 0) {
+            await tx.posPayment.create({
+              data: {
+                orderId,
+                amount: Number(p.amount),
+                method: p.method || 'PAYMENT_CASH',
+                propertyId: order.propertyId || propertyId || null,
+              },
+            });
+          }
+        }
+      }
+
+      const allPayments = await tx.posPayment.findMany({ where: { orderId } });
+      const totalPaidSoFar = allPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+      const remainingBalance = Math.max(0, Math.round((finalTotal - totalPaidSoFar) * 100) / 100);
+
+      const allServed =
+        order.items.length > 0 &&
+        order.items.every((i) => ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status));
+
+      if (data.folioId) {
+        if (allServed && order.status !== 'BILLED_TO_ROOM' && order.status !== 'PAID') {
+          await tx.posOrder.update({
+            where: { id: orderId },
+            data: {
+              folioId: data.folioId,
+              ...(targetGuestId ? { guestId: targetGuestId } : {}),
+              status: 'BILLED_TO_ROOM',
+              totalAmount: subtotal,
+            },
+          });
+          if (remainingBalance > 0) {
+            await tx.folioLineItem.create({
+              data: {
+                folioId: data.folioId,
+                type: 'CHARGE',
+                category: 'F_AND_B',
+                amount: remainingBalance,
+                description: totalPaidSoFar > 0
+                  ? `POS Order #${order.id.substring(0, 8).toUpperCase()} (Paid ${totalPaidSoFar.toFixed(2)}, Balance Due)`
+                  : `POS Order #${order.id.substring(0, 8).toUpperCase()}`,
+                propertyId: order.propertyId || propertyId || null,
+              },
+            });
+            await tx.folio.update({
+              where: { id: data.folioId },
+              data: { balance: { increment: remainingBalance }, status: 'OPEN' },
+            });
+          }
+        } else {
+          await tx.posOrder.update({
+            where: { id: orderId },
+            data: {
+              folioId: data.folioId,
+              ...(targetGuestId ? { guestId: targetGuestId } : {}),
+            },
+          });
+        }
+      } else {
+        const existingNotes = order.notes || '';
+        const pendingNote = existingNotes.includes('[PENDING_BILL]')
+          ? existingNotes
+          : `[PENDING_BILL] ${existingNotes}`.trim();
+
+        await tx.posOrder.update({
+          where: { id: orderId },
+          data: {
+            ...(targetGuestId ? { guestId: targetGuestId } : {}),
+            notes: data.notes ? `[PENDING_BILL] ${data.notes}`.trim() : pendingNote,
+            status: remainingBalance <= 0.01 && totalPaidSoFar > 0 && allServed ? 'PAID' : order.status,
+          },
+        });
+      }
+
+      return tx.posOrder.findUnique({
+        where: { id: orderId },
+        include: {
+          table: true,
+          guest: true,
+          payments: true,
+          user: { select: { firstName: true, lastName: true } },
+          folio: { include: { reservation: { include: { room: true, guest: true } } } },
+          items: { include: { menuItem: true, returnRequest: true } },
+        },
+      });
     });
   }
 

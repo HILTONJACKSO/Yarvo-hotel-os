@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Edit2, Trash2, MapPin, Compass, Calendar, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Compass, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/lib/auth-provider';
 import { useCurrency } from '@/lib/currency';
 import { MultiImageUpload } from '@/components/ui/MultiImageUpload';
@@ -17,6 +17,13 @@ type Activity = {
   image: string;
   images?: string[];
   isActive: boolean;
+};
+
+const formatTypeLabel = (type?: string) => {
+  const t = (type || 'TOUR').toUpperCase();
+  if (t === 'ACTIVITY') return 'Activity';
+  if (t === 'PACKAGE') return 'Package';
+  return 'Tour';
 };
 
 export default function ToursEventsPage() {
@@ -120,8 +127,11 @@ export default function ToursEventsPage() {
           : item.image
           ? [item.image]
           : [];
+      const normalizedType = ['TOUR', 'ACTIVITY', 'PACKAGE'].includes((item.type || '').toUpperCase())
+        ? item.type.toUpperCase()
+        : 'TOUR';
       setFormData({
-        type: item.type,
+        type: normalizedType,
         name: item.name,
         description: item.description || '',
         price: item.price.toString(),
@@ -142,9 +152,9 @@ export default function ToursEventsPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
             <Compass className="text-amber-500" />
-            Tours & Activities Management
+            Tours, Activities & Packages Management
           </h1>
-          <p className="text-slate-400">Manage boat cruises, excursions, tours, and resort activities for guests</p>
+          <p className="text-slate-400">Manage boat cruises, excursions, tours, activities, and packages for guests</p>
         </div>
         <button 
           onClick={() => openModal()}
@@ -191,8 +201,8 @@ export default function ToursEventsPage() {
                 ) : (
                   <div className="flex items-center justify-center h-full text-slate-500">No Image</div>
                 )}
-                <div className="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded text-xs font-medium text-white backdrop-blur-sm">
-                  {act.type}
+                <div className="absolute top-4 right-4 bg-black/60 px-2.5 py-1 rounded text-xs font-semibold text-white backdrop-blur-sm">
+                  {formatTypeLabel(act.type)}
                 </div>
               </div>
               <div className="p-5">
@@ -222,7 +232,7 @@ export default function ToursEventsPage() {
           {activities.length === 0 && (
             <div className="col-span-full py-12 text-center text-slate-400 bg-slate-900/40 border border-slate-800 rounded-xl">
               <Compass className="mx-auto text-slate-600 mb-2" size={32} />
-              No tours or activities found yet. Click <strong>Create Activity</strong> to get started!
+              No tours, activities, or packages found yet. Click <strong>Create Activity</strong> to get started!
             </div>
           )}
         </div>
@@ -246,7 +256,8 @@ export default function ToursEventsPage() {
                   onChange={e => setFormData({...formData, type: e.target.value})}
                 >
                   <option value="TOUR">Tour</option>
-                  <option value="EVENT">Event</option>
+                  <option value="ACTIVITY">Activity</option>
+                  <option value="PACKAGE">Package</option>
                 </select>
               </div>
 

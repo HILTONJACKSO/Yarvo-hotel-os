@@ -5,11 +5,158 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private computeReservationRoomAmount(res: any): number {
+    // 1. Check if folio has explicit ROOM charge line items
+    if (res?.folio && Array.isArray(res.folio.lineItems) && res.folio.lineItems.length > 0) {
+      let roomCharges = 0;
+      let adjustments = 0;
+      for (const li of res.folio.lineItems) {
+        if (li.type === 'CHARGE' && li.category === 'ROOM') {
+          roomCharges += Math.abs(Number(li.amount || 0));
+        } else if (li.type === 'ADJUSTMENT') {
+          adjustments += Math.abs(Number(li.amount || 0));
+        }
+      }
+      if (roomCharges > 0) {
+        return Math.max(0, Math.round((roomCharges - adjustments) * 100) / 100);
+      }
+    }
+
+    // 2. Check reservation.totalAmount
+    const explicitTotal = Number(res?.totalAmount || 0);
+    if (explicitTotal > 0) {
+      return Math.round(explicitTotal * 100) / 100;
+    }
+
+    // 3. Fallback: calculate from roomType baseRateUsd * nights * roomsCount
+    const checkInTime = res?.checkInDate ? new Date(res.checkInDate).getTime() : 0;
+    const checkOutTime = res?.checkOutDate ? new Date(res.checkOutDate).getTime() : 0;
+    let nights = Math.ceil((checkOutTime - checkInTime) / (1000 * 60 * 60 * 24));
+    if (!nights || nights < 1) nights = 1;
+
+    let roomsCount = 1;
+    const matchRooms = (res?.specialRequests || '').match(/\[Requested Accommodations:\s*(\d+)/i);
+    if (matchRooms && matchRooms[1]) {
+      roomsCount = Math.max(1, parseInt(matchRooms[1], 10) || 1);
+    }
+
+    const baseRate = Number(res?.roomType?.baseRateUsd || 0);
+    return Math.round(nights * baseRate * roomsCount * 100) / 100;
+  }
+
+  private isBoutiqueMenuItem(menuItem: any): boolean {
+    if (!menuItem) return false;
+    const itemType = (menuItem.type || '').toUpperCase();
+    if (itemType === 'MERCHANDISE' || itemType === 'BOUTIQUE') return true;
+    const catName = (menuItem.category?.name || '').toLowerCase();
+    if (
+      catName.includes('boutique') ||
+      catName.includes('merchandise') ||
+      catName.includes('shop') ||
+      catName.includes('gift') ||
+      catName.includes('souvenir')
+    ) {
+      return true;
+    }
+    if (Array.isArray(menuItem.recipes)) {
+      for (const r of menuItem.recipes) {
+        const invCat = (r.inventoryItem?.category || '').toUpperCase();
+        if (invCat.includes('BOUTIQUE') || Number(r.inventoryItem?.stockBoutique || 0) > 0) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  async getHotelMetrics(start?: string, end?: string, propertyId?: string) {
+    const now = new Date();
+    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const startOfWeek = new Date(startOfToday);
+    const day = startOfToday.getUTCDay() || 7;
+    startOfWeek.setUTCDate(startOfToday.getUTCDate() - (day - 1));
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+
+    const propCondition = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
+
+    const reservations = await this.prisma.reservation.findMany({
+      where: {
+        status: { in: ['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'] },
+        ...propCondition,
+      },
+      include: {
+        guest: true,
+        room: true,
+        roomType: true,
+        folio: {
+          include: {
+            lineItems: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const salesEntries = reservations.map((res) => {
+      const revenue = this.computeReservationRoomAmount(res);
+      const effectiveDate = res.createdAt || res.checkInDate;
+      return {
+        id: res.id,
+        confirmationCode: res.confirmationCode,
+        guestName: res.guest ? `${res.guest.firstName} ${res.guest.lastName}`.trim() : 'Guest',
+        roomNumber: res.room?.number || res.roomType?.name || 'Assigned at Check-In',
+        roomTypeName: res.roomType?.name || 'Room',
+        status: res.status,
+        date: effectiveDate,
+        checkInDate: res.checkInDate,
+        checkOutDate: res.checkOutDate,
+        revenue,
+      };
+    });
+
+    const totalRevenue = salesEntries.reduce((sum, s) => sum + s.revenue, 0);
+    const todayRevenue = salesEntries
+      .filter((s) => new Date(s.date) >= startOfToday || new Date(s.checkInDate) >= startOfToday)
+      .reduce((sum, s) => sum + s.revenue, 0);
+    const weekRevenue = salesEntries
+      .filter((s) => new Date(s.date) >= startOfWeek)
+      .reduce((sum, s) => sum + s.revenue, 0);
+    const monthRevenue = salesEntries
+      .filter((s) => new Date(s.date) >= startOfMonth)
+      .reduce((sum, s) => sum + s.revenue, 0);
+
+    let customRangeRevenue: number | null = null;
+    if (start && end) {
+      const startDate = new Date(`${start.split('T')[0]}T00:00:00.000Z`);
+      const endDate = new Date(`${end.split('T')[0]}T23:59:59.999Z`);
+      customRangeRevenue = salesEntries
+        .filter((s) => {
+          const d = new Date(s.date);
+          return d >= startDate && d <= endDate;
+        })
+        .reduce((sum, s) => sum + s.revenue, 0);
+    }
+
+    return {
+      todayRevenue: Number(todayRevenue.toFixed(2)),
+      weekRevenue: Number(weekRevenue.toFixed(2)),
+      monthRevenue: Number(monthRevenue.toFixed(2)),
+      customRangeRevenue: customRangeRevenue !== null ? Number(customRangeRevenue.toFixed(2)) : null,
+      totalRevenue: Number(totalRevenue.toFixed(2)),
+      totalBookings: reservations.length,
+      checkedInCount: reservations.filter((r) => r.status === 'CHECKED_IN').length,
+      confirmedCount: reservations.filter((r) => r.status === 'CONFIRMED').length,
+      checkedOutCount: reservations.filter((r) => r.status === 'CHECKED_OUT').length,
+      bookings: salesEntries.slice(0, 30),
+    };
+  }
+
   async getDashboardMetrics(propertyId?: string) {
-    // We default to UTC for start and end of "today"
     const now = new Date();
     const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
     const endOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+
+    const propCondition = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
 
     // 1. Occupancy Rate
     const totalRooms = await this.prisma.room.count({
@@ -26,7 +173,6 @@ export class AnalyticsService {
       },
     });
     
-    // Formatting as a percentage string e.g., "75.0%"
     let occupancyRate = '0.0%';
     if (totalRooms > 0) {
       occupancyRate = ((occupiedRooms / totalRooms) * 100).toFixed(1) + '%';
@@ -35,60 +181,62 @@ export class AnalyticsService {
     // 2. Check-Ins Today
     const checkInsToday = await this.prisma.reservation.count({
       where: {
-        checkInDate: {
-          gte: startOfToday,
-          lte: endOfToday,
-        },
-        status: 'CHECKED_IN',
-        ...(propertyId ? { propertyId } : {}),
+        OR: [
+          { checkInDate: { gte: startOfToday, lte: endOfToday } },
+          { updatedAt: { gte: startOfToday, lte: endOfToday }, status: 'CHECKED_IN' },
+        ],
+        status: { in: ['CONFIRMED', 'CHECKED_IN'] },
+        ...propCondition,
       },
     });
 
-    // 3. Pending Reservations (Pending arrivals today or in future)
+    // 3. Pending Reservations
     const pendingReservations = await this.prisma.reservation.count({
       where: {
-        status: 'PENDING',
-        ...(propertyId ? { propertyId } : {}),
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        ...propCondition,
       },
     });
 
-    // 4. Today's Collected Revenue
-    const revenueItems = await this.prisma.folioLineItem.aggregate({
+    // 4. Hotel Room Performance Metrics + F&B + Tickets + Events + Activities
+    const [hotelMetrics, fbMetrics, ticketRevenueItems] = await Promise.all([
+      this.getHotelMetrics(undefined, undefined, propertyId),
+      this.getFbMetrics(undefined, undefined, propertyId),
+      this.prisma.ticket.aggregate({
+        _sum: { price: true },
+        where: {
+          issueDate: { gte: startOfToday, lte: endOfToday },
+          status: { in: ['VALID', 'USED'] },
+          ...propCondition,
+        },
+      }),
+    ]);
+
+    const directFolioPayments = await this.prisma.folioLineItem.aggregate({
       _sum: { amount: true },
       where: {
         type: 'PAYMENT',
         createdAt: { gte: startOfToday, lte: endOfToday },
-        ...(propertyId ? { folio: { propertyId } } : {}),
+        ...(propertyId ? { folio: propCondition } : {}),
       },
     });
 
-    const ticketRevenueItems = await this.prisma.ticket.aggregate({
-      _sum: { price: true },
-      where: {
-        issueDate: { gte: startOfToday, lte: endOfToday },
-        status: { in: ['VALID', 'USED'] },
-        ...(propertyId ? { propertyId } : {}),
-      },
-    });
+    const roomRevToday = Math.max(
+      hotelMetrics.todayRevenue || 0,
+      directFolioPayments._sum.amount?.toNumber() || 0,
+    );
+    const fbRevToday = fbMetrics.todayFbRevenue || 0;
+    const ticketRevToday = ticketRevenueItems._sum.price?.toNumber() || 0;
 
-    const paidPosOrders = await this.prisma.posOrder.aggregate({
-      _sum: { totalAmount: true },
-      where: {
-        status: 'PAID',
-        updatedAt: { gte: startOfToday, lte: endOfToday },
-        ...(propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {}),
-      }
-    });
-
-    const posRevenue = Math.max(0, paidPosOrders._sum.totalAmount?.toNumber() || 0);
+    const todaysRevenue = roomRevToday + fbRevToday + ticketRevToday;
 
     // 5. Outstanding Revenue (Unpaid open folio balances + unpaid company balances + unpaid POS orders)
     const openFolios = await this.prisma.folio.aggregate({
       _sum: { balance: true },
       where: {
         status: 'OPEN',
-        ...(propertyId ? { propertyId } : {}),
-      }
+        ...propCondition,
+      },
     });
     
     const companyBalances = await this.prisma.company.aggregate({
@@ -101,14 +249,11 @@ export class AnalyticsService {
       where: {
         status: { in: ['OPEN', 'SERVED'] },
         items: { some: {} },
-        ...(propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {}),
-      }
+        ...propCondition,
+      },
     });
     const posOutstanding = Math.max(0, (openPosOrders._sum.totalAmount?.toNumber() || 0) - (openPosOrders._sum.discountAmount?.toNumber() || 0));
 
-    const todaysRevenue = (revenueItems._sum.amount?.toNumber() || 0) + 
-      (ticketRevenueItems._sum.price?.toNumber() || 0) + 
-      posRevenue;
     const outstandingRevenue = (openFolios._sum.balance?.toNumber() || 0) + (companyBalances._sum.balance?.toNumber() || 0) + posOutstanding;
 
     return {
@@ -117,6 +262,9 @@ export class AnalyticsService {
       pendingReservations,
       todaysRevenue: todaysRevenue.toFixed(2),
       outstandingRevenue: outstandingRevenue.toFixed(2),
+      hotelTodayRevenue: hotelMetrics.todayRevenue.toFixed(2),
+      hotelWeekRevenue: hotelMetrics.weekRevenue.toFixed(2),
+      hotelMonthRevenue: hotelMetrics.monthRevenue.toFixed(2),
     };
   }
 
@@ -125,90 +273,86 @@ export class AnalyticsService {
     const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
     
     let startOfPeriod = new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000);
-    let endOfPeriod = now;
+    let endOfPeriod = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
     if (start && end) {
-      startOfPeriod = new Date(start);
-      endOfPeriod = new Date(new Date(end).setUTCHours(23, 59, 59, 999));
+      startOfPeriod = new Date(`${start.split('T')[0]}T00:00:00.000Z`);
+      endOfPeriod = new Date(`${end.split('T')[0]}T23:59:59.999Z`);
     }
 
     const propCondition = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
 
-    // Folio payments
-    const payments = await this.prisma.folioLineItem.findMany({
-      where: { 
-        type: 'PAYMENT', 
+    // 1. Hotel Reservations / Room Sales
+    const reservations = await this.prisma.reservation.findMany({
+      where: {
+        status: { in: ['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT'] },
         createdAt: { gte: startOfPeriod, lte: endOfPeriod },
-        ...(propertyId ? { folio: propCondition } : {})
+        ...propCondition,
       },
-      select: { amount: true, createdAt: true },
+      include: {
+        roomType: true,
+        folio: { include: { lineItems: true } },
+      },
     });
 
-    // POS payments
-    const posPayments = await this.prisma.posPayment.findMany({
-      where: { 
-        createdAt: { gte: startOfPeriod, lte: endOfPeriod },
-        ...(propertyId ? { OR: [{ propertyId }, { order: { propertyId } }, { propertyId: null }] } : {})
-      },
-      select: { amount: true, createdAt: true },
-    });
-
-    // Also get paid POS orders if posPayments is empty or missing
+    // 2. POS orders settled or billed to room
     const paidOrders = await this.prisma.posOrder.findMany({
       where: { 
-        status: 'PAID', 
+        status: { in: ['PAID', 'BILLED_TO_ROOM'] }, 
         updatedAt: { gte: startOfPeriod, lte: endOfPeriod },
-        ...propCondition
+        ...propCondition,
       },
-      select: { totalAmount: true, updatedAt: true, payments: { select: { id: true } } }
+      select: { totalAmount: true, discountAmount: true, updatedAt: true },
     });
 
-    // Ticket sales
+    // 3. Ticket sales
     const tickets = await this.prisma.ticket.findMany({
       where: { 
         issueDate: { gte: startOfPeriod, lte: endOfPeriod }, 
         status: { in: ['VALID', 'USED'] },
-        ...propCondition
+        ...propCondition,
       },
       select: { price: true, issueDate: true },
     });
 
-    // Map to a dictionary by local date string
     const dailyRevenue: Record<string, number> = {};
-    
-    // Initialize the last 7 days with 0
-    let days = 7; if (start && end) days = Math.ceil((endOfPeriod.getTime() - startOfPeriod.getTime()) / (1000 * 3600 * 24)); for (let i = 0; i < days; i++) {
+    let days = 7;
+    if (start && end) {
+      days = Math.max(1, Math.ceil((endOfPeriod.getTime() - startOfPeriod.getTime()) / (1000 * 3600 * 24)));
+    }
+    for (let i = 0; i < days; i++) {
       const d = new Date(startOfPeriod.getTime() + i * 24 * 60 * 60 * 1000);
       const dateStr = d.toISOString().split('T')[0];
       dailyRevenue[dateStr] = 0;
     }
 
-    // Accumulate amounts
-    payments.forEach((payment) => {
-      const dateStr = payment.createdAt.toISOString().split('T')[0];
-      if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += payment.amount.toNumber();
-    });
-
-    posPayments.forEach((payment) => {
-      const dateStr = payment.createdAt.toISOString().split('T')[0];
-      if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += payment.amount.toNumber();
+    reservations.forEach((res) => {
+      const dateStr = res.createdAt.toISOString().split('T')[0];
+      const roomAmt = this.computeReservationRoomAmount(res);
+      if (dailyRevenue[dateStr] !== undefined) {
+        dailyRevenue[dateStr] += roomAmt;
+      } else {
+        dailyRevenue[dateStr] = roomAmt;
+      }
     });
 
     paidOrders.forEach((o) => {
-      if (!o.payments || o.payments.length === 0) {
-        const dateStr = o.updatedAt.toISOString().split('T')[0];
-        if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += o.totalAmount.toNumber();
+      const dateStr = o.updatedAt.toISOString().split('T')[0];
+      const net = Math.max(0, Number(o.totalAmount || 0));
+      if (dailyRevenue[dateStr] !== undefined) {
+        dailyRevenue[dateStr] += net;
       }
     });
 
     tickets.forEach((ticket) => {
       const dateStr = ticket.issueDate.toISOString().split('T')[0];
-      if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += ticket.price.toNumber();
+      if (dailyRevenue[dateStr] !== undefined) {
+        dailyRevenue[dateStr] += ticket.price.toNumber();
+      }
     });
 
-    // Format for Recharts
     const chartData = Object.keys(dailyRevenue).map((date) => ({
       date,
-      revenue: dailyRevenue[date],
+      revenue: Number(dailyRevenue[date].toFixed(2)),
     })).sort((a, b) => a.date.localeCompare(b.date));
 
     return chartData;
@@ -238,7 +382,7 @@ export class AnalyticsService {
           ...propCondition,
           OR: [
             { status: 'PAID', updatedAt: dateFilter },
-            { status: 'BILLED_TO_ROOM', folio: { status: 'CLOSED', updatedAt: dateFilter } }
+            { status: 'BILLED_TO_ROOM', updatedAt: dateFilter }
           ]
         }
       });
@@ -281,7 +425,6 @@ export class AnalyticsService {
       monthFbIndex: Math.max(0, (monthRev - monthDed) / 4),
       customRangeRevenue: start && end ? await getFbRevenueForPeriod(new Date(start), new Date(new Date(end).setUTCHours(23, 59, 59, 999))) : null
     };
-
   }
 
   async getFbRevenueChart(start?: string, end?: string, propertyId?: string) {
@@ -301,7 +444,7 @@ export class AnalyticsService {
         ...propCondition,
         OR: [
           { status: 'PAID', updatedAt: { gte: startOfPeriod, lte: endOfPeriod } },
-          { status: 'BILLED_TO_ROOM', folio: { status: 'CLOSED', updatedAt: { gte: startOfPeriod, lte: endOfPeriod } } }
+          { status: 'BILLED_TO_ROOM', updatedAt: { gte: startOfPeriod, lte: endOfPeriod } }
         ]
       },
       select: { totalAmount: true, updatedAt: true },
@@ -361,6 +504,320 @@ export class AnalyticsService {
     return itemsWithDetails;
   }
 
+  // --- Boutique Analytics ---
+
+  async getBoutiqueMetrics(start?: string, end?: string, propertyId?: string) {
+    const now = new Date();
+    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const startOfWeek = new Date(startOfToday);
+    const day = startOfToday.getUTCDay() || 7;
+    startOfWeek.setUTCDate(startOfToday.getUTCDate() - (day - 1));
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+
+    const propCondition = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
+
+    const orders = await this.prisma.posOrder.findMany({
+      where: {
+        status: { not: 'CANCELLED' },
+        ...propCondition,
+      },
+      include: {
+        items: {
+          include: {
+            menuItem: {
+              include: {
+                category: true,
+                recipes: { include: { inventoryItem: true } },
+              },
+            },
+            returnRequest: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    let todayRevenue = 0;
+    let weekRevenue = 0;
+    let monthRevenue = 0;
+    let totalRevenue = 0;
+    let customRangeRevenue: number | null = start && end ? 0 : null;
+    let totalItemsSold = 0;
+    let totalOrders = 0;
+
+    const customStart = start ? new Date(`${start.split('T')[0]}T00:00:00.000Z`) : null;
+    const customEnd = end ? new Date(`${end.split('T')[0]}T23:59:59.999Z`) : null;
+
+    const itemStatsMap = new Map<string, { id: string; name: string; quantity: number; revenue: number }>();
+    const dailyMap: Record<string, number> = {};
+
+    let chartStart = new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000);
+    let chartEnd = now;
+    if (customStart && customEnd) {
+      chartStart = customStart;
+      chartEnd = customEnd;
+    }
+    const chartDays = Math.max(1, Math.ceil((chartEnd.getTime() - chartStart.getTime()) / (1000 * 3600 * 24)));
+    for (let i = 0; i < chartDays; i++) {
+      const d = new Date(chartStart.getTime() + i * 24 * 60 * 60 * 1000);
+      dailyMap[d.toISOString().split('T')[0]] = 0;
+    }
+
+    for (const order of orders) {
+      const activeItems = (order.items || []).filter((item) => {
+        if (['CANCELLED', 'RETURNED', 'RETURN_REQUESTED'].includes(item.status)) return false;
+        if (item.returnRequest && item.returnRequest.status !== 'REJECTED') return false;
+        return true;
+      });
+      if (activeItems.length === 0) continue;
+
+      const boutiqueItems = activeItems.filter((item) => this.isBoutiqueMenuItem(item.menuItem));
+      if (boutiqueItems.length === 0) continue;
+
+      const orderGross = activeItems.reduce(
+        (sum, it) => sum + Number(it.menuItem?.price || 0) * (it.quantity || 1),
+        0,
+      );
+      if (orderGross <= 0) continue;
+
+      const boutiqueGross = boutiqueItems.reduce(
+        (sum, it) => sum + Number(it.menuItem?.price || 0) * (it.quantity || 1),
+        0,
+      );
+      const orderDiscount = Number(order.discountAmount || 0);
+      const allocatedDiscount = Math.min(boutiqueGross, orderDiscount * (boutiqueGross / orderGross));
+      const boutiqueNet = Math.max(0, boutiqueGross - allocatedDiscount);
+
+      const orderDate = new Date(order.updatedAt || order.createdAt);
+      totalOrders += 1;
+      totalRevenue += boutiqueNet;
+
+      if (orderDate >= startOfToday) todayRevenue += boutiqueNet;
+      if (orderDate >= startOfWeek) weekRevenue += boutiqueNet;
+      if (orderDate >= startOfMonth) monthRevenue += boutiqueNet;
+      if (customStart && customEnd && customRangeRevenue !== null) {
+        if (orderDate >= customStart && orderDate <= customEnd) {
+          customRangeRevenue += boutiqueNet;
+        }
+      }
+
+      const dateStr = orderDate.toISOString().split('T')[0];
+      if (dailyMap[dateStr] !== undefined) {
+        dailyMap[dateStr] += boutiqueNet;
+      }
+
+      for (const bi of boutiqueItems) {
+        const qty = Number(bi.quantity || 1);
+        const rev = Number(bi.menuItem?.price || 0) * qty;
+        totalItemsSold += qty;
+        const existing = itemStatsMap.get(bi.menuItemId);
+        if (existing) {
+          existing.quantity += qty;
+          existing.revenue += rev;
+        } else {
+          itemStatsMap.set(bi.menuItemId, {
+            id: bi.menuItemId,
+            name: bi.menuItem?.name || 'Boutique Item',
+            quantity: qty,
+            revenue: rev,
+          });
+        }
+      }
+    }
+
+    const topItems = Array.from(itemStatsMap.values())
+      .map((it) => ({ ...it, revenue: Number(it.revenue.toFixed(2)) }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    const chart = Object.keys(dailyMap)
+      .map((date) => ({ date, revenue: Number(dailyMap[date].toFixed(2)) }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      todayRevenue: Number(todayRevenue.toFixed(2)),
+      weekRevenue: Number(weekRevenue.toFixed(2)),
+      monthRevenue: Number(monthRevenue.toFixed(2)),
+      customRangeRevenue: customRangeRevenue !== null ? Number(customRangeRevenue.toFixed(2)) : null,
+      totalRevenue: Number(totalRevenue.toFixed(2)),
+      totalItemsSold,
+      totalOrders,
+      topItems,
+      chart,
+    };
+  }
+
+  // --- Activities, Tours & Packages Analytics ---
+
+  async getActivitiesMetrics(start?: string, end?: string, propertyId?: string) {
+    const now = new Date();
+    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const startOfWeek = new Date(startOfToday);
+    const day = startOfToday.getUTCDay() || 7;
+    startOfWeek.setUTCDate(startOfToday.getUTCDate() - (day - 1));
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+
+    const propCondition = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
+
+    // 1. BookingActivity records linked to reservations
+    const bookingActivities = await this.prisma.bookingActivity.findMany({
+      where: {
+        reservation: { status: { notIn: ['CANCELLED', 'NO_SHOW'] } },
+        ...propCondition,
+      },
+      include: {
+        activity: true,
+        reservation: { include: { guest: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // 2. Direct FolioLineItem charges for TOUR, ACTIVITY, PACKAGE
+    const folioActivityCharges = await this.prisma.folioLineItem.findMany({
+      where: {
+        type: 'CHARGE',
+        category: { in: ['TOUR', 'ACTIVITY', 'PACKAGE'] },
+        ...(propertyId ? { folio: propCondition } : {}),
+      },
+      include: {
+        folio: { include: { reservation: { include: { guest: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // 3. Website / EventBooking entries for Tours, Activities, or Packages
+    const eventActivityBookings = await this.prisma.eventBooking.findMany({
+      where: {
+        status: { not: 'CANCELLED' },
+        OR: [
+          { eventType: { startsWith: 'Activity:', mode: 'insensitive' } },
+          { eventType: { startsWith: 'Tour:', mode: 'insensitive' } },
+          { eventType: { startsWith: 'Package:', mode: 'insensitive' } },
+        ],
+        ...(propertyId ? { space: propCondition } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const unifiedBookings: Array<{
+      id: string;
+      type: 'TOUR' | 'ACTIVITY' | 'PACKAGE';
+      name: string;
+      guestName: string;
+      status: string;
+      date: Date;
+      revenue: number;
+    }> = [];
+
+    const seenReservationRefKeys = new Set<string>();
+
+    for (const ba of bookingActivities) {
+      const rawType = (ba.activity?.type || 'TOUR').toUpperCase();
+      const normType: 'TOUR' | 'ACTIVITY' | 'PACKAGE' =
+        rawType === 'PACKAGE' ? 'PACKAGE' : rawType === 'ACTIVITY' ? 'ACTIVITY' : 'TOUR';
+      const amt = Number(ba.totalPrice || 0);
+      if (ba.reservation?.confirmationCode) {
+        seenReservationRefKeys.add(`${ba.reservation.confirmationCode}:${normType}:${amt.toFixed(2)}`);
+      }
+      unifiedBookings.push({
+        id: `ba-${ba.id}`,
+        type: normType,
+        name: ba.activity?.name || normType,
+        guestName: ba.reservation?.guest
+          ? `${ba.reservation.guest.firstName} ${ba.reservation.guest.lastName}`.trim()
+          : 'Hotel Guest',
+        status: ba.reservation?.status || 'CONFIRMED',
+        date: ba.createdAt,
+        revenue: amt,
+      });
+    }
+
+    for (const fc of folioActivityCharges) {
+      const rawCat = (fc.category || 'ACTIVITY').toUpperCase();
+      const normType: 'TOUR' | 'ACTIVITY' | 'PACKAGE' =
+        rawCat === 'PACKAGE' ? 'PACKAGE' : rawCat === 'TOUR' ? 'TOUR' : 'ACTIVITY';
+      const amt = Math.abs(Number(fc.amount || 0));
+      const refCode = fc.referenceCode || fc.folio?.reservation?.confirmationCode || '';
+      if (refCode && seenReservationRefKeys.has(`${refCode}:${normType}:${amt.toFixed(2)}`)) {
+        continue;
+      }
+      unifiedBookings.push({
+        id: `fc-${fc.id}`,
+        type: normType,
+        name: fc.description || normType,
+        guestName: fc.folio?.reservation?.guest
+          ? `${fc.folio.reservation.guest.firstName} ${fc.folio.reservation.guest.lastName}`.trim()
+          : 'Folio Guest',
+        status: 'CHARGED',
+        date: fc.createdAt,
+        revenue: amt,
+      });
+    }
+
+    for (const eb of eventActivityBookings) {
+      const et = eb.eventType || '';
+      const lower = et.toLowerCase();
+      const normType: 'TOUR' | 'ACTIVITY' | 'PACKAGE' = lower.startsWith('package:')
+        ? 'PACKAGE'
+        : lower.startsWith('tour:')
+          ? 'TOUR'
+          : 'ACTIVITY';
+      unifiedBookings.push({
+        id: `eb-${eb.id}`,
+        type: normType,
+        name: et.replace(/^(Activity|Tour|Package):\s*/i, '') || et,
+        guestName: eb.guestName || 'Guest',
+        status: eb.status,
+        date: eb.startTime || eb.createdAt,
+        revenue: Number(eb.totalAmount || 0),
+      });
+    }
+
+    unifiedBookings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const totalRevenue = unifiedBookings.reduce((sum, b) => sum + b.revenue, 0);
+    const todayRevenue = unifiedBookings
+      .filter((b) => new Date(b.date) >= startOfToday)
+      .reduce((sum, b) => sum + b.revenue, 0);
+    const weekRevenue = unifiedBookings
+      .filter((b) => new Date(b.date) >= startOfWeek)
+      .reduce((sum, b) => sum + b.revenue, 0);
+    const monthRevenue = unifiedBookings
+      .filter((b) => new Date(b.date) >= startOfMonth)
+      .reduce((sum, b) => sum + b.revenue, 0);
+
+    let customRangeRevenue: number | null = null;
+    if (start && end) {
+      const startDate = new Date(`${start.split('T')[0]}T00:00:00.000Z`);
+      const endDate = new Date(`${end.split('T')[0]}T23:59:59.999Z`);
+      customRangeRevenue = unifiedBookings
+        .filter((b) => {
+          const d = new Date(b.date);
+          return d >= startDate && d <= endDate;
+        })
+        .reduce((sum, b) => sum + b.revenue, 0);
+    }
+
+    const tourItems = unifiedBookings.filter((b) => b.type === 'TOUR');
+    const activityItems = unifiedBookings.filter((b) => b.type === 'ACTIVITY');
+    const packageItems = unifiedBookings.filter((b) => b.type === 'PACKAGE');
+
+    return {
+      totalBookings: unifiedBookings.length,
+      tourCount: tourItems.length,
+      activityCount: activityItems.length,
+      packageCount: packageItems.length,
+      tourRevenue: Number(tourItems.reduce((s, b) => s + b.revenue, 0).toFixed(2)),
+      activityRevenue: Number(activityItems.reduce((s, b) => s + b.revenue, 0).toFixed(2)),
+      packageRevenue: Number(packageItems.reduce((s, b) => s + b.revenue, 0).toFixed(2)),
+      totalRevenue: Number(totalRevenue.toFixed(2)),
+      todayRevenue: Number(todayRevenue.toFixed(2)),
+      weekRevenue: Number(weekRevenue.toFixed(2)),
+      monthRevenue: Number(monthRevenue.toFixed(2)),
+      customRangeRevenue: customRangeRevenue !== null ? Number(customRangeRevenue.toFixed(2)) : null,
+      bookings: unifiedBookings,
+    };
+  }
+
   async getRevenueByMethod(start?: string, end?: string, propertyId?: string) {
     let gte: Date | undefined;
     let lte: Date | undefined;
@@ -414,14 +871,12 @@ export class AnalyticsService {
       OTHER: 0
     };
 
-    // Map FolioLineItem categories
     folioPayments.forEach(p => {
       const val = p._sum.amount ? Number(p._sum.amount) : 0;
       const key = normalizeMethod(p.category);
       combined[key] = (combined[key] || 0) + val;
     });
 
-    // Map PosPayment methods
     posPayments.forEach(p => {
       const val = p._sum.amount ? Number(p._sum.amount) : 0;
       const key = normalizeMethod(p.method);
@@ -440,7 +895,6 @@ export class AnalyticsService {
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
     
-    // 14 day window: 7 days ago to 6 days from now
     const startPeriod = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     const endPeriod = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000); 
 
@@ -474,12 +928,10 @@ export class AnalyticsService {
 
     const roomTypesData = roomTypes.map(rt => {
       const data = dates.map(dateStr => {
-        const d = new Date(dateStr);
         let occupiedCount = 0;
         
         reservations.forEach(res => {
           if (res.roomTypeId === rt.id) {
-            // Using string dates to ignore timezone shifts for simple day comparison
             const checkInStr = res.checkInDate.toISOString().split('T')[0];
             const checkOutStr = res.checkOutDate.toISOString().split('T')[0];
             if (checkInStr <= dateStr && checkOutStr > dateStr) {
@@ -492,7 +944,6 @@ export class AnalyticsService {
         let pct = 0;
         if (total > 0) {
           pct = Math.round((occupiedCount / total) * 100);
-          // clamp just in case of overbooking
           if (pct > 100) pct = 100;
         }
 
@@ -517,15 +968,13 @@ export class AnalyticsService {
   async getRecentActivity(start?: string, end?: string, propertyId?: string) {
     const propCondition = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
 
-    // Fetch last 5 reservations
     const reservations = await this.prisma.reservation.findMany({
       where: propertyId ? { propertyId } : {},
       take: 5,
       orderBy: { createdAt: 'desc' },
-      include: { guest: true, room: true },
+      include: { guest: true, room: true, roomType: true },
     });
 
-    // Fetch last 5 room status changes (Check-ins/Check-outs)
     const statusChanges = await this.prisma.roomStatusHistory.findMany({
       where: propertyId ? { room: { propertyId } } : {},
       take: 5,
@@ -533,7 +982,6 @@ export class AnalyticsService {
       include: { room: true },
     });
 
-    // Fetch last 5 POS orders
     const posOrders = await this.prisma.posOrder.findMany({
       where: propCondition,
       take: 5,
@@ -545,7 +993,7 @@ export class AnalyticsService {
         id: `res-${r.id}`,
         type: 'RESERVATION',
         title: `New Reservation: ${r.guest.firstName} ${r.guest.lastName}`,
-        description: `Room ${r.room?.number || 'Pending'} - ${r.status}`,
+        description: `Room ${r.room?.number || r.roomType?.name || 'Assigned at Check-In'} - ${r.status} ($${this.computeReservationRoomAmount(r).toFixed(2)})`,
         timestamp: r.createdAt,
       })),
       ...statusChanges.map(s => ({
@@ -618,7 +1066,6 @@ export class AnalyticsService {
         .reduce((acc, t) => acc + Number(t.price), 0);
     }
 
-    // Group by month
     const monthlyData = tickets.reduce((acc: any, t) => {
       const month = new Date(t.issueDate).toLocaleString('default', { month: 'short' });
       if (!acc[month]) acc[month] = { month, adults: 0, kids: 0, pool: 0, revenue: 0 };
@@ -714,7 +1161,6 @@ export class AnalyticsService {
 
     const propCondition = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
 
-    // 1. Folio Line Items (Room Charges, Laundry, etc.)
     const whereFolioCharge: any = { 
       type: 'CHARGE',
       ...(gte && lte ? { createdAt: { gte, lte } } : {}),
@@ -727,7 +1173,6 @@ export class AnalyticsService {
       where: whereFolioCharge,
     });
 
-    // 2. POS Orders (Food, Drinks, Bar sales)
     const wherePosOrders: any = {
       status: 'PAID',
       ...(gte && lte ? { updatedAt: { gte, lte } } : {}),
@@ -747,7 +1192,6 @@ export class AnalyticsService {
       }
     });
 
-    // Categorize POS revenues
     const posCategoryTotals: Record<string, number> = {};
     for (const order of paidPosOrders) {
       const orderTotal = Number(order.totalAmount || 0);
@@ -758,26 +1202,24 @@ export class AnalyticsService {
         continue;
       }
 
-      // Calculate gross items sum to apportion total proportionally
       const grossSum = order.items.reduce((sum, it) => sum + (Number(it.menuItem?.price || 0) * (it.quantity || 1)), 0);
       for (const it of order.items) {
         const itemPrice = Number(it.menuItem?.price || 0);
         const itemGross = itemPrice * (it.quantity || 1);
         const itemAmount = grossSum > 0 ? (itemGross / grossSum) * orderTotal : orderTotal / order.items.length;
 
-        // Determine category label
         let catName = it.menuItem?.category?.name;
         if (!catName) {
           const type = (it.menuItem?.type || '').toUpperCase();
           if (type === 'DRINK' || type === 'BAR') catName = 'BAR';
           else if (type === 'FOOD') catName = 'RESTAURANT';
+          else if (type === 'MERCHANDISE' || type === 'BOUTIQUE') catName = 'BOUTIQUE';
           else catName = 'FOOD_AND_BEVERAGE';
         }
         posCategoryTotals[catName] = (posCategoryTotals[catName] || 0) + itemAmount;
       }
     }
 
-    // 3. Tickets Revenue
     const whereTickets: any = {
       status: { in: ['VALID', 'USED'] },
       ...(gte && lte ? { issueDate: { gte, lte } } : {}),
@@ -788,22 +1230,18 @@ export class AnalyticsService {
       where: whereTickets,
     });
 
-    // Build consolidated revenues list
     const categoryMap = new Map<string, number>();
 
-    // From Folio
     folioRevenueItems.forEach(r => {
       const cat = r.category || 'ROOM_CHARGE';
       const amt = r._sum.amount ? r._sum.amount.toNumber() : 0;
       categoryMap.set(cat, (categoryMap.get(cat) || 0) + amt);
     });
 
-    // From POS
     Object.entries(posCategoryTotals).forEach(([cat, amt]) => {
       categoryMap.set(cat, (categoryMap.get(cat) || 0) + amt);
     });
 
-    // From Tickets
     const ticketAmt = ticketRevenue._sum.price ? ticketRevenue._sum.price.toNumber() : 0;
     if (ticketAmt > 0) {
       categoryMap.set('FACILITIES_TICKETS', (categoryMap.get('FACILITIES_TICKETS') || 0) + ticketAmt);
@@ -816,7 +1254,6 @@ export class AnalyticsService {
 
     const totalRevenue = Math.round(revenues.reduce((sum, r) => sum + r.amount, 0) * 100) / 100;
 
-    // 4. Expenses
     const whereExpense: any = {
       ...(gte && lte ? { date: { gte, lte } } : {}),
       ...propCondition,
@@ -849,8 +1286,6 @@ export class AnalyticsService {
 
     const propCondition = propertyId ? { OR: [{ propertyId }, { propertyId: null }] } : {};
 
-    // 1. Cash Inflows:
-    // a. Folio payments
     const whereFolioPayments: any = {
       type: 'PAYMENT',
       ...(gte && lte ? { createdAt: { gte, lte } } : {}),
@@ -861,7 +1296,6 @@ export class AnalyticsService {
       where: whereFolioPayments,
     });
 
-    // b. POS payments from settled orders
     const wherePosPayments: any = {
       order: { status: 'PAID' },
       ...(gte && lte ? { createdAt: { gte, lte } } : {}),
@@ -872,7 +1306,6 @@ export class AnalyticsService {
       where: wherePosPayments,
     });
 
-    // Also check settled POS orders total as safety fallback
     const wherePaidOrders: any = {
       status: 'PAID',
       ...(gte && lte ? { updatedAt: { gte, lte } } : {}),
@@ -888,7 +1321,6 @@ export class AnalyticsService {
       paidOrdersAgg._sum.totalAmount ? paidOrdersAgg._sum.totalAmount.toNumber() : 0
     );
 
-    // c. Ticket payments
     const whereTickets: any = {
       status: { in: ['VALID', 'USED'] },
       ...(gte && lte ? { issueDate: { gte, lte } } : {}),
@@ -903,7 +1335,6 @@ export class AnalyticsService {
       posCash +
       (ticketPayments._sum.price?.toNumber() || 0);
 
-    // 2. Cash Outflows: Expenses paid
     const whereExpenses: any = {
       ...(gte && lte ? { date: { gte, lte } } : {}),
       ...propCondition,
@@ -914,13 +1345,10 @@ export class AnalyticsService {
     });
     const totalExpensesPaid = expensesAgg._sum.amount?.toNumber() || 0;
 
-    // Net Cash/Bank balance
     const netCash = totalCashInflow - totalExpensesPaid;
     const cash = netCash > 0 ? Math.round(netCash * 100) / 100 : 0;
     const cashOverdraft = netCash < 0 ? Math.round(Math.abs(netCash) * 100) / 100 : 0;
 
-    // 3. Accounts Receivable (AR)
-    // a. Open Folios
     const whereOpenFolios: any = {
       status: 'OPEN',
       ...(gte && lte ? { updatedAt: { gte, lte } } : {}),
@@ -931,7 +1359,6 @@ export class AnalyticsService {
       where: whereOpenFolios,
     });
 
-    // b. Unsettled open/served POS orders
     const whereOpenPos: any = {
       status: { in: ['OPEN', 'SERVED', 'PREPARING', 'READY'] },
       ...(gte && lte ? { updatedAt: { gte, lte } } : {}),
@@ -943,7 +1370,6 @@ export class AnalyticsService {
     });
     const posReceivable = (openPos._sum.totalAmount?.toNumber() || 0) - (openPos._sum.discountAmount?.toNumber() || 0);
 
-    // c. Company balances
     const companyBalances = await this.prisma.company.aggregate({
       _sum: { balance: true },
       where: propertyId ? { propertyId } : {},
@@ -957,14 +1383,12 @@ export class AnalyticsService {
 
     const totalAssets = Math.round((cash + accountsReceivable) * 100) / 100;
 
-    // 4. Liabilities
     const liabilities: any[] = [];
     if (cashOverdraft > 0) {
       liabilities.push({ name: 'Short-term Liabilities / Cash Advance', amount: cashOverdraft });
     }
     const totalLiabilities = Math.round(liabilities.reduce((sum, l) => sum + l.amount, 0) * 100) / 100;
 
-    // 5. Equity (Assets = Liabilities + Equity => Equity = Assets - Liabilities)
     const equity = Math.round((totalAssets - totalLiabilities) * 100) / 100;
 
     return {
@@ -986,14 +1410,12 @@ export class AnalyticsService {
     const debits: { account: string; amount: number }[] = [];
     const credits: { account: string; amount: number }[] = [];
 
-    // Assets are Debits
     const cashAsset = bs.assets.find(a => a.name === 'Cash/Bank')?.amount || 0;
     const arAsset = bs.assets.find(a => a.name === 'Accounts Receivable')?.amount || 0;
 
     debits.push({ account: 'Cash/Bank', amount: cashAsset });
     debits.push({ account: 'Accounts Receivable', amount: arAsset });
 
-    // Expenses are Debits
     if (pnl.expenses.length > 0) {
       pnl.expenses.forEach(e => {
         debits.push({
@@ -1005,7 +1427,6 @@ export class AnalyticsService {
       debits.push({ account: 'Total Expenses', amount: 0 });
     }
 
-    // Revenues are Credits
     if (pnl.revenues.length > 0) {
       pnl.revenues.forEach(r => {
         credits.push({
@@ -1017,7 +1438,6 @@ export class AnalyticsService {
       credits.push({ account: 'Total Revenue', amount: 0 });
     }
 
-    // Liabilities are Credits
     if (bs.liabilities.length > 0) {
       bs.liabilities.forEach(l => {
         credits.push({
@@ -1027,7 +1447,6 @@ export class AnalyticsService {
       });
     }
 
-    // Double-Entry Balancing Check:
     let sumDebits = Math.round(debits.reduce((sum, d) => sum + d.amount, 0) * 100) / 100;
     let sumCredits = Math.round(credits.reduce((sum, c) => sum + c.amount, 0) * 100) / 100;
     const diff = Math.round((sumDebits - sumCredits) * 100) / 100;
@@ -1062,7 +1481,6 @@ export class AnalyticsService {
     }
     const hasDateFilter = Boolean(startDate || endDate);
 
-    // 1. Get Folio Discounts
     const folioDiscounts = await this.prisma.folioLineItem.findMany({
       where: {
         ...(hasDateFilter ? { createdAt: dateFilter } : {}),
@@ -1080,7 +1498,6 @@ export class AnalyticsService {
       orderBy: { createdAt: 'desc' }
     });
 
-    // 2. Get POS Discounts
     const posDiscounts = await this.prisma.posOrder.findMany({
       where: {
         ...(hasDateFilter ? { createdAt: dateFilter } : {}),

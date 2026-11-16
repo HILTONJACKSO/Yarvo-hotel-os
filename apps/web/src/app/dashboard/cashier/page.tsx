@@ -312,6 +312,16 @@ export default function CashierPage() {
   const [discountType, setDiscountType] = useState<'PERCENT' | 'FLAT'>('PERCENT');
   const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
   const [isReversingDiscount, setIsReversingDiscount] = useState(false);
+  const inHouseGuests: any[] = useLiveQuery(() => db.reservations.toArray()) || [];
+  const walkInGuests: any[] = useLiveQuery(() => db.guests.toArray()) || [];
+  const [pendingBillDestType, setPendingBillDestType] = useState<'WALKIN_GUEST' | 'HOTEL_GUEST'>('WALKIN_GUEST');
+  const [assignFolioId, setAssignFolioId] = useState<string>('');
+  const [assignGuestId, setAssignGuestId] = useState<string>('');
+  const [showInlineNewGuest, setShowInlineNewGuest] = useState<boolean>(false);
+  const [inlineGuestFirstName, setInlineGuestFirstName] = useState<string>('');
+  const [inlineGuestLastName, setInlineGuestLastName] = useState<string>('');
+  const [inlineGuestPhone, setInlineGuestPhone] = useState<string>('');
+  const [isSendingToBilling, setIsSendingToBilling] = useState<boolean>(false);
 
   useEffect(() => {
     if (selectedOrder) {
@@ -330,9 +340,16 @@ export default function CashierPage() {
         setDiscountType('PERCENT');
       }
 
-      const orderTotal = Math.max(0, Number(selectedOrder.totalAmount) - existingDiscount);
+      const prevPaid = Array.isArray(selectedOrder.payments)
+        ? selectedOrder.payments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0)
+        : 0;
+      const orderTotal = Math.max(0, Number(selectedOrder.totalAmount) - existingDiscount - prevPaid);
       setPaymentAmount(orderTotal > 0 ? orderTotal.toFixed(2) : '');
       setPaymentMethod('PAYMENT_CASH');
+      setAssignFolioId(selectedOrder.folioId || selectedOrder.folio?.id || '');
+      setAssignGuestId(selectedOrder.guestId || selectedOrder.guest?.id || '');
+      setPendingBillDestType(selectedOrder.folioId || selectedOrder.folio?.id ? 'HOTEL_GUEST' : 'WALKIN_GUEST');
+      setShowInlineNewGuest(false);
     }
   }, [selectedOrder?.id, selectedOrder?.discountAmount, selectedOrder?.discountReason]);
 
@@ -354,6 +371,12 @@ export default function CashierPage() {
     : 0;
 
   const finalTotal = selectedOrder ? Math.max(0, Number(selectedOrder.totalAmount) - calculatedDiscount) : 0;
+  const existingOrderPayments: Array<{ id?: string; method: string; amount: number | string }> =
+    Array.isArray(selectedOrder?.payments) ? selectedOrder.payments : [];
+  const existingPaidTotal = existingOrderPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const addedPaidTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+  const totalDeductedPayments = existingPaidTotal + addedPaidTotal;
+  const remainingBalance = Math.max(0, Math.round((finalTotal - totalDeductedPayments) * 100) / 100);
 
   const handleApplyDiscount = async () => {
     if (!selectedOrder) return;
@@ -459,31 +482,112 @@ export default function CashierPage() {
     if (!selectedOrder) return;
     const amt = parseFloat(paymentAmount);
     if (isNaN(amt) || amt <= 0) {
-      showToast('Please enter a valid amount', 'error');
+      showToast('Please enter a valid payment amount greater than 0', 'error');
       return;
     }
-    const currentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
-    const orderTotal = finalTotal;
-    if (currentTotal + amt > orderTotal + 0.01) {
-      showToast('Payment amount exceeds remaining balance', 'error');
+    const currentAdded = payments.reduce((sum, p) => sum + p.amount, 0);
+    const maxPayable = Math.max(0, finalTotal - existingPaidTotal);
+    if (currentAdded + amt > maxPayable + 0.01) {
+      showToast(`Payment amount exceeds remaining balance of ${format( Math.max(0, maxPayable - currentAdded) )}`, 'error');
       return;
     }
-    setPayments([...payments, { method: paymentMethod, amount: amt }]);
-    
-    // Auto-update amount to remaining
-    const remaining = orderTotal - (currentTotal + amt);
-    setPaymentAmount(remaining > 0 ? remaining.toFixed(2) : '');
+    const nextPayments = [...payments, { method: paymentMethod, amount: amt }];
+    setPayments(nextPayments);
+
+    const nextRemaining = Math.max(0, Math.round((maxPayable - (currentAdded + amt)) * 100) / 100);
+    setPaymentAmount(nextRemaining > 0 ? nextRemaining.toFixed(2) : '');
+    showToast(
+      `Applied ${format(amt)} via ${paymentMethod.replace('PAYMENT_', '')}. Remaining balance: ${format(nextRemaining)}`,
+      'success',
+      'Payment Deducted',
+    );
   };
 
   const removePayment = (index: number) => {
     const newPayments = [...payments];
     newPayments.splice(index, 1);
     setPayments(newPayments);
-    
+
     if (selectedOrder) {
-      const currentTotal = newPayments.reduce((sum, p) => sum + p.amount, 0);
-      const remaining = Number(selectedOrder.totalAmount) - currentTotal;
-      setPaymentAmount(remaining > 0 ? remaining.toFixed(2) : '');
+      const currentAdded = newPayments.reduce((sum, p) => sum + p.amount, 0);
+      const maxPayable = Math.max(0, finalTotal - existingPaidTotal);
+      const nextRemaining = Math.max(0, Math.round((maxPayable - currentAdded) * 100) / 100);
+      setPaymentAmount(nextRemaining > 0 ? nextRemaining.toFixed(2) : '');
+    }
+  };
+
+  const handleSendToPendingBill = async () => {
+    if (!selectedOrder || isSendingToBilling) return;
+    if (pendingBillDestType === 'HOTEL_GUEST' && !assignFolioId) {
+      showToast('Please select an in-house hotel guest room folio first.', 'error');
+      return;
+    }
+    if (pendingBillDestType === 'WALKIN_GUEST' && !showInlineNewGuest && !assignGuestId) {
+      showToast('Please select a walk-in guest or click "+ New Walk-in Guest" to add their name.', 'error');
+      return;
+    }
+    if (pendingBillDestType === 'WALKIN_GUEST' && showInlineNewGuest && (!inlineGuestFirstName.trim() || !inlineGuestLastName.trim())) {
+      showToast('Please enter both First Name and Last Name for the walk-in guest.', 'error');
+      return;
+    }
+
+    setIsSendingToBilling(true);
+    try {
+      const payload: any = {};
+      if (pendingBillDestType === 'HOTEL_GUEST') {
+        payload.folioId = assignFolioId;
+      } else if (showInlineNewGuest) {
+        payload.newGuest = {
+          firstName: inlineGuestFirstName.trim(),
+          lastName: inlineGuestLastName.trim(),
+          phone: inlineGuestPhone.trim() || undefined,
+        };
+      } else {
+        payload.guestId = assignGuestId;
+      }
+      if (payments.length > 0) {
+        payload.payments = payments;
+      }
+
+      const res = await fetchWithAuth(`/api/v1/pos/orders/${selectedOrder.id}/assign-pending-bill`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to send order to Billing');
+      }
+      const json = await res.json();
+      const updatedOrder = json.data || json;
+
+      if (updatedOrder?.status === 'BILLED_TO_ROOM' || updatedOrder?.status === 'PAID') {
+        await markOrderSettledLocally(selectedOrder.id);
+        setSelectedOrder(null);
+      } else if (updatedOrder?.id) {
+        await db.posOrders.put(updatedOrder);
+        setSelectedOrder(updatedOrder);
+      }
+
+      setPayments([]);
+      setInlineGuestFirstName('');
+      setInlineGuestLastName('');
+      setInlineGuestPhone('');
+      setShowInlineNewGuest(false);
+      await downloadLatestData();
+      await fetchOrders();
+
+      showToast(
+        pendingBillDestType === 'HOTEL_GUEST'
+          ? 'Bill attached to Hotel Guest Room Folio & sent to Billing!'
+          : 'Walk-in Guest attached! Bill is now saved under Billing / Pending Bills.',
+        'success',
+        'Sent to Pending Bills',
+      );
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send bill to Billing', 'error');
+    } finally {
+      setIsSendingToBilling(false);
     }
   };
 
@@ -861,7 +965,7 @@ export default function CashierPage() {
       return;
     }
     const isRoomOrder = Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id);
-    const currentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+    const currentTotal = existingPaidTotal + payments.reduce((sum, p) => sum + p.amount, 0);
     const orderTotal = Number(selectedOrder.totalAmount);
     const finalTotal = Math.max(0, orderTotal - calculatedDiscount);
     
@@ -1072,9 +1176,11 @@ export default function CashierPage() {
                     </h3>
                     <span className="amount">{format(Number(order.totalAmount))}</span>
                   </div>
-                  {order.folio?.reservation?.guest && (
+                  {(order.folio?.reservation?.guest || order.guest) && (
                     <p style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.85rem', marginTop: '-4px', marginBottom: '8px' }}>
-                      {order.folio.reservation.guest.firstName} {order.folio.reservation.guest.lastName}
+                      {order.folio?.reservation?.guest
+                        ? `${order.folio.reservation.guest.firstName} ${order.folio.reservation.guest.lastName}`
+                        : `${order.guest.firstName} ${order.guest.lastName}${order.guest.phone ? ' (' + order.guest.phone + ')' : ''} ? Pending Bill`}
                     </p>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
@@ -1262,6 +1368,34 @@ export default function CashierPage() {
                   <span>Total Amount</span>
                   <span>{format(finalTotal)}</span>
                 </div>
+                {existingOrderPayments.map((ep, idx) => (
+                  <div key={'ep-' + idx} className="receipt-total" style={{ borderTop: 'none', paddingTop: '4px', marginTop: 0, fontSize: '0.95rem', color: '#4ade80' }}>
+                    <span>Paid via {String(ep.method || '').replace('PAYMENT_', '')} (Saved)</span>
+                    <span>-{format(Number(ep.amount || 0))}</span>
+                  </div>
+                ))}
+                {payments.map((p, idx) => (
+                  <div key={'np-' + idx} className="receipt-total" style={{ borderTop: 'none', paddingTop: '4px', marginTop: 0, fontSize: '0.95rem', color: '#38bdf8' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      Deducted via {p.method.replace('PAYMENT_', '')}
+                      <button
+                        type="button"
+                        onClick={() => removePayment(idx)}
+                        style={{ background: 'rgba(239,68,68,0.2)', border: 'none', color: '#f87171', borderRadius: '4px', padding: '1px 5px', cursor: 'pointer', fontSize: '0.75rem' }}
+                        title="Remove this payment method"
+                      >
+                        ?
+                      </button>
+                    </span>
+                    <span>-{format(p.amount)}</span>
+                  </div>
+                ))}
+                {totalDeductedPayments > 0 && (
+                  <div className="receipt-total" style={{ borderTop: '1px solid rgba(250, 204, 21, 0.35)', paddingTop: '10px', marginTop: '6px', color: remainingBalance > 0 ? '#facc15' : '#4ade80' }}>
+                    <span>Balance Remaining</span>
+                    <span>{format(remainingBalance)}</span>
+                  </div>
+                )}
             </div>
 
             {/* Discount Management Card */}
@@ -1406,60 +1540,253 @@ export default function CashierPage() {
                 </div>
               )}
             </div>
-              {canSettle ? (<div className="payment-entry-section">
-              {payments.length > 0 && (
-                <div className="payments-list" style={{ marginBottom: '16px' }}>
-                  <h4 style={{ color: 'white', fontSize: '0.875rem', marginBottom: '8px', marginTop: 0 }}>Payments Added</h4>
-                  {payments.map((p, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'hsl(222, 35%, 15%)', borderRadius: '4px', marginBottom: '4px' }}>
-                      <span style={{ color: 'hsl(215, 20%, 65%)' }}>{p.method.replace('PAYMENT_', '')}</span>
-                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <span style={{ color: 'white', fontWeight: 600 }}>{format(p.amount)}</span>
-                        <button type="button" onClick={() => removePayment(idx)} style={{ background: 'none', border: 'none', color: 'hsl(0, 84%, 60%)', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center' }}><X size={14} /></button>
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid hsl(217, 20%, 25%)' }}>
-                    <span style={{ color: 'white', fontWeight: 600 }}>Remaining Balance:</span>
-                    <span style={{ color: 'hsl(43,96%,56%)', fontWeight: 700 }}>
-                      {format(Math.max(0, finalTotal - payments.reduce((sum, p) => sum + p.amount, 0)))}
+              {canSettle ? (
+              <div className="payment-entry-section">
+                {/* Payment Method & Amount Deduction Card */}
+                <div style={{ background: 'hsl(222, 35%, 12%)', border: '1px solid hsl(217, 20%, 22%)', borderRadius: '8px', padding: '14px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ color: 'white', fontWeight: 600, fontSize: '0.9rem' }}>
+                      Add / Apply Payment Method
+                    </span>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: remainingBalance > 0 ? 'hsl(43,96%,56%)' : '#4ade80' }}>
+                      Balance Remaining: {format(remainingBalance)}
                     </span>
                   </div>
-                </div>
-              )}
 
-              {payments.reduce((sum, p) => sum + p.amount, 0) < finalTotal && (
-                <div className="payment-entry-form" style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', marginBottom: '24px' }}>
-                  <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem' }}>Amount ({currencySymbol})</label>
-                    <input 
-                      type="number" 
-                      step="0.01" 
-                      value={paymentAmount} 
-                      onChange={e => setPaymentAmount(e.target.value)} 
-                      max={Math.max(0, finalTotal - payments.reduce((sum, p) => sum + p.amount, 0))}
-                      style={{ width: '100%', padding: '10px', background: 'hsl(222, 35%, 10%)', border: '1px solid hsl(217, 20%, 20%)', color: 'white', borderRadius: '6px' }}
-                    />
-                  </div>
-                  <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'hsl(215, 20%, 65%)', fontSize: '0.875rem' }}>Method</label>
-                    <select 
-                      className="form-select" 
-                      value={paymentMethod} 
-                      onChange={e => setPaymentMethod(e.target.value)}
-                      style={{ width: '100%', padding: '10px', background: 'hsl(222, 35%, 10%)', border: '1px solid hsl(217, 20%, 20%)', color: 'white', borderRadius: '6px' }}
+                  {(existingOrderPayments.length > 0 || payments.length > 0) && (
+                    <div className="payments-list" style={{ marginBottom: '12px' }}>
+                      {existingOrderPayments.map((ep, idx) => (
+                        <div key={'saved-' + idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 10px', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.25)', borderRadius: '6px', marginBottom: '4px', fontSize: '0.82rem' }}>
+                          <span style={{ color: '#86efac', fontWeight: 600 }}>{String(ep.method || '').replace('PAYMENT_', '')} (Recorded)</span>
+                          <span style={{ color: '#4ade80', fontWeight: 700 }}>-{format(Number(ep.amount || 0))}</span>
+                        </div>
+                      ))}
+                      {payments.map((p, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 10px', background: 'hsl(222, 35%, 16%)', border: '1px solid hsl(217, 20%, 25%)', borderRadius: '6px', marginBottom: '4px', fontSize: '0.85rem' }}>
+                          <span style={{ color: 'hsl(215, 20%, 75%)', fontWeight: 600 }}>{p.method.replace('PAYMENT_', '')}</span>
+                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <span style={{ color: '#38bdf8', fontWeight: 700 }}>-{format(p.amount)}</span>
+                            <button type="button" onClick={() => removePayment(idx)} style={{ background: 'none', border: 'none', color: 'hsl(0, 84%, 60%)', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Remove payment"><X size={14} /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="payment-entry-form" style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div className="form-group" style={{ flex: 1, minWidth: '120px', marginBottom: 0 }}>
+                      <label style={{ display: 'block', marginBottom: '6px', color: 'hsl(215, 20%, 65%)', fontSize: '0.8rem' }}>Amount ({currencySymbol})</label>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        min="0"
+                        placeholder={remainingBalance.toFixed(2)}
+                        value={paymentAmount} 
+                        onChange={e => setPaymentAmount(e.target.value)} 
+                        max={remainingBalance}
+                        style={{ width: '100%', padding: '9px 10px', background: 'hsl(222, 35%, 8%)', border: '1px solid hsl(217, 20%, 24%)', color: 'white', borderRadius: '6px', fontSize: '0.9rem' }}
+                      />
+                    </div>
+                    <div className="form-group" style={{ flex: 1, minWidth: '140px', marginBottom: 0 }}>
+                      <label style={{ display: 'block', marginBottom: '6px', color: 'hsl(215, 20%, 65%)', fontSize: '0.8rem' }}>Payment Method</label>
+                      <select 
+                        className="form-select" 
+                        value={paymentMethod} 
+                        onChange={e => setPaymentMethod(e.target.value)}
+                        style={{ width: '100%', padding: '9px 10px', background: 'hsl(222, 35%, 8%)', border: '1px solid hsl(217, 20%, 24%)', color: 'white', borderRadius: '6px', fontSize: '0.9rem' }}
+                      >
+                        <option value="PAYMENT_CASH">Cash</option>
+                        <option value="PAYMENT_CARD">Credit Card</option>
+                        <option value="PAYMENT_MOBILE">Mobile Money</option>
+                        <option value="PAYMENT_BANK">Bank Transfer</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddPayment}
+                      disabled={remainingBalance <= 0}
+                      style={{
+                        padding: '9px 16px',
+                        background: remainingBalance <= 0 ? 'hsl(222, 35%, 20%)' : 'hsl(43, 96%, 56%)',
+                        color: remainingBalance <= 0 ? 'hsl(215, 20%, 50%)' : 'hsl(224, 39%, 6%)',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: remainingBalance <= 0 ? 'not-allowed' : 'pointer',
+                      }}
                     >
-                      <option value="PAYMENT_CASH">Cash</option>
-                      <option value="PAYMENT_CARD">Credit Card</option>
-                      <option value="PAYMENT_MOBILE">Mobile Money</option>
-                      <option value="PAYMENT_BANK">Bank Transfer</option>
-                    </select>
+                      Add / Apply
+                    </button>
                   </div>
-                  <button type="button" className="btn-secondary" onClick={handleAddPayment}>Add</button>
                 </div>
-              )}
-            </div>
 
+                {/* Optional: Assign Walk-in Guest or Hotel Guest to Send to Billing / Pending Bill */}
+                <div style={{ background: 'hsl(222, 35%, 12%)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '8px', padding: '14px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 700, fontSize: '0.88rem' }}>
+                      Optional: Assign Guest & Send to Billing / Pending Bill
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'hsl(215, 20%, 65%)' }}>
+                      When client is not ready to pay now
+                    </span>
+                  </div>
+
+                  {(selectedOrder.guest || selectedOrder.folio?.reservation?.guest) && (
+                    <div style={{ fontSize: '0.8rem', color: '#4ade80', marginBottom: '10px', background: 'rgba(34, 197, 94, 0.1)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(34, 197, 94, 0.25)' }}>
+                      Currently Linked:{' '}
+                      <strong>
+                        {selectedOrder.folio?.reservation?.guest
+                          ? `Room ${selectedOrder.folio.reservation.room?.number || 'N/A'} - ${selectedOrder.folio.reservation.guest.firstName} ${selectedOrder.folio.reservation.guest.lastName}`
+                          : `${selectedOrder.guest?.firstName || ''} ${selectedOrder.guest?.lastName || ''} (Walk-in)`}
+                      </strong>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPendingBillDestType('WALKIN_GUEST')}
+                      style={{
+                        flex: 1,
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        border: pendingBillDestType === 'WALKIN_GUEST' ? '1px solid #38bdf8' : '1px solid hsl(217, 20%, 25%)',
+                        background: pendingBillDestType === 'WALKIN_GUEST' ? 'rgba(56, 189, 248, 0.18)' : 'hsl(222, 35%, 8%)',
+                        color: pendingBillDestType === 'WALKIN_GUEST' ? '#38bdf8' : 'hsl(215, 20%, 65%)',
+                      }}
+                    >
+                      Walk-In Guest
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPendingBillDestType('HOTEL_GUEST')}
+                      style={{
+                        flex: 1,
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        border: pendingBillDestType === 'HOTEL_GUEST' ? '1px solid #38bdf8' : '1px solid hsl(217, 20%, 25%)',
+                        background: pendingBillDestType === 'HOTEL_GUEST' ? 'rgba(56, 189, 248, 0.18)' : 'hsl(222, 35%, 8%)',
+                        color: pendingBillDestType === 'HOTEL_GUEST' ? '#38bdf8' : 'hsl(215, 20%, 65%)',
+                      }}
+                    >
+                      In-House Hotel Guest (Room)
+                    </button>
+                  </div>
+
+                  {pendingBillDestType === 'HOTEL_GUEST' ? (
+                    <div style={{ marginBottom: '10px' }}>
+                      <select
+                        value={assignFolioId}
+                        onChange={(e) => setAssignFolioId(e.target.value)}
+                        style={{ width: '100%', padding: '9px 10px', background: 'hsl(222, 35%, 8%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', borderRadius: '6px', fontSize: '0.85rem' }}
+                      >
+                        <option value="">Select Checked-In Room / Guest...</option>
+                        {inHouseGuests
+                          .filter((r: any) => r.folio?.id)
+                          .map((r: any) => (
+                            <option key={r.id} value={r.folio.id}>
+                              Room {r.room?.number || 'N/A'} ? {r.guest?.firstName} {r.guest?.lastName}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div style={{ marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                        <select
+                          value={assignGuestId}
+                          onChange={(e) => {
+                            setAssignGuestId(e.target.value);
+                            if (e.target.value) setShowInlineNewGuest(false);
+                          }}
+                          disabled={showInlineNewGuest}
+                          style={{ flex: 1, padding: '9px 10px', background: 'hsl(222, 35%, 8%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', borderRadius: '6px', fontSize: '0.85rem' }}
+                        >
+                          <option value="">Select Walk-In Guest...</option>
+                          {walkInGuests.map((g: any) => (
+                            <option key={g.id} value={g.id}>
+                              {g.firstName} {g.lastName} {g.phone ? `(${g.phone})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setShowInlineNewGuest(!showInlineNewGuest)}
+                          style={{
+                            padding: '8px 10px',
+                            background: showInlineNewGuest ? 'rgba(239, 68, 68, 0.2)' : 'rgba(56, 189, 248, 0.15)',
+                            border: '1px solid rgba(56, 189, 248, 0.35)',
+                            color: showInlineNewGuest ? '#fca5a5' : '#38bdf8',
+                            borderRadius: '6px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {showInlineNewGuest ? 'Cancel New' : '+ New Guest'}
+                        </button>
+                      </div>
+
+                      {showInlineNewGuest && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px' }}>
+                          <input
+                            type="text"
+                            placeholder="First Name *"
+                            value={inlineGuestFirstName}
+                            onChange={(e) => setInlineGuestFirstName(e.target.value)}
+                            style={{ padding: '8px 10px', background: 'hsl(222, 35%, 8%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', borderRadius: '6px', fontSize: '0.82rem' }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Last Name *"
+                            value={inlineGuestLastName}
+                            onChange={(e) => setInlineGuestLastName(e.target.value)}
+                            style={{ padding: '8px 10px', background: 'hsl(222, 35%, 8%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', borderRadius: '6px', fontSize: '0.82rem' }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Phone / WhatsApp (Optional)"
+                            value={inlineGuestPhone}
+                            onChange={(e) => setInlineGuestPhone(e.target.value)}
+                            style={{ gridColumn: 'span 2', padding: '8px 10px', background: 'hsl(222, 35%, 8%)', border: '1px solid hsl(217, 20%, 25%)', color: 'white', borderRadius: '6px', fontSize: '0.82rem' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSendToPendingBill}
+                    disabled={isSendingToBilling}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: 'rgba(56, 189, 248, 0.2)',
+                      border: '1px solid rgba(56, 189, 248, 0.45)',
+                      color: '#38bdf8',
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: isSendingToBilling ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {isSendingToBilling
+                      ? 'Saving to Billing...'
+                      : payments.length > 0
+                        ? `Apply Partial Payment (${format(addedPaidTotal)}) & Send Balance (${format(remainingBalance)}) to Billing`
+                        : `Assign Guest & Send Bill (${format(remainingBalance)}) to Pending Billing`}
+                  </button>
+                </div>
+              </div>
             ) : (<div style={{ marginTop: "24px", padding: "16px", background: "rgba(255, 0, 0, 0.1)", color: "#ff6b6b", borderRadius: "8px", border: "1px solid #ff6b6b" }}><strong>Access Denied:</strong> You are not authorized to settle Restaurant or Bar bills. Please contact a Cashier or Manager.</div>)}
             <div className="payment-actions">
               <button className="btn-secondary" onClick={() => handlePrintInvoice(selectedOrder.id)} title="Print or preview invoice">
@@ -1476,7 +1803,7 @@ export default function CashierPage() {
               </button>
               <button 
                 className="btn-pay" 
-                disabled={isProcessing || !isOrderFullyServed(selectedOrder) || (!Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id) && payments.reduce((sum, p) => sum + p.amount, 0) < finalTotal - 0.01)} 
+                disabled={isProcessing || !isOrderFullyServed(selectedOrder) || (!Boolean(selectedOrder.folioId || selectedOrder.folio?.reservation?.room || selectedOrder.folio?.id) && remainingBalance > 0.01)} 
                 onClick={() => handleCheckout(selectedOrder.id)}
               >
                 {isProcessing 

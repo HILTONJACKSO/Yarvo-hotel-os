@@ -5,7 +5,7 @@ import { useCurrency } from '@/lib/currency';
 import { fetchWithAuth } from '@/lib/sync';
 import { useState, useEffect } from 'react';
 import { Building2, CheckCircle2, ClipboardList, DollarSign, AlertCircle, Activity as ActivityIcon } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 type DashboardMetrics = {
   occupancyRate: string;
@@ -13,6 +13,9 @@ type DashboardMetrics = {
   pendingReservations: number;
   todaysRevenue: string;
   outstandingRevenue: string;
+  hotelTodayRevenue?: string;
+  hotelWeekRevenue?: string;
+  hotelMonthRevenue?: string;
 };
 
 type ChartData = { date: string; revenue: number; };
@@ -111,8 +114,8 @@ export default function DashboardPage() {
         {[
           { title: 'Occupancy Rate', value: loading ? '...' : (metrics?.occupancyRate || '0.0%'), Icon: Building2, desc: 'Live occupancy' },
           { title: 'Check-Ins Today', value: loading ? '...' : (metrics?.checkInsToday || 0), Icon: CheckCircle2, desc: 'Scheduled arrivals' },
-          { title: "Collected Revenue", value: loading ? '...' : format(metrics?.todaysRevenue || '0.00'), Icon: DollarSign, desc: 'Payments received today' },
-          { title: 'Outstanding Revenue', value: loading ? '...' : format(metrics?.outstandingRevenue || '0.00'), Icon: ClipboardList, desc: 'Unpaid folios & corporate accounts' },
+          { title: "Today's Total Revenue", value: loading ? '...' : format(metrics?.todaysRevenue || '0.00'), Icon: DollarSign, desc: 'Room, F&B & Ticket sales today' },
+          { title: 'Outstanding Revenue', value: loading ? '...' : format(metrics?.outstandingRevenue || '0.00'), Icon: ClipboardList, desc: 'Unpaid folios, POS & corporate' },
         ].map((card) => {
           const IconComponent = card.Icon;
           return (
@@ -124,6 +127,22 @@ export default function DashboardPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* Hotel Room Performance Revenue Summary (matching F&B / Reports style) */}
+      <div className="hotel-perf-cards">
+        <div className="hotel-perf-card">
+          <span className="hp-label">Hotel Room Revenue (Today)</span>
+          <span className="hp-val">{loading ? '...' : format(metrics?.hotelTodayRevenue || '0.00')}</span>
+        </div>
+        <div className="hotel-perf-card">
+          <span className="hp-label">Hotel Room Revenue (This Week)</span>
+          <span className="hp-val">{loading ? '...' : format(metrics?.hotelWeekRevenue || '0.00')}</span>
+        </div>
+        <div className="hotel-perf-card">
+          <span className="hp-label">Hotel Room Revenue (This Month)</span>
+          <span className="hp-val">{loading ? '...' : format(metrics?.hotelMonthRevenue || '0.00')}</span>
+        </div>
       </div>
 
       <div className="dashboard-content-grid">
@@ -310,6 +329,34 @@ export default function DashboardPage() {
           color: hsl(215, 16%, 38%);
         }
 
+        .hotel-perf-cards {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+        }
+        .hotel-perf-card {
+          background: #070F1E;
+          border: 1px solid rgba(34, 197, 94, 0.22);
+          border-radius: 14px;
+          padding: 20px 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .hp-label {
+          color: hsl(215, 20%, 65%);
+          font-size: 0.78rem;
+          text-transform: uppercase;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+        }
+        .hp-val {
+          color: hsl(142, 76%, 55%);
+          font-size: 1.75rem;
+          font-weight: 700;
+          letter-spacing: -0.02em;
+        }
+
         .dashboard-content-grid {
           display: grid;
           grid-template-columns: 2fr 1fr;
@@ -403,6 +450,9 @@ export default function DashboardPage() {
           .dashboard-content-grid {
             grid-template-columns: 1fr;
           }
+          .hotel-perf-cards {
+            grid-template-columns: 1fr;
+          }
         }
         
         @media (max-width: 768px) {
@@ -429,4 +479,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

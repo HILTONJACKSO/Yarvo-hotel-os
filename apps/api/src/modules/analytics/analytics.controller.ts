@@ -13,10 +13,23 @@ export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Get('dashboard')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
   @ApiOperation({ summary: 'Get main dashboard aggregates' })
   async getDashboard(@CurrentUser() user: any) {
     const data = await this.analyticsService.getDashboardMetrics(user?.propertyId);
+    return { data };
+  }
+
+  @Get('hotel-metrics')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
+  @ApiOperation({ summary: 'Get hotel room sales and performance metrics' })
+  async getHotelMetrics(
+    @CurrentUser() user: any,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @Query('propertyId') propId?: string,
+  ) {
+    const data = await this.analyticsService.getHotelMetrics(start, end, propId || user?.propertyId);
     return { data };
   }
 
@@ -49,6 +62,32 @@ export class AnalyticsController {
     return { data };
   }
 
+  @Get('boutique-metrics')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
+  @ApiOperation({ summary: 'Get Boutique sales metrics and top items' })
+  async getBoutiqueMetrics(
+    @CurrentUser() user: any,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @Query('propertyId') propId?: string,
+  ) {
+    const data = await this.analyticsService.getBoutiqueMetrics(start, end, propId || user?.propertyId);
+    return { data };
+  }
+
+  @Get('activities-metrics')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
+  @ApiOperation({ summary: 'Get Activities, Tours, and Packages revenue metrics' })
+  async getActivitiesMetrics(
+    @CurrentUser() user: any,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @Query('propertyId') propId?: string,
+  ) {
+    const data = await this.analyticsService.getActivitiesMetrics(start, end, propId || user?.propertyId);
+    return { data };
+  }
+
   @Get('revenue-by-method')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'CASHIER', 'FRONT_DESK')
   async getRevenueByMethod(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
@@ -57,28 +96,28 @@ export class AnalyticsController {
   }
 
   @Get('occupancy-heatmap')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
   async getOccupancyHeatmap(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
     const data = await this.analyticsService.getOccupancyHeatmap(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('recent-activity')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
   async getRecentActivity(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
     const data = await this.analyticsService.getRecentActivity(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('tickets-metrics')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'FRONT_DESK')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'FRONT_DESK', 'CASHIER')
   async getTicketsMetrics(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
     const data = await this.analyticsService.getTicketsMetrics(start, end, propId || user?.propertyId);
     return { data };
   }
 
   @Get('events-metrics')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'ACCOUNTANT', 'FRONT_DESK', 'CASHIER')
   async getEventsMetrics(@CurrentUser() user: any, @Query('start') start?: string, @Query('end') end?: string, @Query('propertyId') propId?: string) {
     const data = await this.analyticsService.getEventsMetrics(start, end, propId || user?.propertyId);
     return { data };

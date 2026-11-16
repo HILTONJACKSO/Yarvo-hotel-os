@@ -48,7 +48,16 @@ export default function BillingPage() {
   const [paymentMethod, setPaymentMethod] = useState("PAYMENT_CARD");
 
   // Top Bar Stats
+  const getPosBalanceDue = (o: any) => {
+    const subtotal = Number(o?.totalAmount || 0);
+    const discount = Number(o?.discountAmount || 0);
+    const paid = Array.isArray(o?.payments)
+      ? o.payments.reduce((s: number, p: any) => s + Number(p.amount || 0), 0)
+      : 0;
+    return Math.max(0, Math.round((subtotal - discount - paid) * 100) / 100);
+  };
   const [totalPendingPOS, setTotalPendingPOS] = useState(0);
+  const [posPaymentAmount, setPosPaymentAmount] = useState("");
   const [totalPendingRooms, setTotalPendingRooms] = useState(0);
 
   const fetchBills = async () => {
@@ -74,7 +83,7 @@ export default function BillingPage() {
       const invoicedPos = allPos.filter((o: any) => o.status === "SERVED" || o.status === "OPEN");
       const posOrders = invoicedPos.map((o: any) => ({ ...o, type: "POS_ORDER" }));
 
-      const totalPosAmount = posOrders.reduce((sum: number, o: any) => sum + Number(o.totalAmount || 0), 0);
+      const totalPosAmount = posOrders.reduce((sum: number, o: any) => sum + getPosBalanceDue(o), 0);
       setTotalPendingPOS(totalPosAmount);
       const totalRoomsAmount = folios.reduce((sum: number, f: any) => sum + Number(f.balance || 0), 0);
       setTotalPendingRooms(totalRoomsAmount);
@@ -478,13 +487,57 @@ export default function BillingPage() {
   };
 
   // POS Actions
-  const handleCheckoutPOS = async () => {
+  const handleApplyPartialPOSPayment = async () => {
     if (!selectedBill || selectedBill.type !== "POS_ORDER") return;
+    const amt = parseFloat(posPaymentAmount);
+    const bal = getPosBalanceDue(selectedBill);
+    if (isNaN(amt) || amt <= 0) {
+      showToast("Please enter a valid payment amount greater than 0", "error");
+      return;
+    }
+    if (amt > bal + 0.01) {
+      showToast(`Amount exceeds remaining balance of ${format(bal)}`, "error");
+      return;
+    }
+    if (Math.abs(amt - bal) <= 0.01) {
+      return handleCheckoutPOS(amt);
+    }
+    try {
+      const res = await fetch(`/api/v1/pos/orders/${selectedBill.id}/assign-pending-bill`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payments: [{ method: paymentMethod || "PAYMENT_CASH", amount: amt }],
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const updated = json.data || json;
+        if (updated?.id) {
+          await db.posOrders.put(updated);
+        }
+        setPosPaymentAmount("");
+        showToast(`Deducted ${format(amt)} via ${paymentMethod.replace('PAYMENT_', '')}. Remaining balance updated!`, "success");
+        fetchBills();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.message || "Failed to apply payment", "error");
+      }
+    } catch (err: any) {
+      showToast(err.message || "Network error applying payment", "error");
+    }
+  };
+
+  const handleCheckoutPOS = async (overrideAmt?: number) => {
+    if (!selectedBill || selectedBill.type !== "POS_ORDER") return;
+    const balDue = overrideAmt !== undefined ? overrideAmt : getPosBalanceDue(selectedBill);
     try {
       const res = await fetch(`/api/v1/pos/orders/${selectedBill.id}/checkout`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payments: [{ method: paymentMethod || "PAYMENT_CASH", amount: Number(selectedBill.totalAmount) }] })
+        body: JSON.stringify({ payments: [{ method: paymentMethod || "PAYMENT_CASH", amount: balDue }] })
       });
       if (res.ok) {
         showToast("Order checked out successfully!", "success");
@@ -669,10 +722,23 @@ export default function BillingPage() {
                   ) : (
                     <>
                       <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-slate-200 text-sm">POS: {b.table?.number ? `Table ${b.table.number}` : 'Walk-in'}</span>
-                        <span className="font-bold text-rose-400">{format(Number(b.totalAmount))}</span>
+                        <span className="font-bold text-slate-200 text-sm">
+                          {b.guest
+                            ? `${b.guest.firstName} ${b.guest.lastName}`
+                            : b.table?.number
+                              ? `POS: Table ${b.table.number}`
+                              : 'POS: Walk-in'}
+                        </span>
+                        <span className="font-bold text-rose-400">{format(getPosBalanceDue(b))}</span>
                       </div>
-                      <div className="text-xs text-slate-400">{b.guest ? `${b.guest.firstName} ${b.guest.lastName}` : 'Guest'} • {b.items?.length || 0} items</div>
+                      <div className="text-xs text-slate-400">
+                        {b.table?.number ? `Table ${b.table.number} ? ` : ''}{b.items?.length || 0} items{b.guest?.phone ? ` ? ${b.guest.phone}` : ''}
+                      </div>
+                      {(b.guest || (b.notes || '').includes('[PENDING_BILL]')) && (
+                        <div className="mt-2 inline-block px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-[10px] font-bold uppercase tracking-wider">
+                          Pending Bill ? Walk-in Guest
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -869,64 +935,115 @@ export default function BillingPage() {
           ) : (
             // POS ORDER RENDER
             <>
-              <div className="p-8 border-b border-slate-700/60 bg-gradient-to-r from-slate-900/40 to-slate-800/40 flex justify-between items-center">
+              <div className="p-8 border-b border-slate-700/60 bg-gradient-to-r from-slate-900/40 to-slate-800/40 flex flex-wrap justify-between items-center gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 mb-3 uppercase tracking-wider">
-                    {selectedBill.table?.number ? `Table ${selectedBill.table.number}` : 'Walk-in'}
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 uppercase tracking-wider">
+                      {selectedBill.table?.number ? `Table ${selectedBill.table.number}` : 'Walk-in'}
+                    </div>
+                    {selectedBill.guest && (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-xs font-bold text-cyan-400">
+                        Guest: {selectedBill.guest.firstName} {selectedBill.guest.lastName}{selectedBill.guest.phone ? ` (${selectedBill.guest.phone})` : ''}
+                      </div>
+                    )}
                   </div>
-                  <h2 className="text-2xl font-extrabold text-white mb-1 tracking-tight">POS Order #{selectedBill.id.substring(0,8).toUpperCase()}</h2>
-                  <div className="text-slate-400 font-medium">Printed: {selectedBill.invoicePrintCount} times</div>
+                  <h2 className="text-2xl font-extrabold text-white mb-1 tracking-tight">
+                    {selectedBill.guest
+                      ? `Pending Bill: ${selectedBill.guest.firstName} ${selectedBill.guest.lastName}`
+                      : `POS Order #${selectedBill.id.substring(0,8).toUpperCase()}`}
+                  </h2>
+                  <div className="text-slate-400 font-medium">
+                    Order #{selectedBill.id.substring(0,8).toUpperCase()} ? Printed: {selectedBill.invoicePrintCount} times
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Total Balance Due</div>
-                  <div className="text-4xl font-extrabold text-rose-400 tracking-tight">{format(Number(selectedBill.totalAmount))}</div>
+                  <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Remaining Balance Due</div>
+                  <div className="text-4xl font-extrabold text-rose-400 tracking-tight">{format(getPosBalanceDue(selectedBill))}</div>
+                  {Number(selectedBill.discountAmount || 0) > 0 && (
+                    <div className="text-xs text-emerald-400 mt-1">Discount Applied: -{format(Number(selectedBill.discountAmount))}</div>
+                  )}
                 </div>
               </div>
-              <div className="flex-1 p-6 overflow-y-auto">
-                <h3 className="text-lg font-bold text-slate-200 mb-4">Order Items</h3>
-                <div className="bg-slate-900/50 rounded-xl border border-slate-700 overflow-hidden">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-800 text-slate-400 uppercase text-xs">
-                      <tr>
-                        <th className="p-3 border-b border-slate-700">Qty</th>
-                        <th className="p-3 border-b border-slate-700">Item Name</th>
-                        <th className="p-3 border-b border-slate-700 text-right">Price</th>
-                        <th className="p-3 border-b border-slate-700 text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-slate-300">
-                      {selectedBill.items?.map((item: any) => (
-                        <tr key={item.id} className="border-b border-slate-700/50 last:border-0">
-                          <td className="p-3">{item.quantity}x</td>
-                          <td className="p-3">{item.menuItem?.name}</td>
-                          <td className="p-3 text-right font-mono">{format(Number(item.menuItem?.price))}</td>
-                          <td className="p-3 text-right font-mono font-bold">{format(Number(item.menuItem?.price) * item.quantity)}</td>
+              <div className="flex-1 p-6 overflow-y-auto space-y-6">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-200 mb-4">Order Items</h3>
+                  <div className="bg-slate-900/50 rounded-xl border border-slate-700 overflow-hidden">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-800 text-slate-400 uppercase text-xs">
+                        <tr>
+                          <th className="p-3 border-b border-slate-700">Qty</th>
+                          <th className="p-3 border-b border-slate-700">Item Name</th>
+                          <th className="p-3 border-b border-slate-700 text-right">Price</th>
+                          <th className="p-3 border-b border-slate-700 text-right">Total</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="text-slate-300">
+                        {selectedBill.items?.map((item: any) => (
+                          <tr key={item.id} className="border-b border-slate-700/50 last:border-0">
+                            <td className="p-3">{item.quantity}x</td>
+                            <td className="p-3">{item.menuItem?.name}</td>
+                            <td className="p-3 text-right font-mono">{format(Number(item.menuItem?.price))}</td>
+                            <td className="p-3 text-right font-mono font-bold">{format(Number(item.menuItem?.price) * item.quantity)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
+
+                {Array.isArray(selectedBill.payments) && selectedBill.payments.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-2">Payments Recorded</h4>
+                    <div className="bg-slate-900/50 rounded-xl border border-slate-700 p-3 space-y-2">
+                      {selectedBill.payments.map((p: any, idx: number) => (
+                        <div key={p.id || idx} className="flex justify-between items-center text-sm">
+                          <span className="text-slate-300 font-medium">{String(p.method || '').replace('PAYMENT_', '')}</span>
+                          <span className="text-emerald-400 font-mono font-bold">-{format(Number(p.amount || 0))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="p-6 border-t border-slate-700 bg-slate-900/50 flex gap-4 justify-end">
+              <div className="p-6 border-t border-slate-700 bg-slate-900/50 flex flex-wrap gap-3 items-center justify-end">
                 {(isAdmin || isCashierOrManager) && (
-                  <button onClick={handleDeletePOS} className="bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 mr-auto">
+                  <button onClick={handleDeletePOS} className="bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 px-5 py-3 rounded-xl font-bold transition-all flex items-center gap-2 mr-auto">
                     <Trash2 size={18} /> Delete POS Order
                   </button>
                 )}
                 {isCashierOrManager && (
                   <>
-                      <select 
-                        value={paymentMethod} 
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="bg-slate-800 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors"
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      max={getPosBalanceDue(selectedBill)}
+                      placeholder={`Amount (${getPosBalanceDue(selectedBill).toFixed(2)})`}
+                      value={posPaymentAmount}
+                      onChange={(e) => setPosPaymentAmount(e.target.value)}
+                      className="bg-slate-800 border border-slate-700 text-white px-4 py-3 rounded-xl w-40 focus:outline-none focus:border-cyan-500"
+                    />
+                    <select 
+                      value={paymentMethod} 
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="bg-slate-800 border border-slate-700 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-emerald-500 transition-colors"
+                    >
+                      <option value="PAYMENT_CASH">Cash</option>
+                      <option value="PAYMENT_CARD">Credit Card</option>
+                      <option value="PAYMENT_MOBILE">Mobile Money</option>
+                      <option value="PAYMENT_BANK">Bank Transfer</option>
+                    </select>
+                    {posPaymentAmount && parseFloat(posPaymentAmount) > 0 && parseFloat(posPaymentAmount) < getPosBalanceDue(selectedBill) - 0.01 && (
+                      <button
+                        type="button"
+                        onClick={handleApplyPartialPOSPayment}
+                        className="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-3 rounded-xl font-bold transition-all"
                       >
-                        <option value="PAYMENT_CASH">Cash</option>
-                        <option value="PAYMENT_CARD">Credit Card</option>
-                        <option value="PAYMENT_MOBILE">Mobile Money</option>
-                        <option value="PAYMENT_BANK">Bank Transfer</option>
-                      </select>
-                    <button onClick={handleCheckoutPOS} className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2">
-                      Checkout / Pay {format(Number(selectedBill.totalAmount))}
+                        Apply Partial ({format(parseFloat(posPaymentAmount))})
+                      </button>
+                    )}
+                    <button onClick={() => handleCheckoutPOS()} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2">
+                      Checkout / Pay Full Balance ({format(getPosBalanceDue(selectedBill))})
                     </button>
                   </>
                 )}

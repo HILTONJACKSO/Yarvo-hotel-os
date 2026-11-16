@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import domtoimage from 'dom-to-image-more';
 import { 
-  LineChart, 
-  Line, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -19,18 +17,73 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { AlertCircle, TrendingUp, Utensils, Bed, Wallet } from 'lucide-react';
+import { AlertCircle, TrendingUp, Utensils, Bed, Wallet, ShoppingBag, Compass } from 'lucide-react';
 import ReportExportToolbar from '@/components/ReportExportToolbar';
 import { downloadCSV } from '@/utils/export';
 import { useCurrency } from '@/lib/currency';
 import { useAuth } from '@/lib/auth-provider';
 
 type ChartData = { date: string; revenue: number; };
+type HotelMetrics = {
+  todayRevenue: number;
+  weekRevenue: number;
+  monthRevenue: number;
+  customRangeRevenue?: number | null;
+  totalRevenue: number;
+  totalBookings: number;
+  checkedInCount: number;
+  confirmedCount: number;
+  checkedOutCount: number;
+  bookings: Array<{
+    id: string;
+    confirmationCode: string;
+    guestName: string;
+    roomNumber: string;
+    roomTypeName: string;
+    status: string;
+    date: string;
+    revenue: number;
+  }>;
+};
 type FbMetrics = { todayFbRevenue: number; todayFbIndex: number; weekFbRevenue: number; weekFbIndex: number; monthFbRevenue: number; monthFbIndex: number; customRangeRevenue?: number; };
 type TopItem = { id: string; name: string; quantity: number; revenue: number; };
 type PaymentMethodData = { method: string; revenue: number; };
 type TicketMetrics = { adultTickets: number; kidTickets: number; poolTickets: number; totalRevenue: number; todayRevenue: number; weekRevenue: number; monthRevenue: number; customRangeRevenue?: number; validCount: number; usedCount: number; chart: { month: string; adults: number; kids: number; pool: number; revenue: number; }[]; };
 type EventMetrics = { totalBookings: number; confirmedCount: number; totalRevenue: number; todayRevenue: number; weekRevenue: number; monthRevenue: number; customRangeRevenue?: number; bookings: any[]; };
+type BoutiqueMetrics = {
+  todayRevenue: number;
+  weekRevenue: number;
+  monthRevenue: number;
+  customRangeRevenue?: number | null;
+  totalRevenue: number;
+  totalItemsSold: number;
+  totalOrders: number;
+  topItems: TopItem[];
+  chart: ChartData[];
+};
+type ActivitiesMetrics = {
+  totalBookings: number;
+  tourCount: number;
+  activityCount: number;
+  packageCount: number;
+  tourRevenue: number;
+  activityRevenue: number;
+  packageRevenue: number;
+  totalRevenue: number;
+  todayRevenue: number;
+  weekRevenue: number;
+  monthRevenue: number;
+  customRangeRevenue?: number | null;
+  bookings: Array<{
+    id: string;
+    type: string;
+    name: string;
+    guestName: string;
+    status: string;
+    date: string;
+    revenue: number;
+  }>;
+};
 
 type HeatmapData = {
   dates: string[];
@@ -46,9 +99,12 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 export default function ReportsPage() {
   const { user } = useAuth();
   const { format, currencySymbol } = useCurrency();
-  const [activeTab, setActiveTab] = useState<'HOTEL' | 'FB' | 'FINANCIAL' | 'TICKETS' | 'EVENTS'>('HOTEL');
+  const [activeTab, setActiveTab] = useState<
+    'HOTEL' | 'FB' | 'BOUTIQUE' | 'FINANCIAL' | 'TICKETS' | 'EVENTS' | 'ACTIVITIES'
+  >('HOTEL');
   
   // Hotel state
+  const [hotelMetrics, setHotelMetrics] = useState<HotelMetrics | null>(null);
   const [hotelData, setHotelData] = useState<ChartData[]>([]);
   const [heatmapData, setHeatmapData] = useState<HeatmapData | null>(null);
   
@@ -57,10 +113,14 @@ export default function ReportsPage() {
   const [fbChart, setFbChart] = useState<ChartData[]>([]);
   const [topItems, setTopItems] = useState<TopItem[]>([]);
 
-  // Financial state
+  // Boutique state
+  const [boutiqueMetrics, setBoutiqueMetrics] = useState<BoutiqueMetrics | null>(null);
+
+  // Financial & Other tabs state
   const [paymentData, setPaymentData] = useState<PaymentMethodData[]>([]);
   const [ticketMetrics, setTicketMetrics] = useState<TicketMetrics | null>(null);
   const [eventMetrics, setEventMetrics] = useState<EventMetrics | null>(null);
+  const [activitiesMetrics, setActivitiesMetrics] = useState<ActivitiesMetrics | null>(null);
 
   const [dateRangeStr, setDateRangeStr] = useState<string>('Last 7 Days');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>(() => {
@@ -88,35 +148,45 @@ export default function ReportsPage() {
     
     try {
       if (activeTab === 'HOTEL') {
-        const [resTrend, resHeatmap] = await Promise.all([
+        const [resHotelMetrics, resTrend, resHeatmap] = await Promise.all([
+          fetch(`/api/v1/analytics/hotel-metrics${query}`, { credentials: 'include' }).then(r => r.json()),
           fetch(`/api/v1/analytics/revenue-chart${query}`, { credentials: 'include' }).then(r => r.json()),
           fetch(`/api/v1/analytics/occupancy-heatmap${query}`, { credentials: 'include' }).then(r => r.json())
         ]);
-          setHotelData(resTrend.data || []);
-          setHeatmapData(resHeatmap.data || null);
-        } else if (activeTab === 'FB') {
-          const [resMetrics, resChart, resItems] = await Promise.all([
-            fetch(`/api/v1/analytics/fb-metrics${query}`, { credentials: 'include' }).then(r => r.json()),
-            fetch(`/api/v1/analytics/fb-chart${query}`, { credentials: 'include' }).then(r => r.json()),
-            fetch(`/api/v1/analytics/fb-top-items${query}`, { credentials: 'include' }).then(r => r.json())
-          ]);
-          setFbMetrics(resMetrics.data);
-          setFbChart(resChart.data);
-          setTopItems(resItems.data);
-        } else if (activeTab === 'FINANCIAL') {
-          const res = await fetch(`/api/v1/analytics/revenue-by-method${query}`, { credentials: 'include' });
-          const json = await res.json();
-          if (!res.ok) throw new Error(json.message || 'Failed to fetch payment data');
-          setPaymentData(json.data);
-        } else if (activeTab === 'TICKETS') {
-          const res = await fetch(`/api/v1/analytics/tickets-metrics${query}`, { credentials: 'include' });
-          const json = await res.json();
-          setTicketMetrics(json.data);
-        } else if (activeTab === 'EVENTS') {
-          const res = await fetch(`/api/v1/analytics/events-metrics${query}`, { credentials: 'include' });
-          const json = await res.json();
-          setEventMetrics(json.data);
-        }
+        setHotelMetrics(resHotelMetrics.data || null);
+        setHotelData(resTrend.data || []);
+        setHeatmapData(resHeatmap.data || null);
+      } else if (activeTab === 'FB') {
+        const [resMetrics, resChart, resItems] = await Promise.all([
+          fetch(`/api/v1/analytics/fb-metrics${query}`, { credentials: 'include' }).then(r => r.json()),
+          fetch(`/api/v1/analytics/fb-chart${query}`, { credentials: 'include' }).then(r => r.json()),
+          fetch(`/api/v1/analytics/fb-top-items${query}`, { credentials: 'include' }).then(r => r.json())
+        ]);
+        setFbMetrics(resMetrics.data);
+        setFbChart(resChart.data || []);
+        setTopItems(resItems.data || []);
+      } else if (activeTab === 'BOUTIQUE') {
+        const res = await fetch(`/api/v1/analytics/boutique-metrics${query}`, { credentials: 'include' });
+        const json = await res.json();
+        setBoutiqueMetrics(json.data || null);
+      } else if (activeTab === 'FINANCIAL') {
+        const res = await fetch(`/api/v1/analytics/revenue-by-method${query}`, { credentials: 'include' });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || 'Failed to fetch payment data');
+        setPaymentData(json.data || []);
+      } else if (activeTab === 'TICKETS') {
+        const res = await fetch(`/api/v1/analytics/tickets-metrics${query}`, { credentials: 'include' });
+        const json = await res.json();
+        setTicketMetrics(json.data);
+      } else if (activeTab === 'EVENTS') {
+        const res = await fetch(`/api/v1/analytics/events-metrics${query}`, { credentials: 'include' });
+        const json = await res.json();
+        setEventMetrics(json.data);
+      } else if (activeTab === 'ACTIVITIES') {
+        const res = await fetch(`/api/v1/analytics/activities-metrics${query}`, { credentials: 'include' });
+        const json = await res.json();
+        setActivitiesMetrics(json.data || null);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -154,47 +224,51 @@ export default function ReportsPage() {
       
       try {
         const filter = (node: any) => {
-            return !node.classList?.contains('no-print');
-          };
+          return !node.classList?.contains('no-print');
+        };
           
-          const scale = 2;
-          const imgData = await domtoimage.toPng(element, {
-            filter: filter,
-            bgcolor: '#0a0d14',
-            width: element.clientWidth * scale,
-            height: element.clientHeight * scale,
-            style: {
-              transform: 'scale('+scale+')',
-              transformOrigin: 'top left'
-            }
-          });
+        const scale = 2;
+        const imgData = await domtoimage.toPng(element, {
+          filter: filter,
+          bgcolor: '#0a0d14',
+          width: element.clientWidth * scale,
+          height: element.clientHeight * scale,
+          style: {
+            transform: 'scale('+scale+')',
+            transformOrigin: 'top left'
+          }
+        });
           
-          const pdfWidth = 210;
-          const pdfHeight = (element.clientHeight * pdfWidth) / element.clientWidth;
+        const pdfWidth = 210;
+        const pdfHeight = (element.clientHeight * pdfWidth) / element.clientWidth;
           
-          const pdf = new jsPDF({
-            orientation: pdfWidth > pdfHeight ? 'l' : 'p',
-            unit: 'mm',
-            format: [pdfWidth, pdfHeight]
-          });
+        const pdf = new jsPDF({
+          orientation: pdfWidth > pdfHeight ? 'l' : 'p',
+          unit: 'mm',
+          format: [pdfWidth, pdfHeight]
+        });
           
-          pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-          pdf.save(`${(user?.propertyName || 'Hotel').replace(/\s+/g, '-')}-Report-${activeTab}-${new Date().toISOString().split('T')[0]}.pdf`);
-        } catch (err: any) {
-          console.error('PDF generation error:', err);
-          alert(`Failed to generate PDF: ${err.message || 'Unknown error'}`);
-        }
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`${(user?.propertyName || 'Hotel').replace(/\s+/g, '-')}-Report-${activeTab}-${new Date().toISOString().split('T')[0]}.pdf`);
+      } catch (err: any) {
+        console.error('PDF generation error:', err);
+        alert(`Failed to generate PDF: ${err.message || 'Unknown error'}`);
+      }
     } else if (format === 'csv') {
       if (activeTab === 'HOTEL') {
-        downloadCSV(hotelData, 'hotel-revenue-report');
+        downloadCSV(hotelMetrics?.bookings?.length ? hotelMetrics.bookings : hotelData, 'hotel-revenue-report');
       } else if (activeTab === 'FB') {
         downloadCSV(fbChart, 'fb-revenue-report');
+      } else if (activeTab === 'BOUTIQUE') {
+        downloadCSV(boutiqueMetrics?.topItems || [], 'boutique-sales-report');
       } else if (activeTab === 'FINANCIAL') {
         downloadCSV(paymentData, 'financial-revenue-report');
       } else if (activeTab === 'TICKETS') {
         downloadCSV(ticketMetrics?.chart || [], 'tickets-revenue-report');
       } else if (activeTab === 'EVENTS') {
         downloadCSV(eventMetrics?.bookings || [], 'events-revenue-report');
+      } else if (activeTab === 'ACTIVITIES') {
+        downloadCSV(activitiesMetrics?.bookings || [], 'activities-tours-packages-report');
       }
     }
   };
@@ -211,7 +285,7 @@ export default function ReportsPage() {
 
       <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} initialStartDate={dateRange.start} initialEndDate={dateRange.end} />
 
-      <div className="tabs">
+      <div className="tabs" style={{ overflowX: 'auto', flexWrap: 'nowrap' }}>
         <button 
           className={`tab-btn ${activeTab === 'HOTEL' ? 'active' : ''}`}
           onClick={() => setActiveTab('HOTEL')}
@@ -223,6 +297,12 @@ export default function ReportsPage() {
           onClick={() => setActiveTab('FB')}
         >
           <Utensils size={18} /> Food & Beverage
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'BOUTIQUE' ? 'active' : ''}`}
+          onClick={() => setActiveTab('BOUTIQUE')}
+        >
+          <ShoppingBag size={18} /> Boutique
         </button>
         <button 
           className={`tab-btn ${activeTab === 'FINANCIAL' ? 'active' : ''}`}
@@ -242,6 +322,12 @@ export default function ReportsPage() {
         >
           <TrendingUp size={18} /> Events
         </button>
+        <button 
+          className={`tab-btn ${activeTab === 'ACTIVITIES' ? 'active' : ''}`}
+          onClick={() => setActiveTab('ACTIVITIES')}
+        >
+          <Compass size={18} /> Activities, Tours & Packages
+        </button>
       </div>
 
       {error && (
@@ -252,45 +338,102 @@ export default function ReportsPage() {
       )}
 
       {activeTab === 'HOTEL' && (
-        <div className="chart-grid">
-          <div className="chart-card">
-            <div className="chart-header">
-              <div>
-                <h3 className="chart-title">Room Revenue Trend</h3>
-                <p className="chart-subtitle">{dateRangeStr}</p>
+        <div className="fb-dashboard">
+          {/* Revenue Summary Cards matching F&B, Tickets, and Events */}
+          <div className="summary-cards">
+            <div className="summary-card">
+              <span className="summary-label">Today's Revenue</span>
+              <span className="summary-val">${(hotelMetrics?.todayRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">This Week's Revenue</span>
+              <span className="summary-val">${(hotelMetrics?.weekRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">This Month's Revenue</span>
+              <span className="summary-val">${(hotelMetrics?.monthRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            {hotelMetrics?.customRangeRevenue != null && hotelMetrics?.customRangeRevenue !== undefined && (
+              <div className="summary-card" style={{ border: '1px solid hsl(43, 96%, 56%)' }}>
+                <span className="summary-label" style={{ color: 'hsl(43, 96%, 56%)' }}>Custom Range Revenue</span>
+                <span className="summary-val">${hotelMetrics.customRangeRevenue.toFixed(2)}</span>
               </div>
-              <div className="chart-stat">
-                <span className="stat-label">Total Period Revenue</span>
-                <span className="stat-val">${hotelTotalRevenue.toFixed(2)}</span>
+            )}
+          </div>
+
+          <div className="chart-grid">
+            <div className="chart-card">
+              <div className="chart-header">
+                <div>
+                  <h3 className="chart-title">Room & Hotel Revenue Trend</h3>
+                  <p className="chart-subtitle">{dateRangeStr}</p>
+                </div>
+                <div className="chart-stat">
+                  <span className="stat-label">Period Total</span>
+                  <span className="stat-val">${Math.max(hotelTotalRevenue, hotelMetrics?.customRangeRevenue ?? 0).toFixed(2)}</span>
+                </div>
+              </div>
+              
+              <div className="chart-body">
+                {loading ? (
+                  <div className="chart-loading">Loading chart data...</div>
+                ) : hotelData.length === 0 ? (
+                  <div className="chart-loading">No revenue data available.</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={hotelData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(217, 20%, 14%)" vertical={false} />
+                      <XAxis dataKey="date" stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => { const d = new Date(val); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
+                      <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => `${currencySymbol}${val}`} axisLine={false} tickLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'hsl(222, 35%, 10%)', borderColor: 'hsl(217, 20%, 20%)', borderRadius: '8px', color: 'hsl(210, 40%, 96%)' }}
+                        itemStyle={{ color: 'hsl(43, 96%, 56%)' }}
+                        formatter={(value: any) => [format(Number(value)), 'Revenue']}
+                      />
+                      <Area type="monotone" dataKey="revenue" stroke="hsl(43, 96%, 56%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
-            
-            <div className="chart-body">
-              {loading ? (
-                <div className="chart-loading">Loading chart data...</div>
-              ) : hotelData.length === 0 ? (
-                <div className="chart-loading">No revenue data available.</div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={hotelData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(43, 96%, 56%)" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(217, 20%, 14%)" vertical={false} />
-                    <XAxis dataKey="date" stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => { const d = new Date(val); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
-                    <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => `${currencySymbol}${val}`} axisLine={false} tickLine={false} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'hsl(222, 35%, 10%)', borderColor: 'hsl(217, 20%, 20%)', borderRadius: '8px', color: 'hsl(210, 40%, 96%)' }}
-                      itemStyle={{ color: 'hsl(43, 96%, 56%)' }}
-                      formatter={(value: any) => [format(Number(value)), 'Revenue']}
-                    />
-                    <Area type="monotone" dataKey="revenue" stroke="hsl(43, 96%, 56%)" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
+
+            <div className="chart-card">
+              <div className="chart-header">
+                <div>
+                  <h3 className="chart-title">Recent Room Sales & Bookings</h3>
+                  <p className="chart-subtitle">Active & completed room stays</p>
+                </div>
+                <div className="chart-stat">
+                  <span className="stat-label">All-Time Room Sales</span>
+                  <span className="stat-val">${(hotelMetrics?.totalRevenue ?? 0).toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="top-items-list">
+                {loading && <div className="chart-loading">Loading room sales...</div>}
+                {!loading && (!hotelMetrics?.bookings || hotelMetrics.bookings.length === 0) && (
+                  <div className="chart-loading">No room bookings recorded yet.</div>
+                )}
+                {hotelMetrics?.bookings?.map((b) => (
+                  <div key={b.id} className="top-item">
+                    <div className="item-rank" style={{ fontSize: '0.68rem', padding: '2px 4px' }}>
+                      {b.status?.slice(0, 3)}
+                    </div>
+                    <div className="item-info">
+                      <div className="item-name">{b.guestName} — {b.roomNumber}</div>
+                      <div className="item-sales">
+                        Ref: {b.confirmationCode} • {new Date(b.date).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="item-rev">${Number(b.revenue || 0).toFixed(2)}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -309,7 +452,6 @@ export default function ReportsPage() {
                 <div className="chart-loading">No occupancy data available.</div>
               ) : (
                 <div className="heatmap-grid" style={{ minWidth: '600px' }}>
-                  {/* Header Row (Dates) */}
                   <div className="heatmap-row header-row">
                     <div className="heatmap-cell type-cell"></div>
                     {heatmapData.dates.map(d => {
@@ -323,17 +465,14 @@ export default function ReportsPage() {
                     })}
                   </div>
 
-                  {/* Body Rows (Room Types) */}
                   {heatmapData.roomTypes.map(rt => (
                     <div key={rt.id} className="heatmap-row">
                       <div className="heatmap-cell type-cell" title={rt.name}>
                         {rt.name}
                       </div>
                       {rt.data.map(cell => {
-                        // Color intensity based on occupancy percentage (0 = very dark blue, 100 = bright gold)
-                        const l = 15 + (cell.occupancyPct * 0.4); // 15% to 55% lightness
-                        const s = 35 + (cell.occupancyPct * 0.6); // 35% to 95% saturation
-                        // Shift hue from blue (222) to gold (43) based on occupancy
+                        const l = 15 + (cell.occupancyPct * 0.4);
+                        const s = 35 + (cell.occupancyPct * 0.6);
                         const h = 222 - (cell.occupancyPct * 1.79);
                         const bgColor = `hsl(${h}, ${s}%, ${l}%)`;
                         
@@ -388,7 +527,7 @@ export default function ReportsPage() {
                   <p className="chart-subtitle">{dateRangeStr}</p>
                 </div>
                 <div className="chart-stat">
-                  <span className="stat-label">7-Day Total</span>
+                  <span className="stat-label">Period Total</span>
                   <span className="stat-val">${fbTotalChartRevenue.toFixed(2)}</span>
                 </div>
               </div>
@@ -424,6 +563,88 @@ export default function ReportsPage() {
               <div className="top-items-list">
                 {topItems.length === 0 && !loading && <div className="chart-loading">No items sold yet.</div>}
                 {topItems.map((item, idx) => (
+                  <div key={item.id} className="top-item">
+                    <div className="item-rank">{idx + 1}</div>
+                    <div className="item-info">
+                      <div className="item-name">{item.name}</div>
+                      <div className="item-sales">{item.quantity} sold</div>
+                    </div>
+                    <div className="item-rev">${item.revenue.toFixed(2)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'BOUTIQUE' && (
+        <div className="fb-dashboard">
+          <div className="summary-cards">
+            <div className="summary-card">
+              <span className="summary-label">Today's Revenue</span>
+              <span className="summary-val">${(boutiqueMetrics?.todayRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">This Week's Revenue</span>
+              <span className="summary-val">${(boutiqueMetrics?.weekRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">This Month's Revenue</span>
+              <span className="summary-val">${(boutiqueMetrics?.monthRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            {boutiqueMetrics?.customRangeRevenue != null && boutiqueMetrics?.customRangeRevenue !== undefined && (
+              <div className="summary-card" style={{ border: '1px solid hsl(43, 96%, 56%)' }}>
+                <span className="summary-label" style={{ color: 'hsl(43, 96%, 56%)' }}>Custom Range Revenue</span>
+                <span className="summary-val">${boutiqueMetrics.customRangeRevenue.toFixed(2)}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="chart-grid">
+            <div className="chart-card">
+              <div className="chart-header">
+                <div>
+                  <h3 className="chart-title">Boutique Sales Trend</h3>
+                  <p className="chart-subtitle">{dateRangeStr}</p>
+                </div>
+                <div className="chart-stat">
+                  <span className="stat-label">Total Boutique Revenue</span>
+                  <span className="stat-val">${(boutiqueMetrics?.totalRevenue ?? 0).toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="chart-body">
+                {loading ? (
+                  <div className="chart-loading">Loading boutique sales...</div>
+                ) : !boutiqueMetrics?.chart?.length ? (
+                  <div className="chart-loading">No boutique sales data available.</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={boutiqueMetrics.chart} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(217, 20%, 14%)" vertical={false} />
+                      <XAxis dataKey="date" stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => { const d = new Date(val); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
+                      <YAxis stroke="hsl(215, 20%, 55%)" fontSize={12} tickFormatter={(val) => `${currencySymbol}${val}`} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: 'hsl(222, 35%, 10%)', borderColor: 'hsl(217, 20%, 20%)', borderRadius: '8px', color: 'hsl(210, 40%, 96%)' }}
+                        formatter={(value: any) => [format(Number(value)), 'Boutique Revenue']}
+                      />
+                      <Bar dataKey="revenue" fill="hsl(43, 96%, 56%)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            <div className="chart-card">
+              <div className="chart-header">
+                <h3 className="chart-title">Boutique Items Sold</h3>
+              </div>
+              <div className="top-items-list">
+                {loading && <div className="chart-loading">Loading...</div>}
+                {!loading && (!boutiqueMetrics?.topItems || boutiqueMetrics.topItems.length === 0) && (
+                  <div className="chart-loading">No boutique items sold yet.</div>
+                )}
+                {boutiqueMetrics?.topItems?.map((item, idx) => (
                   <div key={item.id} className="top-item">
                     <div className="item-rank">{idx + 1}</div>
                     <div className="item-info">
@@ -690,6 +911,111 @@ export default function ReportsPage() {
         </div>
       )}
 
+      {activeTab === 'ACTIVITIES' && (
+        <div className="fb-dashboard">
+          {/* Same 4 Revenue Summary Cards as Events */}
+          <div className="summary-cards">
+            <div className="summary-card">
+              <span className="summary-label">Today's Revenue</span>
+              <span className="summary-val">${(activitiesMetrics?.todayRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">This Week's Revenue</span>
+              <span className="summary-val">${(activitiesMetrics?.weekRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">This Month's Revenue</span>
+              <span className="summary-val">${(activitiesMetrics?.monthRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            {activitiesMetrics?.customRangeRevenue != null && activitiesMetrics?.customRangeRevenue !== undefined && (
+              <div className="summary-card" style={{ border: '1px solid hsl(43, 96%, 56%)' }}>
+                <span className="summary-label" style={{ color: 'hsl(43, 96%, 56%)' }}>Custom Range Revenue</span>
+                <span className="summary-val">${activitiesMetrics.customRangeRevenue.toFixed(2)}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="chart-grid">
+            <div className="chart-card">
+              <div className="chart-header">
+                <div>
+                  <h3 className="chart-title">Activities, Tours & Packages Bookings</h3>
+                  <p className="chart-subtitle">All recorded tour, activity & package sales</p>
+                </div>
+                <div className="chart-stat">
+                  <span className="stat-label">Total Revenue</span>
+                  <span className="stat-val">${(activitiesMetrics?.totalRevenue ?? 0).toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="top-items-list">
+                {loading && <div className="chart-loading">Loading activities, tours & packages...</div>}
+                {!loading && !activitiesMetrics?.bookings?.length && (
+                  <div className="chart-loading">No activity, tour, or package bookings yet.</div>
+                )}
+                {activitiesMetrics?.bookings?.map((b) => (
+                  <div key={b.id} className="top-item">
+                    <div className="item-rank" style={{ fontSize: '0.68rem', padding: '2px 4px' }}>
+                      {b.type?.slice(0, 4)}
+                    </div>
+                    <div className="item-info">
+                      <div className="item-name">{b.name}</div>
+                      <div className="item-sales">
+                        {b.type} • {b.guestName} • {new Date(b.date).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="item-rev">${Number(b.revenue || 0).toFixed(2)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="chart-card">
+              <div className="chart-header">
+                <h3 className="chart-title">Breakdown by Category</h3>
+              </div>
+              <div className="top-items-list">
+                {activitiesMetrics && (
+                  <>
+                    <div className="top-item">
+                      <div className="item-rank">T</div>
+                      <div className="item-info">
+                        <div className="item-name">Tours</div>
+                        <div className="item-sales">{activitiesMetrics.tourCount} bookings</div>
+                      </div>
+                      <div className="item-rev">${activitiesMetrics.tourRevenue.toFixed(2)}</div>
+                    </div>
+                    <div className="top-item">
+                      <div className="item-rank">A</div>
+                      <div className="item-info">
+                        <div className="item-name">Activities</div>
+                        <div className="item-sales">{activitiesMetrics.activityCount} bookings</div>
+                      </div>
+                      <div className="item-rev">${activitiesMetrics.activityRevenue.toFixed(2)}</div>
+                    </div>
+                    <div className="top-item">
+                      <div className="item-rank">P</div>
+                      <div className="item-info">
+                        <div className="item-name">Packages</div>
+                        <div className="item-sales">{activitiesMetrics.packageCount} bookings</div>
+                      </div>
+                      <div className="item-rev">${activitiesMetrics.packageRevenue.toFixed(2)}</div>
+                    </div>
+                    <div className="top-item">
+                      <div className="item-rank">#</div>
+                      <div className="item-info">
+                        <div className="item-name">Total Combined Bookings</div>
+                        <div className="item-sales">All time</div>
+                      </div>
+                      <div className="item-rev">{activitiesMetrics.totalBookings}</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .page-container { display: flex; flex-direction: column; gap: 24px; max-width: 1200px; }
         .page-header { display: flex; justify-content: space-between; align-items: center; }
@@ -716,11 +1042,12 @@ export default function ReportsPage() {
           color: hsl(215, 20%, 60%);
           border: none;
           padding: 12px 16px;
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 500;
           cursor: pointer;
           border-bottom: 2px solid transparent;
           transition: all 0.2s;
+          white-space: nowrap;
         }
         .tab-btn:hover { color: hsl(210, 40%, 96%); }
         .tab-btn.active { color: hsl(43, 96%, 56%); border-bottom-color: hsl(43, 96%, 56%); }
@@ -885,5 +1212,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-

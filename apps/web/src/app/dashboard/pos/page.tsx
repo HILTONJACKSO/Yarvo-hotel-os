@@ -83,6 +83,7 @@ export default function PosPage() {
   const servedOrders = useLiveQuery(() => db.posOrders.filter(o => o.status === "SERVED").toArray()) || [];
   const [settleOrder, setSettleOrder] = useState<ServedOrder | null>(null);
   const [settleFolioId, setSettleFolioId] = useState<string | null>(null);
+  const [settleGuestId, setSettleGuestId] = useState<string | null>(null);
   
   const [payments, setPayments] = useState<{method: string, amount: number}[]>([]);
   const [paymentAmount, setPaymentAmount] = useState<string>('');
@@ -331,9 +332,15 @@ export default function PosPage() {
   };
 
   const handleAddPayment = () => {
-    if (!paymentAmount || Number(paymentAmount) <= 0) return;
-    setPayments([...payments, { method: paymentMethod, amount: Number(paymentAmount) }]);
-    setPaymentAmount('');
+    if (!paymentAmount || Number(paymentAmount) <= 0 || !settleOrder) return;
+    const amt = Number(paymentAmount);
+    const nextPayments = [...payments, { method: paymentMethod, amount: amt }];
+    setPayments(nextPayments);
+    const discountAmt = Number(settleOrder.totalAmount) * (settleDiscountPercent / 100);
+    const expectedTotal = Math.max(0, Number(settleOrder.totalAmount) - discountAmt);
+    const totalPaid = nextPayments.reduce((s, p) => s + p.amount, 0);
+    const rem = Math.max(0, Math.round((expectedTotal - totalPaid) * 100) / 100);
+    setPaymentAmount(rem > 0 ? rem.toFixed(2) : '');
   };
 
   const removePayment = (index: number) => {
@@ -351,14 +358,33 @@ export default function PosPage() {
       const payload: any = {};
       const settleDiscountAmount = Number(settleOrder.totalAmount) * (settleDiscountPercent / 100);
       if (settleOrder.folio?.reservation?.room || settleFolioId) {
-        // Bill to room
-        payload.folioId = settleFolioId || undefined; // Backend auto-uses existing folioId if set
+        payload.folioId = settleFolioId || undefined;
+      } else if (settleGuestId && payments.reduce((sum, p) => sum + p.amount, 0) < Math.max(0, Number(settleOrder.totalAmount) - settleDiscountAmount) - 0.01) {
+        const pbRes = await fetchWithAuth(`${API_URL}/api/v1/pos/orders/${settleOrder.id}/assign-pending-bill`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guestId: settleGuestId,
+            payments: payments.length > 0 ? payments : undefined,
+          }),
+        });
+        if (pbRes.ok) {
+          showToast('Walk-in Guest attached & sent to Pending Billing!', 'success', 'Pending Bill Saved');
+          setShowSettleModal(false);
+          setSettleOrder(null);
+          setSettleGuestId(null);
+          setPayments([]);
+          fetchData();
+        } else {
+          const errData = await pbRes.json().catch(() => ({}));
+          showToast(errData.message || 'Failed to send to Pending Billing', 'error', 'Error');
+        }
+        return;
       } else {
-        // Walk-in payment - send all payments
         const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
         const expectedTotal = Math.max(0, Number(settleOrder.totalAmount) - settleDiscountAmount);
-        if (totalPaid < expectedTotal) {
-          showToast('Total payment must equal or exceed order total', 'error', 'Error');
+        if (totalPaid < expectedTotal - 0.01) {
+          showToast('Total payment must equal or exceed order total (or select a Walk-in / Hotel Guest to send to Pending Bill)', 'error', 'Error');
           return;
         }
         payload.payments = payments;
@@ -729,12 +755,21 @@ export default function PosPage() {
                   </div>
                 ) : (
                   <div className="walk-in-payment">
-                    <div className="form-group" style={{ marginBottom: '24px' }}>
-                      <label>Optional: Bill to Checked-In Guest</label>
-                      <select className="form-select w-full" value={settleFolioId || ''} onChange={e => setSettleFolioId(e.target.value)}>
-                        <option value="">-- Do not bill to room (Pay now) --</option>
-                        {inHouseGuests.map(r => (
+                    <div className="form-group" style={{ marginBottom: '12px' }}>
+                      <label>Optional: Bill to Checked-In Hotel Guest (Room)</label>
+                      <select className="form-select w-full" value={settleFolioId || ''} onChange={e => { setSettleFolioId(e.target.value || null); if (e.target.value) setSettleGuestId(null); }}>
+                        <option value="">-- Do not bill to room --</option>
+                        {inHouseGuests.filter((r: any) => r.folio?.id).map(r => (
                           <option key={r.id} value={r.folio.id}>{r.room?.number || 'N/A'} - {r.guest.firstName} {r.guest.lastName}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                      <label>Optional: Assign Walk-in Guest (Send to Billing / Pending Bill)</label>
+                      <select className="form-select w-full" value={settleGuestId || ''} onChange={e => { setSettleGuestId(e.target.value || null); if (e.target.value) setSettleFolioId(null); }}>
+                        <option value="">-- Pay now (or select Walk-in Guest for Pending Bill) --</option>
+                        {guests.map(g => (
+                          <option key={g.id} value={g.id}>{g.firstName} {g.lastName} {g.phone ? `(${g.phone})` : ''}</option>
                         ))}
                       </select>
                     </div>
@@ -782,8 +817,8 @@ export default function PosPage() {
                 )}
                 <div className="modal-actions">
                   <button type="button" className="btn-cancel" onClick={() => { setSettleOrder(null); setPayments([]); setSettleDiscountPercent(0); setSettleDiscountReason(''); }}>Back</button>
-                  <button type="button" className="btn-success" onClick={handleSettle} disabled={isSettlingOrder || ((!settleOrder.folio?.reservation?.room && !settleOrder.folioId && !settleFolioId) && payments.reduce((sum, p) => sum + p.amount, 0) < Math.max(0, Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100))))}>
-                    {isSettlingOrder ? 'Processing...' : (settleOrder.folio?.reservation?.room || settleOrder.folioId || settleFolioId) ? 'Charge to Folio' : 'Complete Payment'}
+                  <button type="button" className="btn-success" onClick={handleSettle} disabled={isSettlingOrder || ((!settleOrder.folio?.reservation?.room && !settleOrder.folioId && !settleFolioId && !settleGuestId) && payments.reduce((sum, p) => sum + p.amount, 0) < Math.max(0, Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100))) - 0.01)}>
+                    {isSettlingOrder ? 'Processing...' : (settleOrder.folio?.reservation?.room || settleOrder.folioId || settleFolioId) ? 'Charge to Folio' : (settleGuestId && payments.reduce((sum, p) => sum + p.amount, 0) < Math.max(0, Number(settleOrder.totalAmount) - (Number(settleOrder.totalAmount) * (settleDiscountPercent / 100))) - 0.01) ? 'Send to Pending Bill' : 'Complete Payment'}
                   </button>
                 </div>
               </div>
@@ -854,6 +889,7 @@ export default function PosPage() {
                 <select className="form-select" value={newMenuItem.type} onChange={e => setNewMenuItem({...newMenuItem, type: e.target.value})}>
                   <option value="FOOD">Food</option>
                   <option value="DRINK">Drink</option>
+                    <option value="BOUTIQUE">Boutique</option>
                     <option value="MERCHANDISE">Merchandise</option>
                 </select>
               </div>

@@ -20,7 +20,11 @@ type User = {
 
 export default function StaffPage() {
   const { user } = useAuth();
-  const isManager = user?.roles?.some((r: string) => ['super_admin', 'admin', 'ceo', 'manager'].includes(r.toLowerCase()));
+  const isManager = user?.roles?.some((r: any) =>
+    ['super_admin', 'admin', 'ceo', 'manager', 'supervisor'].includes(
+      (typeof r === 'string' ? r : r?.name || '').toLowerCase(),
+    ),
+  );
   const [staff, setStaff] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -55,8 +59,8 @@ export default function StaffPage() {
         <div>
           <h2>Staff Management</h2>
           <div className="tabs">
-            <button className={activeTab === 'overview' ? 'tab active' : 'tab'} onClick={() => setActiveTab('overview')}>Overview</button>
-            <button className={activeTab === 'directory' ? 'tab active' : 'tab'} onClick={() => setActiveTab('directory')}>Directory</button>
+            {isManager && <button className={activeTab === 'overview' ? 'tab active' : 'tab'} onClick={() => setActiveTab('overview')}>Overview</button>}
+            {isManager && <button className={activeTab === 'directory' ? 'tab active' : 'tab'} onClick={() => setActiveTab('directory')}>Directory</button>}
             <button className={activeTab === 'shifts' ? 'tab active' : 'tab'} onClick={() => setActiveTab('shifts')}>Shifts</button>
             <button className={activeTab === 'attendance' ? 'tab active' : 'tab'} onClick={() => setActiveTab('attendance')}>Attendance</button>
             <button className={activeTab === 'payroll' ? 'tab active' : 'tab'} onClick={() => setActiveTab('payroll')}>Payroll</button>
@@ -146,8 +150,8 @@ export default function StaffPage() {
         )
       )}
 
-      {isManager && activeTab === 'shifts' && (
-        <ShiftsTab staff={staff} />
+      {activeTab === 'shifts' && (
+        <ShiftsTab staff={staff} isManager={isManager} />
       )}
 
       {activeTab === 'attendance' && (
@@ -204,4 +208,3 @@ export default function StaffPage() {
     </div>
   );
 }
-

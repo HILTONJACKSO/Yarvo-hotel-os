@@ -287,7 +287,7 @@ function ActivityBookingForm({
       spaceId: activity.id,
       guestName: (formData.get('guestName') as string)?.trim() || 'Guest',
       guestPhone: (formData.get('guestPhone') as string)?.trim() || '',
-      eventType: `Activity: ${activity.name}`,
+      eventType: `${(activity.type || '').toUpperCase() === 'PACKAGE' ? 'Package' : (activity.type || '').toUpperCase() === 'TOUR' ? 'Tour' : 'Activity'}: ${activity.name}`,
       attendeesCount: Number(formData.get('attendeesCount') || guestsCount || 1),
       startTime: new Date(`${dateStr}T${startTimeStr}:00`).toISOString(),
       endTime: new Date(`${dateStr}T${endTimeStr}:00`).toISOString(),

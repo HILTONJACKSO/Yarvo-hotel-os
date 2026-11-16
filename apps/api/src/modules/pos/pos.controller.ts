@@ -92,7 +92,7 @@ export class PosController {
     return this.posService.getDailyCashierStats(req.user?.propertyId);
   }
 
-    @Post('orders/transfer')
+  @Post('orders/transfer')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'WAITSTAFF')
   transferItems(@Body() data: {
     sourceOrderId: string;
@@ -102,6 +102,7 @@ export class PosController {
   }) {
     return this.posService.transferItems(data);
   }
+
   @Get('orders')
   getActiveOrders(@Req() req: any) {
     return this.posService.getActiveOrders(req.user?.propertyId);
@@ -166,6 +167,23 @@ export class PosController {
     return this.posService.checkoutOrder(id, data);
   }
 
+  @Post('orders/:id/assign-pending-bill')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'POS_CASHIER', 'FRONT_DESK')
+  assignOrderToPendingBill(
+    @Param('id') id: string,
+    @Body()
+    data: {
+      folioId?: string;
+      guestId?: string;
+      newGuest?: { firstName: string; lastName: string; phone?: string; companyName?: string };
+      payments?: Array<{ method: string; amount: number }>;
+      notes?: string;
+    },
+    @Req() req: any,
+  ) {
+    return this.posService.assignOrderToPendingBill(id, data, req.user?.propertyId);
+  }
+
   @Post('orders/:id/apply-discount')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'POS_CASHIER')
   applyDiscount(
@@ -219,7 +237,6 @@ export class PosController {
     return this.posService.getReturnRequests(start, end);
   }
 
-
   @Post('order-items/:itemId/confirm-return')
   @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR', 'KITCHEN', 'KITCHEN_CHEF', 'BAR', 'CASHIER', 'POS_CASHIER', 'FRONT_DESK')
   confirmReturnByItemId(@Param('itemId') itemId: string, @Body('kitchenNote') kitchenNote: string, @Req() req: any) {
@@ -244,6 +261,3 @@ export class PosController {
     return this.posService.approveReturnByItemId(itemId, req.user.id, approved);
   }
 }
-
-
-
