@@ -270,9 +270,16 @@ export default function CashierPage() {
     );
     return hasBillableOrPendingReturnItem;
   }) || [];
+  const isBoutiqueOrMerchItem = (item: any) => {
+    const itemType = (item?.menuItem?.type || '').toUpperCase();
+    const catName = (item?.menuItem?.category?.name || '').toUpperCase();
+    return ['BOUTIQUE', 'MERCHANDISE'].includes(itemType) || catName.includes('BOUTIQUE');
+  };
   const isOrderFullyServed = (order: any) => {
     if (!order || !order.items || order.items.length === 0) return false;
-    return order.items.every((i: any) => ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status));
+    return order.items.every(
+      (i: any) => ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status) || isBoutiqueOrMerchItem(i)
+    );
   };
   const handleVoidEmptyOrder = async (orderId: string) => {
     try {
@@ -377,6 +384,16 @@ export default function CashierPage() {
   const addedPaidTotal = payments.reduce((sum, p) => sum + p.amount, 0);
   const totalDeductedPayments = existingPaidTotal + addedPaidTotal;
   const remainingBalance = Math.max(0, Math.round((finalTotal - totalDeductedPayments) * 100) / 100);
+  const allRecordedPayments: Array<{ method: string; amount: string }> = [
+    ...existingOrderPayments.map((p) => ({
+      method: String(p.method || 'CASH').replace('PAYMENT_', ''),
+      amount: format(Number(p.amount || 0)),
+    })),
+    ...payments.map((p) => ({
+      method: String(p.method || 'CASH').replace('PAYMENT_', ''),
+      amount: format(Number(p.amount || 0)),
+    })),
+  ];
 
   const handleApplyDiscount = async () => {
     if (!selectedOrder) return;
@@ -438,12 +455,8 @@ export default function CashierPage() {
     const isManager = roles.includes('MANAGER');
     const isCashierOnly = !isCeoOrAdmin && !isManager;
 
-    if (isCashierOnly) {
-      showToast('Cashiers are not permitted to reverse or alter discounts.', 'error', 'Access Denied');
-      return;
-    }
-    if (isManager && !isCeoOrAdmin && discountModifiedCount >= 1) {
-      showToast('Managers can only modify or reverse a discount once. Contact CEO/Admin.', 'error', 'Limit Reached');
+    if (!isCeoOrAdmin) {
+      showToast('Only CEO, Admin, or Super Admin are permitted to reverse or alter discounts.', 'error', 'Access Denied');
       return;
     }
 
@@ -729,6 +742,8 @@ export default function CashierPage() {
       tax: format(gst),
       taxLabel: 'GST / Tax (Included)',
       discount: calculatedDiscount > 0 ? format(calculatedDiscount) : undefined,
+      payments: allRecordedPayments,
+      balanceDue: allRecordedPayments.length > 0 ? format(remainingBalance) : undefined,
       total: format(finalTotal),
       isInvoiceMode: mode === 'INVOICE',
     });
@@ -919,6 +934,7 @@ export default function CashierPage() {
     };
 
     const effectiveRoles = getEffectiveRoles();
+    const isCeoOrAdmin = effectiveRoles.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO'].includes(r));
     const canSettle = effectiveRoles.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER', 'FRONT_DESK'].includes(r));
     const canManageReturns = effectiveRoles.some((r: any) => ['SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'SUPERVISOR'].includes(r));
   
@@ -1180,7 +1196,7 @@ export default function CashierPage() {
                     <p style={{ color: 'hsl(215, 20%, 65%)', fontSize: '0.85rem', marginTop: '-4px', marginBottom: '8px' }}>
                       {order.folio?.reservation?.guest
                         ? `${order.folio.reservation.guest.firstName} ${order.folio.reservation.guest.lastName}`
-                        : `${order.guest.firstName} ${order.guest.lastName}${order.guest.phone ? ' (' + order.guest.phone + ')' : ''} ? Pending Bill`}
+                        : `${order.guest.firstName} ${order.guest.lastName}${order.guest.phone ? ' (' + order.guest.phone + ')' : ''} • Pending Bill`}
                     </p>
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
@@ -1205,7 +1221,7 @@ export default function CashierPage() {
 
         {selectedOrder && (
           <div className="checkout-panel">
-            <div className="checkout-header">
+            <div className="checkout-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3>
                 Checkout {selectedOrder.folio?.reservation?.room 
                   ? `Room ${selectedOrder.folio.reservation.room.number}` 
@@ -1213,6 +1229,31 @@ export default function CashierPage() {
                     ? `Table ${selectedOrder.table.number}` 
                     : 'Walk-in'}
               </h3>
+              {isCeoOrAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Are you sure you want to permanently delete this bill? Only CEO/Admin can perform this action.')) {
+                      handleVoidEmptyOrder(selectedOrder.id);
+                    }
+                  }}
+                  style={{
+                    padding: '5px 10px',
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    color: '#f87171',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <X size={13} /> Delete Bill
+                </button>
+              )}
             </div>
 
             {/* Preparation / Delivery Status Banner */}
@@ -1227,7 +1268,7 @@ export default function CashierPage() {
                     ? 'This order contains no items. You can safely discard or void it.'
                     : 'Items must be prepared by the kitchen or bar and delivered by the waitstaff before payment can be accepted.'}
                 </p>
-                {selectedOrder.items?.length === 0 && (
+                {selectedOrder.items?.length === 0 && isCeoOrAdmin && (
                   <button
                     onClick={() => handleVoidEmptyOrder(selectedOrder.id)}
                     style={{ marginTop: '10px', padding: '6px 14px', background: '#dc2626', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -1248,7 +1289,7 @@ export default function CashierPage() {
                 {selectedOrder.items.map((item: any) => {
                   const isReturned = item.status === 'RETURNED';
                   const isReturnRequested = item.status === 'RETURN_REQUESTED';
-                  const isServed = item.status === 'SERVED' || item.status === 'DELIVERED';
+                  const isServed = item.status === 'SERVED' || item.status === 'DELIVERED' || isBoutiqueOrMerchItem(item);
                   const isReady = item.status === 'READY';
                   const isCooking = item.status === 'COOKING' || item.status === 'PREPARING';
                   return (
@@ -1439,11 +1480,11 @@ export default function CashierPage() {
                     const isManager = roles.includes('MANAGER');
                     const isCashierOnly = !isCeoOrAdmin && !isManager;
 
-                    if (isCashierOnly) {
+                    if (!isCeoOrAdmin) {
                       return (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171', fontSize: '0.8rem', background: 'rgba(239, 68, 68, 0.1)', padding: '8px 12px', borderRadius: '6px' }}>
                           <Lock size={14} />
-                          <span>Discount is locked. Cashiers are not permitted to reverse or edit applied discounts.</span>
+                          <span>Discount is locked. Only CEO, Admin, or Super Admin can reverse or edit applied discounts.</span>
                         </div>
                       );
                     }
@@ -1692,7 +1733,7 @@ export default function CashierPage() {
                           .filter((r: any) => r.folio?.id)
                           .map((r: any) => (
                             <option key={r.id} value={r.folio.id}>
-                              Room {r.room?.number || 'N/A'} ? {r.guest?.firstName} {r.guest?.lastName}
+                              Room {r.room?.number || 'N/A'} — {r.guest?.firstName} {r.guest?.lastName}
                             </option>
                           ))}
                       </select>
@@ -1866,7 +1907,19 @@ export default function CashierPage() {
                   <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST / Tax Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>{format((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10))}</span></div>
                 )}
                 {calculatedDiscount > 0 && <div className="summary-row" style={{ color: '#dc2626' }}><span>Discount</span><span>-{format(calculatedDiscount)}</span></div>}
+                {allRecordedPayments.map((p, idx) => (
+                  <div key={idx} className="summary-row" style={{ color: '#059669', fontWeight: 600 }}>
+                    <span>Payment ({p.method})</span>
+                    <span>-{p.amount}</span>
+                  </div>
+                ))}
                 <div className="totals"><span>TOTAL</span><span>{format(finalTotal)}</span></div>
+                {allRecordedPayments.length > 0 && (
+                  <div className="summary-row" style={{ fontWeight: 800, fontSize: '14px', marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #000' }}>
+                    <span>BALANCE DUE</span>
+                    <span>{format(remainingBalance)}</span>
+                  </div>
+                )}
                 
                 {receiptSettings.receipt.footerNote && (
                   <div className="footer">
@@ -1926,7 +1979,19 @@ export default function CashierPage() {
                 <div className="summary-row"><span>Subtotal</span><span>{format(Number(selectedOrder.totalAmount))}</span></div>
                 <div className="summary-row"><span style={{ fontSize: '11px', color: '#555' }}>GST / Tax Included (10%)</span><span style={{ fontSize: '11px', color: '#555' }}>{format((Number(selectedOrder.totalAmount)) - (Number(selectedOrder.totalAmount) / 1.10))}</span></div>
                 {calculatedDiscount > 0 && <div className="summary-row" style={{ color: '#dc2626' }}><span>Discount</span><span>-{format(calculatedDiscount)}</span></div>}
+                {allRecordedPayments.map((p, idx) => (
+                  <div key={idx} className="summary-row" style={{ color: '#059669', fontWeight: 600 }}>
+                    <span>Payment ({p.method})</span>
+                    <span>-{p.amount}</span>
+                  </div>
+                ))}
                 <div className="totals"><span>TOTAL</span><span>{format(finalTotal)}</span></div>
+                {allRecordedPayments.length > 0 && (
+                  <div className="summary-row" style={{ fontWeight: 800, fontSize: '14px', marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed #000' }}>
+                    <span>BALANCE DUE</span>
+                    <span>{format(remainingBalance)}</span>
+                  </div>
+                )}
                 
                 {receiptSettings.invoice.showSignatureLine && (
                   <div style={{ marginTop: '40px', textAlign: 'center' }}>

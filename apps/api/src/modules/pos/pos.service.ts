@@ -408,6 +408,20 @@ export class PosService {
   }
 
   async getServedOrders(propertyId?: string) {
+    // Auto-heal any Boutique / Merchandise order items that do not go to Kitchen or Bar
+    await this.prisma.posOrderItem.updateMany({
+      where: {
+        status: { in: ['PENDING', 'PREPARING', 'COOKING', 'READY'] },
+        menuItem: {
+          OR: [
+            { type: { in: ['BOUTIQUE', 'MERCHANDISE'] } },
+            { category: { name: { contains: 'Boutique', mode: 'insensitive' } } },
+          ],
+        },
+      },
+      data: { status: 'SERVED' },
+    }).catch(() => {});
+
     return this.prisma.posOrder.findMany({
       where: {
         status: { in: ['OPEN', 'SERVED'] },
@@ -704,19 +718,23 @@ export class PosService {
       // Aggregate inventory demand across the entire cart so multi-item stock checks are 100% accurate
       const demandByInvId = new Map<
         string,
-        { stockKitchen: number; stockBar: number; stockMain: number; deptLabel: string }
+        { stockKitchen: number; stockBar: number; stockBoutique: number; stockMain: number; deptLabel: string }
       >();
 
       for (const reqItem of itemsToCreate) {
         const menuItem = menuItemMap.get(reqItem.menuItemId)!;
-        let primaryField: 'stockKitchen' | 'stockBar' | 'stockMain' = 'stockMain';
+        let primaryField: 'stockKitchen' | 'stockBar' | 'stockBoutique' | 'stockMain' = 'stockMain';
         let deptLabel = 'Main';
-        if (menuItem.type === 'DRINK' || menuItem.type === 'BAR') {
+        const mType = (menuItem.type || '').toUpperCase();
+        if (mType === 'DRINK' || mType === 'BAR') {
           primaryField = 'stockBar';
           deptLabel = 'Bar';
-        } else if (menuItem.type === 'FOOD') {
+        } else if (mType === 'FOOD') {
           primaryField = 'stockKitchen';
           deptLabel = 'Kitchen';
+        } else if (mType === 'BOUTIQUE' || mType === 'MERCHANDISE') {
+          primaryField = 'stockBoutique';
+          deptLabel = 'Boutique';
         }
 
         const itemRecipes = recipes.filter((r) => r.menuItemId === reqItem.menuItemId);
@@ -726,6 +744,7 @@ export class PosService {
           const prev = demandByInvId.get(r.inventoryItemId) || {
             stockKitchen: 0,
             stockBar: 0,
+            stockBoutique: 0,
             stockMain: 0,
             deptLabel,
           };
@@ -746,7 +765,7 @@ export class PosService {
           const invItem = invMap.get(invId);
           if (!invItem) continue;
 
-          const totalDeduction = demand.stockKitchen + demand.stockBar + demand.stockMain;
+          const totalDeduction = demand.stockKitchen + demand.stockBar + (demand.stockBoutique || 0) + demand.stockMain;
           const totalStock = Number(invItem.stockLevel || 0);
           const curKitchen = Number(invItem.stockKitchen || 0);
           const curBar = Number(invItem.stockBar || 0);
@@ -765,10 +784,15 @@ export class PosService {
           const deductBar = Math.min(curBar, demand.stockBar);
           const overflowBar = demand.stockBar - deductBar;
 
-          const deductMain = demand.stockMain + overflowKitchen + overflowBar;
+          const curBoutique = Number(invItem.stockBoutique || 0);
+          const deductBoutique = Math.min(curBoutique, demand.stockBoutique || 0);
+          const overflowBoutique = (demand.stockBoutique || 0) - deductBoutique;
+
+          const deductMain = demand.stockMain + overflowKitchen + overflowBar + overflowBoutique;
           const totalDeptAvailable =
             (demand.stockKitchen > 0 ? curKitchen : 0) +
             (demand.stockBar > 0 ? curBar : 0) +
+            ((demand.stockBoutique || 0) > 0 ? curBoutique : 0) +
             effectiveMain;
 
           if (deductMain > effectiveMain && totalStock < totalDeduction) {
@@ -797,6 +821,9 @@ export class PosService {
           }
           if (deductBar > 0) {
             updateData.stockBar = { decrement: deductBar };
+          }
+          if (deductBoutique > 0) {
+            updateData.stockBoutique = { decrement: deductBoutique };
           }
           if (deductMain > 0) {
             if (curMain >= deductMain) {
@@ -842,13 +869,16 @@ export class PosService {
 
       const itemPropertyId = targetOrder.propertyId || data.propertyId || null;
       for (const reqItem of itemsToCreate) {
+        const mItem = menuItemMap.get(reqItem.menuItemId);
+        const mType = (mItem?.type || '').toUpperCase();
+        const isBoutiqueItem = mType === 'BOUTIQUE' || mType === 'MERCHANDISE';
         await tx.posOrderItem.create({
           data: {
             orderId: targetOrder.id,
             menuItemId: reqItem.menuItemId,
             quantity: reqItem.quantity,
             notes: reqItem.notes,
-            status: 'PENDING',
+            status: isBoutiqueItem ? 'SERVED' : 'PENDING',
             propertyId: itemPropertyId,
           },
         });
@@ -874,9 +904,12 @@ export class PosService {
       }
       const finalTotal = Math.max(0, subtotal - Number(targetOrder.discountAmount || 0));
 
+      const allItemsServed =
+        allOrderItems.length > 0 &&
+        allOrderItems.every((i) => ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status));
       return tx.posOrder.update({
         where: { id: targetOrder.id },
-        data: { totalAmount: finalTotal, status: 'OPEN' },
+        data: { totalAmount: finalTotal, status: allItemsServed ? 'SERVED' : 'OPEN' },
         include: {
         table: true,
         guest: true,
@@ -988,12 +1021,17 @@ export class PosService {
 
     let primaryField = 'stockMain';
     let deptName = 'Main';
-    if (menuItem?.type === 'DRINK' || menuItem?.type === 'BAR') {
+    const itemTypeUpper = (menuItem?.type || '').toUpperCase();
+    const isBoutiqueOrMerch = itemTypeUpper === 'BOUTIQUE' || itemTypeUpper === 'MERCHANDISE';
+    if (itemTypeUpper === 'DRINK' || itemTypeUpper === 'BAR') {
       primaryField = 'stockBar';
       deptName = 'Bar';
-    } else if (menuItem?.type === 'FOOD') {
+    } else if (itemTypeUpper === 'FOOD') {
       primaryField = 'stockKitchen';
       deptName = 'Kitchen';
+    } else if (isBoutiqueOrMerch) {
+      primaryField = 'stockBoutique';
+      deptName = 'Boutique';
     }
 
     // Verify stock before creating order item
@@ -1078,17 +1116,21 @@ export class PosService {
         menuItemId: data.menuItemId,
         quantity: data.quantity,
         notes: data.notes,
-        status: 'PENDING',
+        status: isBoutiqueOrMerch ? 'SERVED' : 'PENDING',
       },
     });
 
     // Recalculate total amount
     await this.recalculateOrderTotal(orderId);
 
-    // Revert the order back to OPEN if it was SERVED
-    await this.prisma.posOrder.updateMany({
-      where: { id: orderId, status: 'SERVED' },
-      data: { status: 'OPEN' }
+    // Sync order status: if all items in order are SERVED, mark order SERVED; otherwise OPEN
+    const orderItemsNow = await this.prisma.posOrderItem.findMany({ where: { orderId } });
+    const allServedNow =
+      orderItemsNow.length > 0 &&
+      orderItemsNow.every((i) => ['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status));
+    await this.prisma.posOrder.update({
+      where: { id: orderId },
+      data: { status: allServedNow ? 'SERVED' : 'OPEN' },
     });
     
     // Execute deduction plans
@@ -1220,9 +1262,12 @@ export class PosService {
     }
 
     // Strict restaurant rule: All items must be prepared and delivered by waitstaff first
-    const unservedItems = order.items.filter(
-      (i) => !['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status),
-    );
+    const unservedItems = order.items.filter((i) => {
+      if (['SERVED', 'DELIVERED', 'RETURNED', 'CANCELLED'].includes(i.status)) return false;
+      const mType = (i.menuItem?.type || '').toUpperCase();
+      if (mType === 'BOUTIQUE' || mType === 'MERCHANDISE') return false;
+      return true;
+    });
     if (unservedItems.length > 0) {
       const hasReturnPending = unservedItems.some((i) => i.status === 'RETURN_REQUESTED');
       if (hasReturnPending) {

@@ -19,12 +19,12 @@ export default function NightAuditPage() {
     try {
       let query = '';
       if (start && end) query = `?start=${start}&end=${end}`;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/night-audit/history${query}`, {
+      const res = await fetch(`/api/v1/night-audit/history${query}`, {
         credentials: 'include'
       });
       if (res.ok) {
         const data = await res.json();
-        setHistory(data.data);
+        setHistory(data.data || []);
       }
     } catch (err) {
       console.error(err);
@@ -41,27 +41,27 @@ export default function NightAuditPage() {
     fetchHistory(start, end);
   };
 
-  const handleExport = async (format: 'pdf' | 'csv' | 'print') => {
-    if (format === 'print') {
+  const handleExport = async (exportFormat: 'pdf' | 'csv' | 'print') => {
+    if (exportFormat === 'print') {
       window.print();
-    } else if (format === 'pdf') {
+    } else if (exportFormat === 'pdf') {
       const element = document.querySelector('.page-container') as HTMLElement;
       if (!element) return;
       
       const filter = (node: any) => { return !node.classList?.contains('no-print'); };
-          const scale = 2;
-          const imgData = await domtoimage.toPng(element, {
-            filter: filter,
-            bgcolor: '#0a0d14',
-            width: element.clientWidth * scale,
-            height: element.clientHeight * scale,
-            style: {
-              transform: 'scale('+scale+')',
-              transformOrigin: 'top left'
-            }
-          });
+      const scale = 2;
+      const imgData = await domtoimage.toPng(element, {
+        filter: filter,
+        bgcolor: '#0a0d14',
+        width: element.clientWidth * scale,
+        height: element.clientHeight * scale,
+        style: {
+          transform: 'scale('+scale+')',
+          transformOrigin: 'top left'
+        }
+      });
       const pdf = new jsPDF({
-        orientation: 'p',
+        orientation: 'l',
         unit: 'mm',
         format: 'a4'
       });
@@ -70,13 +70,19 @@ export default function NightAuditPage() {
       const pdfHeight = (element.clientHeight * pdfWidth) / element.clientWidth;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Report-${new Date().toISOString().split('T')[0]}.pdf`);
-    } else if (format === 'csv') {
+      pdf.save(`Night-Audit-Report-${new Date().toISOString().split('T')[0]}.pdf`);
+    } else if (exportFormat === 'csv') {
       downloadCSV(history.map(a => ({
         date: a.auditDate,
         status: a.status,
-        roomRevenue: a.totalRoomRevenue,
-        fbRevenue: a.totalFbRevenue,
+        roomRevenue: Number(a.totalRoomRevenue || 0).toFixed(2),
+        fbRevenue: Number(a.totalFbRevenue || 0).toFixed(2),
+        boutiqueRevenue: Number(a.totalBoutiqueRevenue || 0).toFixed(2),
+        entryTicketRevenue: Number(a.totalEntryTicketRevenue || 0).toFixed(2),
+        poolTicketRevenue: Number(a.totalPoolTicketRevenue || 0).toFixed(2),
+        eventsRevenue: Number(a.totalEventsRevenue || 0).toFixed(2),
+        activitiesToursPackagesRevenue: Number(a.totalActivitiesRevenue || 0).toFixed(2),
+        totalDayRevenue: Number(a.totalPayments || 0).toFixed(2),
         completedAt: a.completedAt
       })), 'night-audit-history');
     }
@@ -90,7 +96,7 @@ export default function NightAuditPage() {
     setMessage('');
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/night-audit/run`, {
+      const res = await fetch(`/api/v1/night-audit/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -99,7 +105,7 @@ export default function NightAuditPage() {
       const data = await res.json();
       
       if (res.ok) {
-        setMessage('Night Audit completed successfully!');
+        setMessage('Night Audit completed & daily revenues recalculated successfully!');
         fetchHistory();
       } else {
         setMessage(`Error: ${data.message || 'Failed to run audit'}`);
@@ -115,6 +121,8 @@ export default function NightAuditPage() {
     setShowConfirmModal(true);
   };
 
+  const latestAudit = history.length > 0 ? history[0] : null;
+
   return (
     <div className="p-6 page-container">
       <div className="flex justify-between items-center mb-6">
@@ -123,11 +131,45 @@ export default function NightAuditPage() {
             <Moon className="text-indigo-400" />
             Night Audit
           </h1>
-          <p className="text-slate-400">Run End-of-Day operations and finalize daily revenue</p>
+          <p className="text-slate-400">Run End-of-Day operations and finalize daily revenue across all departments</p>
         </div>
       </div>
 
       <ReportExportToolbar onDateChange={handleDateChange} onExport={handleExport} />
+
+      {/* Latest Audit / Today's Department Breakdown Summary Cards */}
+      {latestAudit && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 my-4">
+          <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-3.5">
+            <div className="text-[11px] uppercase font-semibold text-slate-400">Rooms (Paid)</div>
+            <div className="text-lg font-bold text-emerald-400 mt-1">{format(Number(latestAudit.totalRoomRevenue || 0))}</div>
+          </div>
+          <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-3.5">
+            <div className="text-[11px] uppercase font-semibold text-slate-400">Food & Beverage</div>
+            <div className="text-lg font-bold text-emerald-400 mt-1">{format(Number(latestAudit.totalFbRevenue || 0))}</div>
+          </div>
+          <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-3.5">
+            <div className="text-[11px] uppercase font-semibold text-slate-400">Boutique</div>
+            <div className="text-lg font-bold text-amber-400 mt-1">{format(Number(latestAudit.totalBoutiqueRevenue || 0))}</div>
+          </div>
+          <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-3.5">
+            <div className="text-[11px] uppercase font-semibold text-slate-400">Entry Tickets</div>
+            <div className="text-lg font-bold text-cyan-400 mt-1">{format(Number(latestAudit.totalEntryTicketRevenue || 0))}</div>
+          </div>
+          <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-3.5">
+            <div className="text-[11px] uppercase font-semibold text-slate-400">Pool Tickets</div>
+            <div className="text-lg font-bold text-cyan-400 mt-1">{format(Number(latestAudit.totalPoolTicketRevenue || 0))}</div>
+          </div>
+          <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-3.5">
+            <div className="text-[11px] uppercase font-semibold text-slate-400">Events</div>
+            <div className="text-lg font-bold text-purple-400 mt-1">{format(Number(latestAudit.totalEventsRevenue || 0))}</div>
+          </div>
+          <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-3.5">
+            <div className="text-[11px] uppercase font-semibold text-slate-400">Activities / Tours / Pkg</div>
+            <div className="text-lg font-bold text-amber-400 mt-1">{format(Number(latestAudit.totalActivitiesRevenue || 0))}</div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
@@ -152,7 +194,7 @@ export default function NightAuditPage() {
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 size={16} className="text-emerald-500 mt-0.5 shrink-0" />
-                <span>Calculate and finalize daily revenue aggregates.</span>
+                <span>Calculate daily revenue for Rooms, F&B, Boutique, Entry, Pool, Events & Activities/Tours/Packages.</span>
               </li>
             </ul>
 
@@ -182,7 +224,7 @@ export default function NightAuditPage() {
             
             <div className="mt-4 flex items-start gap-2 text-xs text-amber-500/80 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
               <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-              <p>This action is irreversible. It will close the financial day and lock transactions prior to this moment.</p>
+              <p>Running End of Day Audit finalizes and updates all department revenue totals for the day.</p>
             </div>
           </div>
         </div>
@@ -197,33 +239,38 @@ export default function NightAuditPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-800/80 text-slate-400 text-sm">
-                    <th className="p-4 font-medium">Date</th>
-                    <th className="p-4 font-medium">Status</th>
-                    <th className="p-4 font-medium text-right">Room Rev</th>
-                    <th className="p-4 font-medium text-right">F&B Rev</th>
-                    <th className="p-4 font-medium">Auditor</th>
+                  <tr className="bg-slate-800/80 text-slate-400 text-xs uppercase">
+                    <th className="p-3.5 font-semibold">Date</th>
+                    <th className="p-3.5 font-semibold">Status</th>
+                    <th className="p-3.5 font-semibold text-right">Room Rev</th>
+                    <th className="p-3.5 font-semibold text-right">F&B Rev</th>
+                    <th className="p-3.5 font-semibold text-right">Boutique</th>
+                    <th className="p-3.5 font-semibold text-right">Entry & Pool</th>
+                    <th className="p-3.5 font-semibold text-right">Events</th>
+                    <th className="p-3.5 font-semibold text-right">Activities / Tours / Pkg</th>
+                    <th className="p-3.5 font-semibold text-right">Total</th>
+                    <th className="p-3.5 font-semibold">Auditor</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-700/50">
+                <tbody className="divide-y divide-slate-700/50 text-sm">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={5} className="p-8 text-center text-slate-400">Loading history...</td>
+                      <td colSpan={10} className="p-8 text-center text-slate-400">Loading history...</td>
                     </tr>
                   ) : history.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-8 text-center text-slate-400">No night audits have been run yet.</td>
+                      <td colSpan={10} className="p-8 text-center text-slate-400">No night audits have been run yet.</td>
                     </tr>
                   ) : (
                     history.map((audit) => (
                       <tr key={audit.id} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="p-4 text-slate-300">
+                        <td className="p-3.5 text-slate-300 whitespace-nowrap">
                           <div>{new Date(audit.auditDate).toLocaleDateString()}</div>
                           <div className="text-xs text-slate-500">
-                            Completed: {audit.completedAt ? new Date(audit.completedAt).toLocaleTimeString() : '-'}
+                            {audit.completedAt ? new Date(audit.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
                           </div>
                         </td>
-                        <td className="p-4">
+                        <td className="p-3.5">
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
                             audit.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' :
                             audit.status === 'FAILED' ? 'bg-rose-500/20 text-rose-400' :
@@ -232,13 +279,31 @@ export default function NightAuditPage() {
                             {audit.status}
                           </span>
                         </td>
-                        <td className="p-4 text-right text-emerald-400 font-medium">
+                        <td className="p-3.5 text-right text-emerald-400 font-medium whitespace-nowrap">
                           {format(Number(audit.totalRoomRevenue || 0))}
                         </td>
-                        <td className="p-4 text-right text-emerald-400 font-medium">
+                        <td className="p-3.5 text-right text-emerald-400 font-medium whitespace-nowrap">
                           {format(Number(audit.totalFbRevenue || 0))}
                         </td>
-                        <td className="p-4 text-slate-300">
+                        <td className="p-3.5 text-right text-amber-400 font-medium whitespace-nowrap">
+                          {format(Number(audit.totalBoutiqueRevenue || 0))}
+                        </td>
+                        <td className="p-3.5 text-right text-cyan-400 font-medium whitespace-nowrap">
+                          <div>{format(Number(audit.totalTicketRevenue || 0))}</div>
+                          <div className="text-[10px] text-slate-400">
+                            Entry: {format(Number(audit.totalEntryTicketRevenue || 0))} | Pool: {format(Number(audit.totalPoolTicketRevenue || 0))}
+                          </div>
+                        </td>
+                        <td className="p-3.5 text-right text-purple-400 font-medium whitespace-nowrap">
+                          {format(Number(audit.totalEventsRevenue || 0))}
+                        </td>
+                        <td className="p-3.5 text-right text-amber-400 font-medium whitespace-nowrap">
+                          {format(Number(audit.totalActivitiesRevenue || 0))}
+                        </td>
+                        <td className="p-3.5 text-right text-white font-bold whitespace-nowrap">
+                          {format(Number(audit.totalPayments || 0))}
+                        </td>
+                        <td className="p-3.5 text-slate-300 whitespace-nowrap">
                           {audit.user ? `${audit.user.firstName} ${audit.user.lastName}` : 'System'}
                         </td>
                       </tr>
@@ -260,7 +325,7 @@ export default function NightAuditPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-white">Confirm Night Audit</h3>
-                <p className="text-sm text-slate-400 mt-1">Are you sure you want to run the End of Day Audit? This will post room charges to all active guest folios.</p>
+                <p className="text-sm text-slate-400 mt-1">Are you sure you want to run the End of Day Audit? This will post nightly room charges and calculate daily revenues for Rooms, F&B, Boutique, Entry, Pool, Events, and Activities/Tours/Packages.</p>
               </div>
             </div>
             
@@ -284,4 +349,3 @@ export default function NightAuditPage() {
     </div>
   );
 }
-

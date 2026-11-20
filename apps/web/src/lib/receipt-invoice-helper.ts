@@ -106,6 +106,8 @@ export function generateThermalReceiptHtml(options: {
   tax: string;
   taxLabel?: string;
   discount?: string;
+  payments?: Array<{ method: string; amount: string }>;
+  balanceDue?: string;
   total: string;
   tendered?: string;
   change?: string;
@@ -122,6 +124,8 @@ export function generateThermalReceiptHtml(options: {
     tax,
     taxLabel = 'Tax / VAT (Included)',
     discount,
+    payments = [],
+    balanceDue,
     total,
     isInvoiceMode = false,
   } = options;
@@ -245,10 +249,24 @@ export function generateThermalReceiptHtml(options: {
           </div>
         ` : ''}
 
+        ${Array.isArray(payments) && payments.length > 0 ? payments.map(p => `
+          <div class="totals-row" style="color: #059669; font-weight: 600;">
+            <span>Payment (${p.method}):</span>
+            <span>-${p.amount}</span>
+          </div>
+        `).join('') : ''}
+
         <div class="grand-total">
           <span>TOTAL:</span>
           <span>${total}</span>
         </div>
+
+        ${Array.isArray(payments) && payments.length > 0 && balanceDue ? `
+          <div class="totals-row" style="font-weight: 800; font-size: 15px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #000;">
+            <span>BALANCE DUE:</span>
+            <span>${balanceDue}</span>
+          </div>
+        ` : ''}
 
         ${isInvoiceMode && settings.invoice.showSignatureLine ? `
           <div class="sig-box">

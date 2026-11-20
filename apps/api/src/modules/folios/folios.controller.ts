@@ -77,8 +77,8 @@ export class FoliosController {
   }
 
   @Patch(':id/items/:itemId')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
-  @ApiOperation({ summary: 'Update a line item in a folio (amount, description, category)' })
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
+  @ApiOperation({ summary: 'Update a line item in a folio (CEO/Admin/SuperAdmin only)' })
   updateLineItem(
     @Param('id') id: string,
     @Param('itemId') itemId: string,
@@ -89,8 +89,8 @@ export class FoliosController {
   }
 
   @Delete(':id/items/:itemId')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
-  @ApiOperation({ summary: 'Delete a line item from a folio' })
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
+  @ApiOperation({ summary: 'Delete a line item from a folio (CEO/Admin/SuperAdmin only)' })
   deleteLineItem(
     @Param('id') id: string,
     @Param('itemId') itemId: string,
@@ -100,8 +100,8 @@ export class FoliosController {
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'FRONT_DESK', 'ACCOUNTANT', 'CASHIER')
-  @ApiOperation({ summary: 'Delete a folio and its line items' })
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
+  @ApiOperation({ summary: 'Delete a folio and its line items (CEO/Admin/SuperAdmin only)' })
   deleteFolio(
     @Param('id') id: string,
     @Req() req: any,

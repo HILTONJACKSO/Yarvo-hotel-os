@@ -196,7 +196,7 @@ export class PosController {
   }
 
   @Post('orders/:id/reverse-discount')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
   reverseDiscount(
     @Param('id') id: string,
     @Req() req: any
@@ -216,7 +216,7 @@ export class PosController {
   }
 
   @Delete('orders/:id')
-  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO', 'MANAGER', 'CASHIER')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'CEO')
   deleteOrder(@Param('id') id: string) {
     return this.posService.deleteOrder(id);
   }

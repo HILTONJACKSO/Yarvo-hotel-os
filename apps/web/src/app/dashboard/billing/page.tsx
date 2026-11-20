@@ -164,24 +164,59 @@ export default function BillingPage() {
     let totalCharges = 0;
     let totalDiscounts = 0;
     let totalPayments = 0;
-    
-    (selectedBill.lineItems || []).forEach((item: any) => {
-      const amt = Number(item.amount);
-      if (item.type === 'CHARGE') totalCharges += amt;
-      if (item.type === 'ADJUSTMENT') totalDiscounts += Math.abs(amt);
-      if (item.type === 'PAYMENT') totalPayments += Math.abs(amt);
-      const isSub = (item.type === 'PAYMENT' || item.type === 'ADJUSTMENT' || amt < 0);
-      const displayAmt = isSub ? `-${format(Math.abs(amt))}` : format(Math.abs(amt));
-      itemsHtml += `
-        <div class="summary-row" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; font-family:monospace; color:#000;">
-          <span style="flex:1;">${new Date(item.createdAt).toLocaleDateString()} ${item.description.substring(0, 20)}</span>
-          <span style="font-weight:500;">${displayAmt}</span>
-        </div>
-      `;
-    });
+    let paymentLinesHtml = '';
+
+    if (selectedBill.type === 'POS_ORDER') {
+      totalCharges = Number(selectedBill.totalAmount || 0);
+      totalDiscounts = Number(selectedBill.discountAmount || 0);
+      (selectedBill.items || []).forEach((item: any) => {
+        const isRet = item.status === 'RETURNED';
+        const lineTotal = isRet ? 0 : Number(item.menuItem?.price || 0) * Number(item.quantity || 1);
+        itemsHtml += `
+          <div class="summary-row" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; font-family:monospace; color:#000;">
+            <span style="flex:1;">${item.quantity}x ${(item.menuItem?.name || 'Item').substring(0, 24)}</span>
+            <span style="font-weight:500;">${format(lineTotal)}</span>
+          </div>
+        `;
+      });
+      (selectedBill.payments || []).forEach((p: any) => {
+        const pAmt = Math.abs(Number(p.amount || 0));
+        totalPayments += pAmt;
+        const methodLabel = String(p.method || 'CASH').replace('PAYMENT_', '');
+        paymentLinesHtml += `
+          <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#059669; font-weight:600;">
+            <span>Payment (${methodLabel})</span><span>-${format(pAmt)}</span>
+          </div>
+        `;
+      });
+    } else {
+      (selectedBill.lineItems || []).forEach((item: any) => {
+        const amt = Number(item.amount);
+        if (item.type === 'CHARGE') totalCharges += amt;
+        if (item.type === 'ADJUSTMENT') totalDiscounts += Math.abs(amt);
+        if (item.type === 'PAYMENT') {
+          const pAmt = Math.abs(amt);
+          totalPayments += pAmt;
+          const methodLabel = String(item.category || 'CASH').replace('PAYMENT_', '');
+          paymentLinesHtml += `
+            <div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#059669; font-weight:600;">
+              <span>Payment (${methodLabel})</span><span>-${format(pAmt)}</span>
+            </div>
+          `;
+        }
+        const isSub = (item.type === 'PAYMENT' || item.type === 'ADJUSTMENT' || amt < 0);
+        const displayAmt = isSub ? `-${format(Math.abs(amt))}` : format(Math.abs(amt));
+        itemsHtml += `
+          <div class="summary-row" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; font-family:monospace; color:#000;">
+            <span style="flex:1;">${new Date(item.createdAt).toLocaleDateString()} ${(item.description || '').substring(0, 20)}</span>
+            <span style="font-weight:500;">${displayAmt}</span>
+          </div>
+        `;
+      });
+    }
 
     const gst = totalCharges - (totalCharges / 1.10);
-    const bal = (selectedBill?.balance || 0);
+    const bal = selectedBill.type === 'POS_ORDER' ? getPosBalanceDue(selectedBill) : (selectedBill?.balance || 0);
 
     const docHtml = `
       <html><head><title>Bill ${mode}</title></head>
@@ -208,10 +243,10 @@ export default function BillingPage() {
           <span style="color:#666;">Date:</span><span>${new Date().toLocaleDateString()}</span>
         </div>
         <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
-          <span style="color:#666;">Guest:</span><span>${selectedBill.reservation?.guest?.firstName || ''} ${selectedBill.reservation?.guest?.lastName || ''}</span>
+          <span style="color:#666;">Guest:</span><span>${selectedBill.reservation?.guest ? `${selectedBill.reservation.guest.firstName || ''} ${selectedBill.reservation.guest.lastName || ''}` : (selectedBill.guest ? `${selectedBill.guest.firstName || ''} ${selectedBill.guest.lastName || ''}` : 'Walk-in Guest')}</span>
         </div>
         <div style="font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; color:#000;">
-          <span style="color:#666;">Room:</span><span>${selectedBill.reservation?.room?.number || 'N/A'}</span>
+          <span style="color:#666;">${selectedBill.type === 'POS_ORDER' ? 'Location:' : 'Room:'}</span><span>${selectedBill.type === 'POS_ORDER' ? (selectedBill.table?.number ? `Table ${selectedBill.table.number}` : 'Walk-in') : (selectedBill.reservation?.room?.number || 'N/A')}</span>
         </div>
         
         <div style="border-bottom:1px dashed #000; margin:12px 0;"></div>
@@ -225,9 +260,10 @@ export default function BillingPage() {
           <span style="color:#555;">GST Included (10%)</span><span style="color:#555;">${format(gst)}</span>
         </div>
         ${totalDiscounts > 0 ? `<div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#dc2626;">
-          <span>Total Discounts</span><span>-${format(totalDiscounts)}</span>
+          <span>Discount</span><span>-${format(totalDiscounts)}</span>
         </div>` : ''}
-        ${totalPayments > 0 ? `<div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#059669;">
+        ${paymentLinesHtml}
+        ${totalPayments > 0 ? `<div style="font-size:12px; display:flex; justify-content:space-between; margin-top:4px; color:#059669; font-weight:700;">
           <span>Total Payments</span><span>-${format(totalPayments)}</span>
         </div>` : ''}
         
@@ -732,11 +768,11 @@ export default function BillingPage() {
                         <span className="font-bold text-rose-400">{format(getPosBalanceDue(b))}</span>
                       </div>
                       <div className="text-xs text-slate-400">
-                        {b.table?.number ? `Table ${b.table.number} ? ` : ''}{b.items?.length || 0} items{b.guest?.phone ? ` ? ${b.guest.phone}` : ''}
+                        {b.table?.number ? `Table ${b.table.number} • ` : ''}{b.items?.length || 0} items{b.guest?.phone ? ` • ${b.guest.phone}` : ''}
                       </div>
                       {(b.guest || (b.notes || '').includes('[PENDING_BILL]')) && (
                         <div className="mt-2 inline-block px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-[10px] font-bold uppercase tracking-wider">
-                          Pending Bill ? Walk-in Guest
+                          Pending Bill • Walk-in Guest
                         </div>
                       )}
                     </>
@@ -816,7 +852,7 @@ export default function BillingPage() {
                         >
                           <Send size={13} /> Send Bill
                         </button>
-                        {(isAdmin || isCashierOrManager || isFrontDesk) && (
+                        {isAdmin && (
                           <button onClick={() => setIsDeleteFolioModalOpen(true)} className="bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 text-xs px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5">
                             <Trash2 size={13} /> Delete Bill
                           </button>
@@ -870,24 +906,28 @@ export default function BillingPage() {
                                 )}
                               </td>
                               <td className="p-3 text-center">
-                                <div className="flex items-center justify-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    title="Edit Item (amount, description)"
-                                    onClick={() => handleOpenEditModal(item)}
-                                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 border border-slate-700 hover:border-cyan-500/30 transition-all"
-                                  >
-                                    <Edit size={14} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    title="Delete Item"
-                                    onClick={() => handleDeleteLineItem(item.id)}
-                                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 transition-all"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
+                                {isAdmin ? (
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      title="Edit Item (amount, description)"
+                                      onClick={() => handleOpenEditModal(item)}
+                                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 border border-slate-700 hover:border-cyan-500/30 transition-all"
+                                    >
+                                      <Edit size={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      title="Delete Item"
+                                      onClick={() => handleDeleteLineItem(item.id)}
+                                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 transition-all"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-slate-500">Locked</span>
+                                )}
                               </td>
                             </tr>
                           );
@@ -953,7 +993,7 @@ export default function BillingPage() {
                       : `POS Order #${selectedBill.id.substring(0,8).toUpperCase()}`}
                   </h2>
                   <div className="text-slate-400 font-medium">
-                    Order #{selectedBill.id.substring(0,8).toUpperCase()} ? Printed: {selectedBill.invoicePrintCount} times
+                    Order #{selectedBill.id.substring(0,8).toUpperCase()} • Printed: {selectedBill.invoicePrintCount} times
                   </div>
                 </div>
                 <div className="text-right">
@@ -962,6 +1002,10 @@ export default function BillingPage() {
                   {Number(selectedBill.discountAmount || 0) > 0 && (
                     <div className="text-xs text-emerald-400 mt-1">Discount Applied: -{format(Number(selectedBill.discountAmount))}</div>
                   )}
+                  <div className="flex gap-2 justify-end mt-2">
+                    <button onClick={() => printViaIframe('INVOICE')} className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Invoice</button>
+                    <button onClick={() => printViaIframe('RECEIPT')} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded-md transition-colors">Print Receipt</button>
+                  </div>
                 </div>
               </div>
               <div className="flex-1 p-6 overflow-y-auto space-y-6">
@@ -1006,7 +1050,7 @@ export default function BillingPage() {
                 )}
               </div>
               <div className="p-6 border-t border-slate-700 bg-slate-900/50 flex flex-wrap gap-3 items-center justify-end">
-                {(isAdmin || isCashierOrManager) && (
+                {isAdmin && (
                   <button onClick={handleDeletePOS} className="bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 px-5 py-3 rounded-xl font-bold transition-all flex items-center gap-2 mr-auto">
                     <Trash2 size={18} /> Delete POS Order
                   </button>

@@ -129,22 +129,6 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Hotel Room Performance Revenue Summary (matching F&B / Reports style) */}
-      <div className="hotel-perf-cards">
-        <div className="hotel-perf-card">
-          <span className="hp-label">Hotel Room Revenue (Today)</span>
-          <span className="hp-val">{loading ? '...' : format(metrics?.hotelTodayRevenue || '0.00')}</span>
-        </div>
-        <div className="hotel-perf-card">
-          <span className="hp-label">Hotel Room Revenue (This Week)</span>
-          <span className="hp-val">{loading ? '...' : format(metrics?.hotelWeekRevenue || '0.00')}</span>
-        </div>
-        <div className="hotel-perf-card">
-          <span className="hp-label">Hotel Room Revenue (This Month)</span>
-          <span className="hp-val">{loading ? '...' : format(metrics?.hotelMonthRevenue || '0.00')}</span>
-        </div>
-      </div>
-
       <div className="dashboard-content-grid">
         <div className="chart-section">
           <div className="section-header">
